@@ -1,0 +1,194 @@
+/* Unterrichtsmodus: ablenkungsfrei, große Typografie, große Bedienziele. */
+
+.teach {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--paper);
+  color: var(--text);
+}
+
+.teach__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+}
+
+.teach__step {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+}
+
+.teach__step-number {
+  font-weight: 700;
+  color: var(--petrol);
+}
+
+.teach__counter {
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.teach__progress {
+  width: 100%;
+}
+
+.teach__stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* „safe“ verhindert, dass bei viel Inhalt der Anfang unerreichbar wird. */
+  justify-content: safe center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  overflow-y: auto;
+  text-align: center;
+}
+
+.teach__situation {
+  font-size: clamp(1.125rem, 2.4vw, 1.75rem);
+  color: var(--text-muted);
+  max-width: 46ch;
+}
+
+.teach__expression {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.teach__utterance {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  line-height: 1.2;
+  max-width: 24ch;
+}
+
+.teach__meaning {
+  font-size: clamp(1.25rem, 3vw, 2.25rem);
+  max-width: 32ch;
+}
+
+.teach__prompt {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  max-width: 40ch;
+}
+
+.teach__support {
+  font-size: clamp(1rem, 1.8vw, 1.375rem);
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.teach__frame {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 2.6vw, 2rem);
+  padding: var(--space-3) var(--space-5);
+  background: var(--sand-soft);
+  border: 1px solid var(--sand-line);
+  border-radius: var(--radius-lg);
+  color: var(--sand-text);
+}
+
+.teach__media img {
+  max-height: 46vh;
+  max-width: min(90vw, 60rem);
+  border-radius: var(--radius-lg);
+  display: block;
+}
+
+.teach__media video {
+  max-height: 46vh;
+  max-width: min(90vw, 60rem);
+  border-radius: var(--radius-lg);
+}
+
+.teach__placeholder {
+  padding: var(--space-6) var(--space-7);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-faint);
+  font-size: var(--text-lg);
+}
+
+.teach__teacher-note {
+  max-width: 60ch;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.teach__bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--paper-raised);
+  flex-wrap: wrap;
+}
+
+.teach__toggles {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.teach .btn,
+.teach .icon-btn,
+.toggle-btn {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.toggle-btn:hover {
+  color: var(--text);
+}
+
+.toggle-btn--on {
+  background: var(--petrol-soft);
+  border-color: var(--petrol-line);
+  color: var(--petrol);
+  font-weight: 600;
+}
+
+.teach__status-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.teach__note-field {
+  width: min(100%, 28rem);
+}
+
+@media (max-width: 640px) {
+  .teach__bottom {
+    gap: var(--space-2);
+  }
+
+  .teach__stage {
+    padding: var(--space-4) var(--space-3) var(--space-5);
+    gap: var(--space-4);
+  }
+}
