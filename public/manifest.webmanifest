@@ -1,0 +1,22 @@
+{
+  "id": "lexiscene",
+  "name": "LexiScène – Wortschatzeinführung",
+  "short_name": "LexiScène",
+  "description": "Semantisierungsregie für die Einführung lexikalischer Einheiten im Fremdsprachenunterricht. Alle Daten bleiben lokal auf dem Gerät.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#F7F3EC",
+  "theme_color": "#1F5E63",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
