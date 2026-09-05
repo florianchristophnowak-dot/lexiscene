@@ -1,0 +1,149 @@
+import { useMediaUrl } from '../../app/media';
+import { buildCheckPrompt } from '../../domain/checks';
+import { languageLabel, type Lexeme, type Sequence } from '../../domain/model';
+import type { StepDefinition, StepVisibility } from '../../domain/steps';
+import { firstFilled } from '../../domain/text';
+
+/** Bild oder Video der aktuellen Einheit. */
+function StageMedia({ lexeme }: { lexeme: Lexeme }) {
+  const image = useMediaUrl(lexeme.imageId);
+  const video = useMediaUrl(lexeme.videoId);
+
+  if (video.url) {
+    return (
+      <div className="teach__media">
+        <video src={video.url} controls playsInline />
+      </div>
+    );
+  }
+  if (image.url) {
+    return (
+      <div className="teach__media">
+        <img src={image.url} alt="" />
+      </div>
+    );
+  }
+  if (image.loading || video.loading) return <p className="teach__support">Medien werden geladen …</p>;
+  return null;
+}
+
+const MEDIA_STEPS = ['impuls', 'vermuten', 'hilfen-ausblenden', 'abruf', 'kontrolle'];
+
+export interface TeachStageProps {
+  sequence: Sequence;
+  lexeme: Lexeme;
+  step: StepDefinition;
+  visibility: StepVisibility;
+  showTranslation: boolean;
+  /**
+   * Lehrkraftansicht: zeigt zusätzlich Hinweise, die nicht an die Klasse
+   * gehen. Im Projektionsfenster ist das immer aus.
+   */
+  teacherView: boolean;
+}
+
+export function TeachStage({ sequence, lexeme, step, visibility, showTranslation, teacherView }: TeachStageProps) {
+  const audio = useMediaUrl(lexeme.audioId);
+  const checkPrompt = buildCheckPrompt(lexeme);
+  const showMedia = MEDIA_STEPS.includes(step.id);
+  const supportLines = [lexeme.pronunciationHint, lexeme.prosodyNote, lexeme.ipa, lexeme.morphology].filter(
+    (line) => line && line.trim(),
+  );
+
+  const stepContent = (() => {
+    switch (step.id) {
+      case 'situation':
+        return <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example, sequence.topic)}</p>;
+      case 'impuls':
+        return lexeme.imageId || lexeme.videoId ? null : (
+          <p className="teach__placeholder">{firstFilled(lexeme.semantisationMethod, 'Impuls zeigen')}</p>
+        );
+      case 'audio':
+        return audio.url ? null : <p className="teach__prompt">Hört genau zu.</p>;
+      case 'vermuten':
+        return <p className="teach__prompt">Was könnte das bedeuten?</p>;
+      case 'klaeren':
+      case 'form':
+        return null;
+      case 'fokus':
+        return lexeme.sentenceFrame ? <p className="teach__frame">{lexeme.sentenceFrame}</p> : null;
+      case 'kontrolle':
+        return checkPrompt ? <p className="teach__prompt">{checkPrompt}</p> : null;
+      case 'hilfen-ausblenden':
+        return <p className="teach__prompt">Die Hilfen sind weg – wer kann die Einheit noch nennen?</p>;
+      case 'abruf':
+        return (
+          <>
+            <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example)}</p>
+            <p className="teach__prompt">Wie sagt man das auf {languageLabel(sequence.targetLanguage)}?</p>
+          </>
+        );
+      case 'aufgabe':
+        return (
+          <p className="teach__prompt">
+            {firstFilled(
+              lexeme.communicativeTask,
+              lexeme.extensionTask,
+              `Verwendet „${lexeme.expression}“ in einer eigenen Situation.`,
+            )}
+          </p>
+        );
+      default:
+        return null;
+    }
+  })();
+
+  return (
+    <div className="teach__stage">
+      {showMedia ? <StageMedia lexeme={lexeme} /> : null}
+      {stepContent}
+
+      {visibility.form ? <p className="teach__expression">{lexeme.expression}</p> : null}
+      {visibility.form && lexeme.modelUtterance && step.id !== 'form' ? (
+        <p className="teach__utterance">{lexeme.modelUtterance}</p>
+      ) : null}
+      {visibility.meaning ? <p className="teach__meaning">{lexeme.coreMeaning}</p> : null}
+      {showTranslation && lexeme.translation ? <p className="teach__meaning">{lexeme.translation}</p> : null}
+
+      {visibility.support && supportLines.length > 0 ? <p className="teach__support">{supportLines.join(' · ')}</p> : null}
+      {visibility.support && lexeme.sentenceFrame && step.id !== 'fokus' ? (
+        <p className="teach__frame">{lexeme.sentenceFrame}</p>
+      ) : null}
+
+      {teacherView ? (
+        <>
+          {step.id === 'audio' && !audio.url && lexeme.modelUtterance ? (
+            <p className="teach__teacher-note">Für die Lehrkraft: „{lexeme.modelUtterance}“ zweimal vorsprechen.</p>
+          ) : null}
+          {step.id === 'impuls' && (lexeme.imageId || lexeme.videoId) && lexeme.semantisationMethod ? (
+            <p className="teach__teacher-note">Für die Lehrkraft: {lexeme.semantisationMethod}</p>
+          ) : null}
+          {visibility.support && lexeme.extraHint ? <p className="teach__teacher-note">Hinweis: {lexeme.extraHint}</p> : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Zusätzliche Angaben, die nur die Lehrkraft sieht, wenn projiziert wird. */
+export function TeacherPanel({ lexeme, step }: { lexeme: Lexeme; step: StepDefinition }) {
+  const lines = [
+    lexeme.modelUtterance ? `Modelläußerung: ${lexeme.modelUtterance}` : '',
+    lexeme.coreMeaning ? `Bedeutung: ${lexeme.coreMeaning}` : '',
+    lexeme.semantisationMethod ? `Methode: ${lexeme.semantisationMethod}` : '',
+    lexeme.confusionRisk ? `Achtung: ${lexeme.confusionRisk}` : '',
+    lexeme.liveNote ? `Notiz: ${lexeme.liveNote}` : '',
+  ].filter(Boolean);
+
+  return (
+    <aside className="teacher-panel" aria-label="Nur auf diesem Bildschirm sichtbar">
+      <p className="teacher-panel__title">Nur auf diesem Bildschirm · {step.label}</p>
+      <p className="teacher-panel__purpose">{step.purpose}</p>
+      {lines.map((line) => (
+        <p className="teacher-panel__line" key={line}>
+          {line}
+        </p>
+      ))}
+    </aside>
+  );
+}

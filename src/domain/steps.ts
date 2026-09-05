@@ -40,6 +40,42 @@ export function stepDefinition(id: StepId): StepDefinition | undefined {
   return STEPS.find((step) => step.id === id);
 }
 
+/**
+ * Macht aus beliebigen Eingaben eine gültige Reihenfolge: unbekannte und
+ * doppelte Einträge fallen weg, fehlende Schritte werden hinten ergänzt.
+ */
+export function normalizeStepOrder(raw: unknown): StepId[] {
+  const known = new Set<StepId>(STEP_IDS);
+  const order: StepId[] = [];
+
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (typeof entry === 'string' && known.has(entry as StepId) && !order.includes(entry as StepId)) {
+        order.push(entry as StepId);
+      }
+    }
+  }
+
+  for (const stepId of STEP_IDS) if (!order.includes(stepId)) order.push(stepId);
+  return order;
+}
+
+/** Gültige Reihenfolge für diese Einheit: eigene Reihenfolge vor der der Sequenz. */
+export function effectiveStepOrder(sequence: Sequence, lexeme?: Lexeme): StepId[] {
+  if (lexeme?.stepOrderOverride) return normalizeStepOrder(lexeme.stepOrderOverride);
+  return normalizeStepOrder(sequence.stepOrder);
+}
+
+/** Verschiebt einen Schritt innerhalb einer Reihenfolge. */
+export function moveStep(order: StepId[], from: number, to: number): StepId[] {
+  if (from < 0 || from >= order.length) return order;
+  const target = Math.min(Math.max(to, 0), order.length - 1);
+  const next = [...order];
+  const [moved] = next.splice(from, 1);
+  next.splice(target, 0, moved);
+  return next;
+}
+
 const hasText = (...values: (string | undefined)[]): boolean => values.some((value) => Boolean(value && value.trim()));
 
 /** Ein Schritt wird nur angeboten, wenn dafür überhaupt Material vorliegt. */
@@ -86,9 +122,12 @@ export function isStepEnabled(sequence: Sequence, lexeme: Lexeme, id: StepId): b
   return sequence.steps?.[id] !== false;
 }
 
-/** Alle Schritte, die für diese Einheit tatsächlich gezeigt werden. */
+/** Alle Schritte, die für diese Einheit tatsächlich gezeigt werden – in der gewählten Reihenfolge. */
 export function resolveSteps(sequence: Sequence, lexeme: Lexeme): StepDefinition[] {
-  return STEPS.filter((step) => isStepEnabled(sequence, lexeme, step.id) && stepHasContent(step.id, lexeme));
+  return effectiveStepOrder(sequence, lexeme)
+    .map((stepId) => stepDefinition(stepId))
+    .filter((step): step is StepDefinition => Boolean(step))
+    .filter((step) => isStepEnabled(sequence, lexeme, step.id) && stepHasContent(step.id, lexeme));
 }
 
 /** Sichtbarkeit der Hilfen beim Betreten eines Schritts (gestufte Enthüllung). */

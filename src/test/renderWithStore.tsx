@@ -15,6 +15,7 @@ export function createTestActions(overrides: Partial<StoreActions> = {}): StoreA
     deleteSequence: vi.fn().mockResolvedValue(undefined),
     setArchived: vi.fn(),
     addLexeme: vi.fn().mockReturnValue('lex_neu'),
+    addLexemes: vi.fn().mockReturnValue(0),
     updateLexeme: vi.fn(),
     setLexemeStatus: vi.fn(),
     duplicateLexeme: vi.fn().mockReturnValue('lex_kopie'),

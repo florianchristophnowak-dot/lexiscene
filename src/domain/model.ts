@@ -194,6 +194,8 @@ export interface Lexeme {
   situation: string;
   communicativeTask: string;
   stepOverrides: Partial<Record<StepId, boolean>>;
+  /** Eigene Schrittreihenfolge; null bedeutet: Reihenfolge der Sequenz gilt. */
+  stepOrderOverride: StepId[] | null;
   skipped: boolean;
   status: ClassStatus | null;
   statusUpdatedAt: number | null;
@@ -231,6 +233,8 @@ export interface Sequence {
   teacherNote: string;
   archived: boolean;
   steps: Record<StepId, boolean>;
+  /** Reihenfolge der Dramaturgie – frei sortierbar. */
+  stepOrder: StepId[];
   lexemes: Lexeme[];
   reactivation: ReactivationPlan;
   session: TeachSession | null;

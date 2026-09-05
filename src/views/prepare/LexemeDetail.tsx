@@ -3,11 +3,12 @@ import { useStore } from '../../app/storeContext';
 import { suggestMethods, SEMANTISATION_METHODS } from '../../domain/advisor';
 import { CHECK_TEMPLATES, buildCheckPrompt, recommendedChecks } from '../../domain/checks';
 import { CLASS_STATUSES, LEXICAL_TYPES, REPERTOIRES, type Lexeme, type Sequence } from '../../domain/model';
-import { STEPS, isStepEnabled, stepHasContent } from '../../domain/steps';
+import { effectiveStepOrder, isStepEnabled, moveStep, stepHasContent } from '../../domain/steps';
 import { Button, IconButton } from '../../ui/Button';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible } from '../../ui/Feedback';
 import { MediaSlot } from './MediaSlot';
+import { StepOrderList } from './StepOrderList';
 
 interface Props {
   sequence: Sequence;
@@ -22,6 +23,8 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
   const suggestions = suggestMethods(lexeme.lexicalType);
   const recommended = recommendedChecks(lexeme.lexicalType);
   const checkPreview = buildCheckPrompt(lexeme);
+  const stepOrder = effectiveStepOrder(sequence, lexeme);
+  const hasOwnOrder = Boolean(lexeme.stepOrderOverride);
 
   return (
     <div className="stack">
@@ -243,21 +246,33 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
 
         <div className="stack-tight">
           <span className="field__label">Schritte für diese Einheit</span>
-          {STEPS.map((step) => {
-            const hasContent = stepHasContent(step.id, lexeme);
-            return (
-              <CheckboxRow
-                key={step.id}
-                label={`${step.position}. ${step.label}`}
-                hint={hasContent ? undefined : 'kein Material hinterlegt – wird übersprungen'}
-                checked={isStepEnabled(sequence, lexeme, step.id)}
-                onChange={(checked) => set({ stepOverrides: { ...lexeme.stepOverrides, [step.id]: checked } })}
-              />
-            );
-          })}
-          <Button variant="ghost" onClick={() => set({ stepOverrides: {} })}>
-            Vorgaben der Sequenz übernehmen
-          </Button>
+          <p className="field__hint">
+            {hasOwnOrder
+              ? 'Diese Einheit hat eine eigene Reihenfolge.'
+              : 'Es gilt die Reihenfolge der Sequenz.'}
+          </p>
+          <StepOrderList
+            order={stepOrder}
+            isEnabled={(stepId) => isStepEnabled(sequence, lexeme, stepId)}
+            onToggle={(stepId, checked) => set({ stepOverrides: { ...lexeme.stepOverrides, [stepId]: checked } })}
+            onMove={hasOwnOrder ? (from, to) => set({ stepOrderOverride: moveStep(stepOrder, from, to) }) : undefined}
+            lockedHint="Erst eine eigene Reihenfolge für diese Einheit anlegen"
+            hintFor={(stepId) => (stepHasContent(stepId, lexeme) ? undefined : 'kein Material hinterlegt – wird übersprungen')}
+          />
+          <div className="row">
+            {hasOwnOrder ? (
+              <Button variant="ghost" onClick={() => set({ stepOrderOverride: null })}>
+                Reihenfolge der Sequenz übernehmen
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={() => set({ stepOrderOverride: stepOrder })}>
+                Eigene Reihenfolge für diese Einheit
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => set({ stepOverrides: {} })}>
+              Schrittauswahl zurücksetzen
+            </Button>
+          </div>
         </div>
       </Collapsible>
     </div>

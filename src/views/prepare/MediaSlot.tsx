@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useMediaUrl } from '../../app/media';
+import { formatDuration, useAudioRecorder } from '../../app/recorder';
 import { useStore } from '../../app/storeContext';
 import type { Lexeme, MediaKind } from '../../domain/model';
 import { formatBytes } from '../../domain/text';
@@ -33,25 +34,34 @@ export function MediaSlot({ sequenceId, lexeme, kind, label }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
+  const attach = useCallback(
+    async (file: File) => {
+      setBusy(true);
+      try {
+        await actions.attachMedia(sequenceId, lexeme.id, kind, file);
+        toast.show(`${label} hinterlegt.`, 'success');
+      } catch {
+        toast.show(`${label} konnte nicht gespeichert werden.`, 'error');
+      } finally {
+        setBusy(false);
+      }
+    },
+    [actions, kind, label, lexeme.id, sequenceId, toast],
+  );
+
+  const recorder = useAudioRecorder(attach);
+
   const mediaId = lexeme[FIELD[kind]];
   const meta = mediaId ? state.mediaIndex[mediaId] : undefined;
   const { url, loading, missing } = useMediaUrl(mediaId);
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
-    setBusy(true);
-    try {
-      if (file.size > LARGE_FILE_BYTES) {
-        toast.show(`Große Datei (${formatBytes(file.size)}) – das belegt viel lokalen Speicher.`);
-      }
-      await actions.attachMedia(sequenceId, lexeme.id, kind, file);
-      toast.show(`${label} hinterlegt.`, 'success');
-    } catch {
-      toast.show(`${label} konnte nicht gespeichert werden.`, 'error');
-    } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = '';
+    if (file.size > LARGE_FILE_BYTES) {
+      toast.show(`Große Datei (${formatBytes(file.size)}) – das belegt viel lokalen Speicher.`);
     }
+    await attach(file);
+    if (inputRef.current) inputRef.current.value = '';
   };
 
   return (
@@ -75,13 +85,37 @@ export function MediaSlot({ sequenceId, lexeme, kind, label }: Props) {
         </span>
       ) : null}
 
+      {kind === 'audio' && recorder.supported ? (
+        <div className="row">
+          {recorder.state === 'recording' ? (
+            <>
+              <Button variant="primary" onClick={recorder.stop}>
+                Aufnahme beenden ({formatDuration(recorder.seconds)})
+              </Button>
+              <Button variant="ghost" onClick={recorder.cancel}>
+                Verwerfen
+              </Button>
+              <span className="media-slot__recording" role="status">
+                Aufnahme läuft
+              </span>
+            </>
+          ) : (
+            <Button disabled={busy || recorder.state === 'requesting'} onClick={() => void recorder.start()}>
+              {recorder.state === 'requesting' ? 'Mikrofon wird angefragt …' : 'Selbst aufnehmen'}
+            </Button>
+          )}
+        </div>
+      ) : null}
+
+      {recorder.error ? <span className="field__hint">{recorder.error}</span> : null}
+
       <input
         ref={inputRef}
         className="file-input"
         type="file"
         accept={ACCEPT[kind]}
         aria-label={`${label} auswählen`}
-        disabled={busy}
+        disabled={busy || recorder.state === 'recording'}
         onChange={(event) => void handleFile(event.target.files?.[0])}
       />
 

@@ -192,3 +192,55 @@
     gap: var(--space-4);
   }
 }
+
+/* ------------------------------------------- Lehrkraftansicht bei Projektion */
+
+.teacher-panel {
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  text-align: left;
+}
+
+.teacher-panel__title {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.teacher-panel__purpose {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.teacher-panel__line {
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.projection {
+  cursor: none;
+}
+
+.projection__waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.projection__hint {
+  position: fixed;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  opacity: 0.5;
+}

@@ -25,6 +25,10 @@ andere Werkzeuge übernommen werden können.
     "klaeren": true, "form": true, "fokus": true, "kontrolle": true,
     "hilfen-ausblenden": true, "abruf": true, "aufgabe": true
   },
+  "stepOrder": [              // frei sortierbare Reihenfolge der Schritte
+    "situation", "impuls", "audio", "vermuten", "klaeren", "form",
+    "fokus", "kontrolle", "hilfen-ausblenden", "abruf", "aufgabe"
+  ],
   "lexemes": [ /* siehe 2. */ ],
   "reactivation": {
     "enabled": false,
@@ -65,7 +69,7 @@ Einzelwörter (`Ça te dit de… ?`, `avoir besoin de qc`).
 
 **Differenzierung:** `extraHint`, `simplifiedExplanation`, `translation`, `multilingualComparison`, `extensionTask`
 
-**Unterricht:** `situation`, `communicativeTask`, `stepOverrides` (überschreibt `steps` der Sequenz je Schritt), `skipped`, `status`, `statusUpdatedAt`, `liveNote`
+**Unterricht:** `situation`, `communicativeTask`, `stepOverrides` (überschreibt `steps` der Sequenz je Schritt), `stepOrderOverride` (eigene Schrittreihenfolge; `null` = Reihenfolge der Sequenz), `skipped`, `status`, `statusUpdatedAt`, `liveNote`
 
 `status` ist einer der Klassenstatus – bewusst keine automatische Bewertung:
 `begegnet`, `bedeutung-erkannt`, `bedeutung-erinnert`, `form-abgerufen`,
@@ -100,7 +104,9 @@ lexiscene-sicherung-JJJJ-MM-TT.zip
 
 Beim Einlesen gilt: Unbekannte Felder werden ignoriert, fehlende Felder mit
 Standardwerten gefüllt, ein höherer `schemaVersion`-Wert wird mit einer
-verständlichen Meldung abgelehnt.
+verständlichen Meldung abgelehnt. Reihenfolgeangaben (`stepOrder`,
+`stepOrderOverride`) werden bereinigt: Unbekanntes und Doppeltes fällt weg,
+fehlende Schritte werden in der Standardreihenfolge ergänzt.
 
 ## 4. Einzelexport einer Sequenz
 

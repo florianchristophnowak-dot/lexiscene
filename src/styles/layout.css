@@ -419,11 +419,13 @@
 .quick-add {
   display: flex;
   gap: var(--space-2);
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
 
-.quick-add .input {
+/* Die Feldhülle wächst, nicht das Eingabefeld selbst – sonst wirkt die
+   Flex-Basis auf die Höhe. */
+.quick-add .field {
   flex: 1 1 12rem;
   min-width: 0;
 }
@@ -601,5 +603,136 @@
 
   .prepare--mid-detail {
     grid-template-columns: minmax(0, 1fr) 21rem;
+  }
+}
+
+/* --------------------------------------------------------- Tabellenimport */
+
+.import-preview__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.import-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.import-table th {
+  padding: var(--space-2);
+  background: var(--surface-sunken);
+  text-align: left;
+  vertical-align: top;
+}
+
+.import-table th .select {
+  min-width: 11rem;
+  font-size: var(--text-sm);
+}
+
+.import-table td {
+  padding: var(--space-2);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.import-table__header-row td {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ Dramaturgie */
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.step-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.step-item--off {
+  background: transparent;
+  opacity: 0.65;
+}
+
+.step-item--dragging {
+  opacity: 0.4;
+}
+
+.step-item--drop-target {
+  box-shadow: 0 -2px 0 var(--petrol);
+}
+
+.step-item__position {
+  min-width: 1.5rem;
+  padding-top: 0.15rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.step-item__label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.step-item__label input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--petrol);
+  flex: 0 0 auto;
+}
+
+.step-item__name {
+  font-weight: 600;
+}
+
+.step-item__actions {
+  display: flex;
+  gap: 2px;
+}
+
+.media-slot__recording {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.media-slot__recording::before {
+  content: '';
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: aufnahme-puls 1.4s ease-in-out infinite;
+}
+
+@keyframes aufnahme-puls {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
   }
 }

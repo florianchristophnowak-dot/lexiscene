@@ -19,7 +19,7 @@ import {
   LEXICAL_TYPES,
   REPERTOIRES,
 } from './model';
-import { STEP_IDS, defaultStepConfig } from './steps';
+import { STEP_IDS, defaultStepConfig, normalizeStepOrder } from './steps';
 
 export class SchemaError extends Error {
   constructor(message: string) {
@@ -84,6 +84,7 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     situation: '',
     communicativeTask: '',
     stepOverrides: {},
+    stepOrderOverride: null,
     skipped: false,
     status: null,
     statusUpdatedAt: null,
@@ -107,6 +108,7 @@ export function createSequence(partial: Partial<Sequence> = {}): Sequence {
     teacherNote: '',
     archived: false,
     steps: defaultStepConfig(),
+    stepOrder: [...STEP_IDS],
     lexemes: [],
     reactivation: { enabled: false, offsetsDays: [...DEFAULT_SETTINGS.reactivationOffsets], anchor: null, completedRounds: 0 },
     session: null,
@@ -167,6 +169,7 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     situation: asString(source.situation),
     communicativeTask: asString(source.communicativeTask),
     stepOverrides,
+    stepOrderOverride: Array.isArray(source.stepOrderOverride) ? normalizeStepOrder(source.stepOrderOverride) : null,
     skipped: asBoolean(source.skipped),
     status,
     statusUpdatedAt: typeof source.statusUpdatedAt === 'number' ? source.statusUpdatedAt : null,
@@ -215,6 +218,7 @@ export function normalizeSequence(raw: unknown): Sequence {
     teacherNote: asString(source.teacherNote),
     archived: asBoolean(source.archived),
     steps,
+    stepOrder: normalizeStepOrder(source.stepOrder),
     lexemes: rawLexemes.map(normalizeLexeme),
     reactivation: {
       enabled: asBoolean(rawReactivation.enabled),

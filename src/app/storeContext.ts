@@ -28,6 +28,7 @@ export interface StoreActions {
   deleteSequence: (id: string) => Promise<void>;
   setArchived: (id: string, archived: boolean) => void;
   addLexeme: (sequenceId: string, partial?: Partial<Lexeme>) => string | null;
+  addLexemes: (sequenceId: string, partials: Partial<Lexeme>[]) => number;
   updateLexeme: (sequenceId: string, lexemeId: string, patch: Partial<Lexeme>) => void;
   setLexemeStatus: (sequenceId: string, lexemeId: string, status: ClassStatus | null) => void;
   duplicateLexeme: (sequenceId: string, lexemeId: string) => string | null;
