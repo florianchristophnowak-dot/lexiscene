@@ -1,25 +1,43 @@
 /**
- * Erzeugung, Normalisierung und Prüfung der Datenstrukturen.
+ * Erzeugung, Normalisierung und Migration der Datenstrukturen.
  *
  * Import-Daten werden absichtlich tolerant gelesen (fehlende Felder werden mit
- * Standardwerten gefüllt), aber niemals ungeprüft übernommen.
+ * Standardwerten gefüllt), aber niemals ungeprüft übernommen. Dateien der
+ * Schemaversion 1 werden vollständig nach Version 2 überführt, ohne Inhalte zu
+ * verlieren.
  */
 import {
   DEFAULT_SETTINGS,
+  IMAGEABILITIES,
+  INFERENCE_SUITABILITIES,
+  LEARNER_LEVELS,
+  LEARNING_GOALS,
+  LEXICAL_TYPES,
+  OBSERVATION_DIMENSIONS,
+  OBSERVATION_RESULTS,
+  REPERTOIRES,
   SCHEMA_VERSION,
+  TRANSFER_RISKS,
   type AppSettings,
-  type ClassStatus,
+  type Imageability,
+  type InferenceMode,
+  type InferenceSuitability,
+  type LearnerLevel,
+  type LearningGoal,
   type Lexeme,
+  type LexemeObservation,
   type LexicalType,
   type MediaMeta,
+  type ObservationDimension,
+  type ObservationResult,
+  type ReactivationRound,
   type Repertoire,
   type Sequence,
   type StepId,
-  CLASS_STATUSES,
-  LEXICAL_TYPES,
-  REPERTOIRES,
+  type TransferRisk,
 } from './model';
 import { STEP_IDS, defaultStepConfig, normalizeStepOrder } from './steps';
+import { migrateLegacyStatus } from './observations';
 
 export class SchemaError extends Error {
   constructor(message: string) {
@@ -47,25 +65,65 @@ function asOption<T extends string>(value: unknown, options: readonly { id: T }[
   return options.some((option) => option.id === value) ? (value as T) : fallback;
 }
 
+/* ------------------------------------------------- Didaktische Vorbelegung */
+
+/** Vorschlag für die Bildhaftigkeit – nur als Startwert, jederzeit änderbar. */
+export function defaultImageability(type: LexicalType): Imageability {
+  switch (type) {
+    case 'gegenstand':
+    case 'handlung':
+      return 'hoch';
+    case 'eigenschaft':
+    case 'gefuehl':
+    case 'sonstige':
+      return 'mittel';
+    default:
+      return 'gering';
+  }
+}
+
+/** Vorschlag für die Eignung zur Erschließung – bewusst zurückhaltend. */
+export function defaultInferenceSuitability(type: LexicalType): InferenceSuitability {
+  return type === 'falscher-freund' ? 'ungeeignet' : 'bedingt';
+}
+
+export function defaultTransferRisk(type: LexicalType, confusionRisk = ''): TransferRisk {
+  if (type === 'falscher-freund') return 'hoch';
+  return confusionRisk.trim() ? 'mittel' : 'gering';
+}
+
+/** Kernrepertoire wird in der Regel produktiv gebraucht, das Übrige rezeptiv. */
+export function defaultLearningGoal(repertoire: Repertoire): LearningGoal {
+  return repertoire === 'kern' ? 'productive' : 'receptive';
+}
+
 /* ------------------------------------------------------------- Factories */
 
 export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
   const now = Date.now();
+  const lexicalType = partial.lexicalType ?? 'sprechakt';
+  const repertoire = partial.repertoire ?? 'kern';
+
   return {
     id: createId('lex'),
     expression: '',
     coreMeaning: '',
     communicativeFunction: '',
     modelUtterance: '',
-    lexicalType: 'sprechakt',
+    sentenceFrame: '',
+    lexicalType,
+    learningGoal: defaultLearningGoal(repertoire),
     semantisationMethod: '',
-    repertoire: 'kern',
+    repertoire,
+    imageability: defaultImageability(lexicalType),
+    inferenceSuitability: defaultInferenceSuitability(lexicalType),
+    transferRisk: defaultTransferRisk(lexicalType),
+    confusionGroup: '',
     pronunciationHint: '',
     prosodyNote: '',
     ipa: '',
     morphology: '',
     valency: '',
-    sentenceFrame: '',
     collocations: '',
     wordFamily: '',
     register: '',
@@ -86,11 +144,22 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     stepOverrides: {},
     stepOrderOverride: null,
     skipped: false,
-    status: null,
-    statusUpdatedAt: null,
+    observations: [],
     liveNote: '',
     createdAt: now,
     updatedAt: now,
+    ...partial,
+  };
+}
+
+export function createReactivationPlan(partial: Partial<Sequence['reactivation']> = {}): Sequence['reactivation'] {
+  return {
+    enabled: false,
+    offsetsDays: [...DEFAULT_SETTINGS.reactivationOffsets],
+    anchor: null,
+    completedRounds: 0,
+    history: [],
+    prioritiseUnsure: true,
     ...partial,
   };
 }
@@ -103,14 +172,17 @@ export function createSequence(partial: Partial<Sequence> = {}): Sequence {
     title: 'Neue Sequenz',
     targetLanguage: 'fr',
     learningGroup: '',
+    learnerLevel: 'mittelstufe',
     topic: '',
     canDoGoal: '',
     teacherNote: '',
     archived: false,
     steps: defaultStepConfig(),
     stepOrder: [...STEP_IDS],
+    // Neue Sequenzen setzen nicht auf Raten: Erschließen nur, wo es trägt.
+    inferenceMode: 'optional',
     lexemes: [],
-    reactivation: { enabled: false, offsetsDays: [...DEFAULT_SETTINGS.reactivationOffsets], anchor: null, completedRounds: 0 },
+    reactivation: createReactivationPlan(),
     session: null,
     createdAt: now,
     updatedAt: now,
@@ -119,6 +191,34 @@ export function createSequence(partial: Partial<Sequence> = {}): Sequence {
 }
 
 /* --------------------------------------------------------- Normalisierung */
+
+function normalizeObservations(raw: unknown): LexemeObservation[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      const source = asRecord(entry);
+      const at = asNumber(source.at, 0);
+      if (!at) return null;
+      const dimension = OBSERVATION_DIMENSIONS.some((option) => option.id === source.dimension)
+        ? (source.dimension as ObservationDimension)
+        : null;
+      const result = OBSERVATION_RESULTS.some((option) => option.id === source.result)
+        ? (source.result as ObservationResult)
+        : null;
+      const observation: LexemeObservation = {
+        id: asString(source.id) || createId('obs'),
+        at,
+        dimension,
+        result,
+        source: source.source === 'reactivation' ? 'reactivation' : 'introduction',
+      };
+      if (typeof source.impulseKind === 'string') observation.impulseKind = source.impulseKind;
+      if (typeof source.round === 'number') observation.round = source.round;
+      return observation;
+    })
+    .filter((entry): entry is LexemeObservation => entry !== null)
+    .sort((a, b) => a.at - b.at);
+}
 
 export function normalizeLexeme(raw: unknown): Lexeme {
   const source = asRecord(raw);
@@ -131,7 +231,15 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     if (typeof value === 'boolean') stepOverrides[stepId] = value;
   }
 
-  const status = CLASS_STATUSES.some((entry) => entry.id === source.status) ? (source.status as ClassStatus) : null;
+  const lexicalType = asOption<LexicalType>(source.lexicalType, LEXICAL_TYPES, base.lexicalType);
+  const repertoire = asOption<Repertoire>(source.repertoire, REPERTOIRES, base.repertoire);
+  const confusionRisk = asString(source.confusionRisk);
+
+  // Schema 1 kannte nur einen linearen Status; er wird zu einem Ereignis.
+  const observations =
+    'observations' in source
+      ? normalizeObservations(source.observations)
+      : migrateLegacyStatus(source.status, source.statusUpdatedAt);
 
   return {
     ...base,
@@ -139,9 +247,19 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     coreMeaning: asString(source.coreMeaning, base.coreMeaning),
     communicativeFunction: asString(source.communicativeFunction, base.communicativeFunction),
     modelUtterance: asString(source.modelUtterance, base.modelUtterance),
-    lexicalType: asOption<LexicalType>(source.lexicalType, LEXICAL_TYPES, base.lexicalType),
+    sentenceFrame: asString(source.sentenceFrame),
+    lexicalType,
+    learningGoal: asOption<LearningGoal>(source.learningGoal, LEARNING_GOALS, defaultLearningGoal(repertoire)),
     semantisationMethod: asString(source.semantisationMethod, base.semantisationMethod),
-    repertoire: asOption<Repertoire>(source.repertoire, REPERTOIRES, base.repertoire),
+    repertoire,
+    imageability: asOption<Imageability>(source.imageability, IMAGEABILITIES, defaultImageability(lexicalType)),
+    inferenceSuitability: asOption<InferenceSuitability>(
+      source.inferenceSuitability,
+      INFERENCE_SUITABILITIES,
+      defaultInferenceSuitability(lexicalType),
+    ),
+    transferRisk: asOption<TransferRisk>(source.transferRisk, TRANSFER_RISKS, defaultTransferRisk(lexicalType, confusionRisk)),
+    confusionGroup: asString(source.confusionGroup),
     imageId: typeof source.imageId === 'string' ? source.imageId : undefined,
     audioId: typeof source.audioId === 'string' ? source.audioId : undefined,
     videoId: typeof source.videoId === 'string' ? source.videoId : undefined,
@@ -150,7 +268,6 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     ipa: asString(source.ipa),
     morphology: asString(source.morphology),
     valency: asString(source.valency),
-    sentenceFrame: asString(source.sentenceFrame),
     collocations: asString(source.collocations),
     wordFamily: asString(source.wordFamily),
     register: asString(source.register),
@@ -158,7 +275,7 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     example: asString(source.example),
     nonExample: asString(source.nonExample),
     contrastExample: asString(source.contrastExample),
-    confusionRisk: asString(source.confusionRisk),
+    confusionRisk,
     checkTemplateId: asString(source.checkTemplateId),
     checkPrompt: asString(source.checkPrompt),
     extraHint: asString(source.extraHint),
@@ -171,12 +288,30 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     stepOverrides,
     stepOrderOverride: Array.isArray(source.stepOrderOverride) ? normalizeStepOrder(source.stepOrderOverride) : null,
     skipped: asBoolean(source.skipped),
-    status,
-    statusUpdatedAt: typeof source.statusUpdatedAt === 'number' ? source.statusUpdatedAt : null,
+    observations,
     liveNote: asString(source.liveNote),
     createdAt: asNumber(source.createdAt, base.createdAt),
     updatedAt: asNumber(source.updatedAt, base.updatedAt),
   };
+}
+
+function normalizeRounds(raw: unknown): ReactivationRound[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      const source = asRecord(entry);
+      const completedAt = asNumber(source.completedAt, 0);
+      if (!completedAt) return null;
+      return {
+        round: Math.max(1, asNumber(source.round, 1)),
+        completedAt,
+        secure: Math.max(0, asNumber(source.secure, 0)),
+        supported: Math.max(0, asNumber(source.supported, 0)),
+        notYet: Math.max(0, asNumber(source.notYet, 0)),
+      } satisfies ReactivationRound;
+    })
+    .filter((entry): entry is ReactivationRound => entry !== null)
+    .sort((a, b) => a.round - b.round);
 }
 
 export function normalizeSequence(raw: unknown): Sequence {
@@ -206,6 +341,17 @@ export function normalizeSequence(raw: unknown): Sequence {
   const rawSession = asRecord(source.session);
   const hasSession = typeof rawSession.lexemeIndex === 'number' && typeof rawSession.stepIndex === 'number';
 
+  /*
+   * Migration Schema 1 → 2: Der frühere Pflichtschritt „Bedeutung vermuten“
+   * wird zur Einstellung. War er aktiv, bleibt Erschließen möglich.
+   */
+  const inferenceMode: InferenceMode =
+    source.inferenceMode === 'off' || source.inferenceMode === 'optional' || source.inferenceMode === 'planned'
+      ? source.inferenceMode
+      : steps.vermuten === false
+        ? 'off'
+        : 'optional';
+
   const base = createSequence({ id: asString(source.id) || createId('seq') });
   return {
     ...base,
@@ -213,19 +359,23 @@ export function normalizeSequence(raw: unknown): Sequence {
     title: asString(source.title, base.title).trim() || base.title,
     targetLanguage: asString(source.targetLanguage, base.targetLanguage),
     learningGroup: asString(source.learningGroup),
+    learnerLevel: asOption<LearnerLevel>(source.learnerLevel, LEARNER_LEVELS, base.learnerLevel),
     topic: asString(source.topic),
     canDoGoal: asString(source.canDoGoal),
     teacherNote: asString(source.teacherNote),
     archived: asBoolean(source.archived),
     steps,
     stepOrder: normalizeStepOrder(source.stepOrder),
+    inferenceMode,
     lexemes: rawLexemes.map(normalizeLexeme),
-    reactivation: {
+    reactivation: createReactivationPlan({
       enabled: asBoolean(rawReactivation.enabled),
       offsetsDays: offsets.length > 0 ? offsets : [...DEFAULT_SETTINGS.reactivationOffsets],
       anchor: typeof rawReactivation.anchor === 'number' ? rawReactivation.anchor : null,
       completedRounds: Math.max(0, asNumber(rawReactivation.completedRounds, 0)),
-    },
+      history: normalizeRounds(rawReactivation.history),
+      prioritiseUnsure: asBoolean(rawReactivation.prioritiseUnsure, true),
+    }),
     session: hasSession
       ? {
           lexemeIndex: Math.max(0, asNumber(rawSession.lexemeIndex, 0)),

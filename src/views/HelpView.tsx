@@ -1,5 +1,5 @@
 import { APP_NAME, APP_VERSION } from '../domain/model';
-import { STEPS } from '../domain/steps';
+import { PHASES, STEPS, stepsOfPhase } from '../domain/steps';
 
 const SHORTCUTS: [string, string][] = [
   ['→', 'Nächster Schritt'],
@@ -52,7 +52,37 @@ export function HelpView() {
 
       <section className="panel">
         <div className="panel__header">
-          <span className="panel__title">Standarddramaturgie</span>
+          <span className="panel__title">Sechs Phasen als Grundstruktur</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            LexiScène folgt dem Modell <strong>Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung</strong>.
+            Die Phasen geben die Richtung; welche Schritte darin vorkommen, entscheiden Sie je Sequenz und Einheit.
+            Es gibt keinen festen Ablauf, den jede Einführung durchlaufen müsste.
+          </p>
+          <ol className="help-list">
+            {PHASES.map((phase) => (
+              <li key={phase.id}>
+                <span className="kbd">{phase.position}</span>
+                <span>
+                  <strong>{phase.label}</strong> — <span className="muted">{phase.purpose}</span>
+                  <span className="field__hint" style={{ display: 'block' }}>
+                    {stepsOfPhase(phase.id).length > 0
+                      ? `Schritte: ${stepsOfPhase(phase.id)
+                          .map((step) => step.label)
+                          .join(', ')}`
+                      : 'Eigener Bereich: Reaktivieren'}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Die elf Schritte im Einzelnen</span>
         </div>
         <div className="panel__body stack">
           <ol className="help-list">
@@ -66,8 +96,31 @@ export function HelpView() {
             ))}
           </ol>
           <p className="muted text-sm">
-            Schritte lassen sich pro Sequenz und pro Einheit abschalten und frei umsortieren – per Ziehen oder über
-            die Pfeilschaltflächen. Schritte ohne hinterlegtes Material werden automatisch übersprungen.
+            Schritte lassen sich pro Sequenz und pro Einheit abschalten und frei umsortieren – per Ziehen oder über die
+            Pfeilschaltflächen. Schritte ohne hinterlegtes Material werden automatisch übersprungen. Ob das Klangbild
+            vor dem Schriftbild kommt und wann die Schrift erscheint, ist eine Regieentscheidung, keine feste Regel.
+          </p>
+          <p className="muted text-sm">
+            <strong>Bedeutung erschließen</strong> ist kein Pflichtschritt. In den Sequenzeinstellungen wählen Sie, ob
+            erschlossen wird: gar nicht, wo der Kontext es hergibt, oder bewusst als Strategietraining. Die Klärung
+            folgt in jedem Fall.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Beobachten statt bewerten</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            In Abruf- und Gebrauchsschritten halten Sie mit „sicher“, „mit Hilfe“ oder „noch nicht“ fest, wie die
+            <strong> Klasse</strong> reagiert hat – nicht einzelne Lernende. Die Rückmeldung wird der jeweiligen
+            Wissensdimension zugeordnet: Bedeutung, Form, Muster oder Gebrauch.
+          </p>
+          <p className="muted text-sm">
+            Daraus entstehen keine Punkte, Noten oder Gesamtlernstände. In der Vorbereitung sehen Sie je Einheit den
+            jüngsten Stand der vier Dimensionen. Eine Reaktivierung überschreibt einen erreichten Stand nicht.
           </p>
         </div>
       </section>

@@ -9,8 +9,16 @@ import {
   type StageState,
 } from '../app/presentation';
 import { useStore } from '../app/storeContext';
-import { CLASS_STATUSES, type ClassStatus } from '../domain/model';
-import { defaultVisibility, resolveSteps, type StepVisibility } from '../domain/steps';
+import { OBSERVATION_RESULTS, type ObservationResult } from '../domain/model';
+import {
+  defaultVisibility,
+  resolveSteps,
+  stepDimension,
+  stepInvitesFeedback,
+  stepPhase,
+  type StepVisibility,
+} from '../domain/steps';
+import { buildCounterpartPrompt } from '../domain/checks';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
@@ -26,6 +34,10 @@ interface RevealState {
   key: string;
   visibility: StepVisibility;
   translation: boolean;
+  /** Lösung im Abruf – erst Denkzeit, dann zeigen. */
+  solution: boolean;
+  /** Zusätzliche Aufgabe in der Gegenrichtung. */
+  counterpart: boolean;
 }
 
 export function TeachView({ sequenceId }: { sequenceId: string }) {
@@ -50,6 +62,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const [reveal, setReveal] = useState<RevealState | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [projectionOpen, setProjectionOpen] = useState(false);
+  const [feedback, setFeedback] = useState<Record<string, ObservationResult>>({});
 
   const safeLexemeIndex = clamp(lexemeIndex, 0, Math.max(teachable.length - 1, 0));
   const lexeme = teachable[safeLexemeIndex];
@@ -67,9 +80,19 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     return step ? defaultVisibility(step.id) : { meaning: false, form: false, support: false };
   }, [reveal, step, stepKey]);
   const showTranslation = reveal?.key === stepKey ? reveal.translation : false;
-  const updateVisibility = (patch: Partial<StepVisibility>) =>
-    setReveal({ key: stepKey, visibility: { ...visibility, ...patch }, translation: showTranslation });
-  const toggleTranslation = () => setReveal({ key: stepKey, visibility, translation: !showTranslation });
+  const showSolution = reveal?.key === stepKey ? reveal.solution : false;
+  const showCounterpart = reveal?.key === stepKey ? reveal.counterpart : false;
+  const revealState = (patch: Partial<Omit<RevealState, 'key'>>) =>
+    setReveal({
+      key: stepKey,
+      visibility,
+      translation: showTranslation,
+      solution: showSolution,
+      counterpart: showCounterpart,
+      ...patch,
+    });
+  const updateVisibility = (patch: Partial<StepVisibility>) => revealState({ visibility: { ...visibility, ...patch } });
+  const toggleTranslation = () => revealState({ translation: !showTranslation });
 
   const totalSteps = stepsPerLexeme.reduce((sum, entries) => sum + entries.length, 0);
   const completedSteps =
@@ -262,17 +285,24 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     );
   }
 
+  const phase = stepPhase(step.id);
+  const invitesFeedback = stepInvitesFeedback(step.id);
+  const dimension = stepDimension(step.id, lexeme);
+  const counterpartPrompt =
+    lexeme.learningGoal === 'productive' && step.id === 'kontrolle' ? buildCounterpartPrompt(lexeme) : '';
+  const feedbackKey = `${stepKey}:${dimension}`;
+
   return (
     <div className="teach" ref={containerRef}>
       <div className="teach__top">
         <span className="teach__step">
           <span className="teach__step-number">
-            Schritt {safeStepIndex + 1} von {steps.length}
+            Phase {phase?.position ?? 1}: {phase?.label ?? ''}
           </span>{' '}
           · {step.label}
         </span>
         <span className="teach__counter">
-          Einheit {safeLexemeIndex + 1} von {teachable.length}
+          Schritt {safeStepIndex + 1} von {steps.length} · Einheit {safeLexemeIndex + 1} von {teachable.length}
         </span>
         <span className="spacer" />
         {isPresentationSupported() ? (
@@ -303,6 +333,8 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
         step={step}
         visibility={visibility}
         showTranslation={showTranslation}
+        showSolution={showSolution}
+        counterpartPrompt={showCounterpart ? counterpartPrompt : ''}
         teacherView={!projectionOpen}
       />
 
@@ -368,6 +400,26 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
           >
             Hilfen
           </button>
+          {invitesFeedback ? (
+            <button
+              type="button"
+              className={showSolution ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={showSolution}
+              onClick={() => revealState({ solution: !showSolution })}
+            >
+              Lösung
+            </button>
+          ) : null}
+          {counterpartPrompt ? (
+            <button
+              type="button"
+              className={showCounterpart ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={showCounterpart}
+              onClick={() => revealState({ counterpart: !showCounterpart })}
+            >
+              Gegenrichtung
+            </button>
+          ) : null}
           {audio.url ? (
             <Button
               onClick={() => {
@@ -384,25 +436,29 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
         <span className="spacer" />
 
         <div className="teach__status-row">
-          <label className="visually-hidden" htmlFor="teach-status">
-            Klassenstatus der Einheit
-          </label>
-          <select
-            id="teach-status"
-            className="select"
-            style={{ width: 'auto' }}
-            value={lexeme.status ?? ''}
-            onChange={(event) =>
-              actions.setLexemeStatus(sequence.id, lexeme.id, event.target.value ? (event.target.value as ClassStatus) : null)
-            }
-          >
-            <option value="">Status setzen …</option>
-            {CLASS_STATUSES.map((status) => (
-              <option key={status.id} value={status.id}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+          {invitesFeedback ? (
+            <div className="teach__feedback" role="group" aria-label={`Rückmeldung der Klasse zur Dimension ${dimension}`}>
+              <span className="teach__feedback-label">Klasse:</span>
+              {OBSERVATION_RESULTS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={feedback[feedbackKey] === option.id ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+                  aria-pressed={feedback[feedbackKey] === option.id}
+                  onClick={() => {
+                    setFeedback((current) => ({ ...current, [feedbackKey]: option.id }));
+                    actions.recordObservation(sequence.id, lexeme.id, {
+                      dimension,
+                      result: option.id,
+                      source: 'introduction',
+                    });
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <Button onClick={() => setNoteOpen((value) => !value)}>Notiz</Button>
           <Button
             onClick={() => {

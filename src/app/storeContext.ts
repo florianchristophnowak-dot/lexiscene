@@ -1,14 +1,8 @@
 /** Kontext und Typen des zentralen Zustands (getrennt vom Provider, damit Fast Refresh sauber arbeitet). */
 import { createContext, useContext, useMemo } from 'react';
-import type {
-  AppSettings,
-  ClassStatus,
-  Lexeme,
-  MediaKind,
-  MediaMeta,
-  Sequence,
-  StepId,
-} from '../domain/model';
+import type { AppSettings, Lexeme, MediaKind, MediaMeta, Sequence, StepId } from '../domain/model';
+import type { ObservationInput } from '../domain/observations';
+import type { ImpulseOutcome } from '../domain/reactivation';
 import type { RestoreResult } from '../storage/backup';
 import type { StorageEstimate } from '../storage/repository';
 
@@ -30,7 +24,10 @@ export interface StoreActions {
   addLexeme: (sequenceId: string, partial?: Partial<Lexeme>) => string | null;
   addLexemes: (sequenceId: string, partials: Partial<Lexeme>[]) => number;
   updateLexeme: (sequenceId: string, lexemeId: string, patch: Partial<Lexeme>) => void;
-  setLexemeStatus: (sequenceId: string, lexemeId: string, status: ClassStatus | null) => void;
+  /** Hält eine Beobachtung der Lerngruppe fest (keine Einzelpersonen). */
+  recordObservation: (sequenceId: string, lexemeId: string, input: ObservationInput) => void;
+  /** Schließt eine Reaktivierungsrunde ab und schreibt die Ergebnisse fort. */
+  completeReactivationRound: (sequenceId: string, outcomes: ImpulseOutcome[]) => void;
   duplicateLexeme: (sequenceId: string, lexemeId: string) => string | null;
   removeLexeme: (sequenceId: string, lexemeId: string) => void;
   moveLexeme: (sequenceId: string, fromIndex: number, toIndex: number) => void;

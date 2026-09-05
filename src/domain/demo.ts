@@ -13,6 +13,11 @@ type LexemeSeed = Partial<Lexeme> & Pick<Lexeme, 'expression' | 'coreMeaning'>;
 const SEEDS: LexemeSeed[] = [
   {
     expression: 'Ça te dit de… ?',
+    learningGoal: 'productive',
+    imageability: 'gering',
+    inferenceSuitability: 'bedingt',
+    transferRisk: 'mittel',
+    confusionGroup: 'Vorschlag und Reaktion',
     coreMeaning: 'Hast du Lust, etwas zu tun?',
     communicativeFunction: 'einen Vorschlag machen',
     modelUtterance: "Ça te dit d'aller au cinéma samedi ?",
@@ -43,6 +48,11 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'Pourquoi pas !',
+    learningGoal: 'productive',
+    imageability: 'gering',
+    inferenceSuitability: 'ungeeignet',
+    transferRisk: 'hoch',
+    confusionGroup: 'Vorschlag und Reaktion',
     coreMeaning: 'Einverstanden, gute Idee.',
     communicativeFunction: 'einem Vorschlag zustimmen',
     modelUtterance: '— Ça te dit d’aller à la piscine ? — Pourquoi pas !',
@@ -67,6 +77,10 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'Je préfère…',
+    learningGoal: 'productive',
+    imageability: 'gering',
+    inferenceSuitability: 'bedingt',
+    transferRisk: 'gering',
     coreMeaning: 'Ich möchte lieber etwas anderes.',
     communicativeFunction: 'eine Präferenz ausdrücken',
     modelUtterance: 'Je préfère faire du skate.',
@@ -94,6 +108,10 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'aller au cinéma',
+    learningGoal: 'productive',
+    imageability: 'hoch',
+    inferenceSuitability: 'geeignet',
+    transferRisk: 'mittel',
     coreMeaning: 'ins Kino gehen',
     communicativeFunction: 'eine Aktivität benennen',
     modelUtterance: 'On peut aller au cinéma dimanche après-midi.',
@@ -119,6 +137,10 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'faire du skate',
+    learningGoal: 'receptive',
+    imageability: 'hoch',
+    inferenceSuitability: 'geeignet',
+    transferRisk: 'mittel',
     coreMeaning: 'Skateboard fahren',
     communicativeFunction: 'eine Freizeitaktivität benennen',
     modelUtterance: 'Le samedi, je fais du skate au parc.',
@@ -145,6 +167,11 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'Je ne peux pas.',
+    learningGoal: 'productive',
+    imageability: 'gering',
+    inferenceSuitability: 'geeignet',
+    transferRisk: 'gering',
+    confusionGroup: 'Vorschlag und Reaktion',
     coreMeaning: 'Es geht bei mir nicht.',
     communicativeFunction: 'einen Vorschlag ablehnen',
     modelUtterance: 'Désolé, je ne peux pas, j’ai un cours de piano.',
@@ -173,6 +200,10 @@ const SEEDS: LexemeSeed[] = [
   },
   {
     expression: 'On se retrouve à…',
+    learningGoal: 'productive',
+    imageability: 'gering',
+    inferenceSuitability: 'bedingt',
+    transferRisk: 'mittel',
     coreMeaning: 'Wir treffen uns um / an …',
     communicativeFunction: 'Zeit und Treffpunkt vereinbaren',
     modelUtterance: 'On se retrouve à 15 heures devant le cinéma ?',
@@ -204,11 +235,13 @@ export function createDemoSequence(): Sequence {
     title: 'Freizeit verabreden',
     targetLanguage: 'fr',
     learningGroup: 'Klasse 7 · Französisch, 2. Lernjahr',
+    learnerLevel: 'anfaenger',
+    inferenceMode: 'optional',
     topic: 'Am Wochenende gemeinsam etwas unternehmen',
     canDoGoal:
       'Die Lernenden können eine gemeinsame Aktivität vorschlagen, auf Vorschläge reagieren und sich auf Zeit und Ort einigen.',
     teacherNote:
-      'Chunks zuerst hörend anbieten, Schriftbild erst nach der Bedeutungsklärung. Übersetzung nur bei „Ça te dit de… ?“ als Absicherung einsetzen.',
+      'Regieentscheidung für diese Sequenz: Klangbild vor dem Schriftbild anbieten und die Bedeutung vorher klären. Bei „Pourquoi pas !“ nicht raten lassen – die wörtliche Lesart führt in die Irre.',
     lexemes,
   });
 }

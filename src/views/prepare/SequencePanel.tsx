@@ -2,10 +2,18 @@ import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { useStore } from '../../app/storeContext';
 import { downloadText } from '../../app/download';
-import { LANGUAGES, repertoireLabel, type Sequence } from '../../domain/model';
-import { STEP_IDS, effectiveStepOrder, moveStep } from '../../domain/steps';
+import {
+  INFERENCE_MODES,
+  LANGUAGES,
+  LEARNER_LEVELS,
+  repertoireLabel,
+  type Sequence,
+} from '../../domain/model';
+import { PHASES, STEP_IDS, effectiveStepOrder, moveStep, stepPhase } from '../../domain/steps';
 import { buildSequenceExport, sequenceExportFileName } from '../../storage/backup';
 import { truncate } from '../../domain/text';
+import { readinessSeverityLabel, summarizeReadiness } from '../../domain/readiness';
+import { summarizeObservations } from '../../domain/observations';
 import { Button, IconButton } from '../../ui/Button';
 import { SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible, EmptyState } from '../../ui/Feedback';
@@ -30,6 +38,7 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
   const [announcement, setAnnouncement] = useState('');
 
   const update = (patch: Partial<Sequence>) => actions.updateSequence(sequence.id, patch);
+  const readiness = summarizeReadiness(sequence);
 
   const addQuickLexeme = () => {
     const expression = quickExpression.trim();
@@ -87,6 +96,13 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
             onChange={(learningGroup) => update({ learningGroup })}
             placeholder="z. B. Klasse 7, 2. Lernjahr"
           />
+          <SelectField
+            label="Lernniveau"
+            value={sequence.learnerLevel}
+            onChange={(learnerLevel) => update({ learnerLevel: learnerLevel as Sequence['learnerLevel'] })}
+            options={LEARNER_LEVELS.map((level) => ({ value: level.id, label: level.label }))}
+            hint="Fließt in die Vorschläge des Methodenberaters ein."
+          />
           <TextField
             label="Thema oder Situation"
             value={sequence.topic}
@@ -116,20 +132,57 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
 
         <Collapsible title="Dramaturgie der Einführung">
           <p className="field__hint">
-            Reihenfolge per Ziehen oder über die Pfeilschaltflächen ändern. Deaktivierte Schritte werden im
-            Unterrichtsmodus übersprungen; Schritte ohne Material entfallen automatisch.
+            Grundstruktur sind sechs Phasen: {PHASES.map((phase) => phase.label).join(' – ')}. Welche Schritte darin
+            vorkommen und in welcher Reihenfolge, entscheiden Sie. Deaktivierte Schritte werden übersprungen; Schritte
+            ohne Material entfallen automatisch.
           </p>
+          <SelectField
+            label="Bedeutung erschließen lassen"
+            value={sequence.inferenceMode}
+            onChange={(inferenceMode) => update({ inferenceMode: inferenceMode as Sequence['inferenceMode'] })}
+            options={INFERENCE_MODES.map((mode) => ({ value: mode.id, label: mode.label }))}
+            hint={INFERENCE_MODES.find((mode) => mode.id === sequence.inferenceMode)?.description}
+          />
           <StepOrderList
             order={effectiveStepOrder(sequence)}
             isEnabled={(stepId) => sequence.steps[stepId] !== false}
             onToggle={(stepId, enabled) => actions.setSequenceStep(sequence.id, stepId, enabled)}
             onMove={(from, to) => update({ stepOrder: moveStep(effectiveStepOrder(sequence), from, to) })}
+            phaseFor={(stepId) => stepPhase(stepId)?.label}
           />
           <Button variant="ghost" onClick={() => update({ stepOrder: [...STEP_IDS] })}>
             Standardreihenfolge wiederherstellen
           </Button>
         </Collapsible>
       </div>
+
+      <Collapsible
+        title={
+          readiness.toComplete > 0
+            ? `Bereitschaft: ${readiness.toComplete} Hinweis${readiness.toComplete === 1 ? '' : 'e'} zum Ergänzen`
+            : readiness.optional > 0
+              ? `Bereitschaft: ${readiness.optional} optionale${readiness.optional === 1 ? 'r' : ''} Hinweis${readiness.optional === 1 ? '' : 'e'}`
+              : 'Bereitschaft: nichts offen'
+        }
+      >
+        <p className="field__hint">
+          Der Check blockiert nichts. Er zeigt nur, was für einen tragfähigen Erstkontakt noch fehlt und was sich
+          optional vertiefen lässt.
+        </p>
+        {readiness.findings.length === 0 ? (
+          <p className="muted text-sm">Für diese Sequenz ist alles Wesentliche vorbereitet.</p>
+        ) : (
+          <ul className="readiness">
+            {readiness.findings.map((finding) => (
+              <li key={finding.id} className={`readiness__item readiness__item--${finding.severity}`}>
+                <span className="tag">{readinessSeverityLabel(finding.severity)}</span>
+                <p className="readiness__title">{finding.title}</p>
+                <p className="readiness__detail">{finding.detail}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Collapsible>
 
       <div>
         <h3 className="pane-head__title" style={{ marginBottom: 'var(--space-2)' }}>
@@ -194,6 +247,13 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
                     <span>{truncate(lexeme.communicativeFunction || lexeme.coreMeaning || 'ohne Kernbedeutung', 42)}</span>
                     {lexeme.semantisationMethod ? <span>{truncate(lexeme.semantisationMethod, 28)}</span> : null}
                     <span className={`tag tag--${lexeme.repertoire}`}>{repertoireLabel(lexeme.repertoire)}</span>
+                    {summarizeObservations(lexeme.observations)
+                      .filter((entry) => entry.result)
+                      .map((entry) => (
+                        <span key={entry.dimension} className={`tag dimension--${entry.result}`}>
+                          {entry.label}
+                        </span>
+                      ))}
                   </span>
                 </button>
 

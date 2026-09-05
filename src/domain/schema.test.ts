@@ -34,7 +34,7 @@ describe('normalizeSequence', () => {
     expect(sequence.steps.situation).toBe(true);
     expect(sequence.lexemes[0].lexicalType).toBe('sprechakt');
     expect(sequence.lexemes[0].repertoire).toBe('stuetze');
-    expect(sequence.lexemes[0].status).toBeNull();
+    expect(sequence.lexemes[0].observations).toEqual([]);
   });
 
   it('lehnt neuere Schemaversionen mit klarer Meldung ab', () => {

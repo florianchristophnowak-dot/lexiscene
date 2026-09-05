@@ -9,6 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { DEFAULT_SETTINGS, type AppSettings, type Lexeme, type MediaMeta, type MediaKind, type MediaRecord, type Sequence } from '../domain/model';
 import { createDemoSequence } from '../domain/demo';
 import { createId, createLexeme, createSequence } from '../domain/schema';
+import { createObservation } from '../domain/observations';
+import { completeRound, impulseDimension } from '../domain/reactivation';
 import { buildBackup } from '../storage/backup';
 import {
   estimateStorage,
@@ -242,12 +244,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         mutateLexeme(sequenceId, lexemeId, (lexeme) => ({ ...lexeme, ...patch }));
       },
 
-      setLexemeStatus: (sequenceId, lexemeId, status) => {
+      recordObservation: (sequenceId, lexemeId, input) => {
         mutateLexeme(sequenceId, lexemeId, (lexeme) => ({
           ...lexeme,
-          status,
-          statusUpdatedAt: status ? Date.now() : null,
+          observations: [...lexeme.observations, createObservation(input)],
         }));
+      },
+
+      completeReactivationRound: (sequenceId, outcomes) => {
+        mutateSequence(sequenceId, (sequence) => {
+          const round = sequence.reactivation.completedRounds + 1;
+          const byLexeme = new Map<string, typeof outcomes>();
+          for (const outcome of outcomes) {
+            byLexeme.set(outcome.lexemeId, [...(byLexeme.get(outcome.lexemeId) ?? []), outcome]);
+          }
+
+          return {
+            ...sequence,
+            lexemes: sequence.lexemes.map((lexeme) => {
+              const entries = byLexeme.get(lexeme.id);
+              if (!entries || entries.length === 0) return lexeme;
+              return {
+                ...lexeme,
+                updatedAt: Date.now(),
+                observations: [
+                  ...lexeme.observations,
+                  ...entries.map((outcome) =>
+                    createObservation({
+                      dimension: outcome.dimension || impulseDimension(outcome.kind),
+                      result: outcome.result,
+                      source: 'reactivation',
+                      impulseKind: outcome.kind,
+                      round,
+                    }),
+                  ),
+                ],
+              };
+            }),
+            reactivation: completeRound(sequence.reactivation, outcomes),
+          };
+        });
       },
 
       duplicateLexeme: (sequenceId, lexemeId) => {
@@ -257,8 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const copy: Lexeme = {
           ...source,
           id: createId('lex'),
-          status: null,
-          statusUpdatedAt: null,
+          observations: [],
           liveNote: '',
           createdAt: Date.now(),
           updatedAt: Date.now(),

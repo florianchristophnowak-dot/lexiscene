@@ -76,3 +76,48 @@ describe('Unterrichtsmodus', () => {
     expect(screen.getByText('Nichts zu unterrichten')).toBeInTheDocument();
   });
 });
+
+describe('Phasen und Rückmeldung', () => {
+  it('zeigt die Phase als übergeordnete Ebene', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    expect(screen.getByText('Phase 1: Kontext')).toBeInTheDocument();
+    expect(screen.getByText(/Schritt 1 von/)).toBeInTheDocument();
+
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    expect(screen.getByText('Phase 2: Klarheit')).toBeInTheDocument();
+  });
+
+  it('bietet in Abrufschritten eine Rückmeldung der Klasse an und hält sie fest', async () => {
+    const user = userEvent.setup();
+    const { actions, sequence } = setup();
+
+    // bis zur Verständniskontrolle blättern
+    for (let index = 0; index < 20; index += 1) {
+      if (screen.queryByRole('button', { name: 'mit Hilfe' })) break;
+      await user.keyboard('{ArrowRight}');
+    }
+
+    await user.click(screen.getByRole('button', { name: 'mit Hilfe' }));
+    expect(actions.recordObservation).toHaveBeenCalledWith(
+      sequence.id,
+      sequence.lexemes[0].id,
+      expect.objectContaining({ result: 'supported', source: 'introduction' }),
+    );
+  });
+
+  it('hält die Lösung im Abruf zunächst zurück', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    for (let index = 0; index < 20; index += 1) {
+      if (screen.queryByRole('button', { name: 'Lösung' })) break;
+      await user.keyboard('{ArrowRight}');
+    }
+
+    expect(screen.queryByText(EXPRESSION)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Lösung' }));
+    expect(screen.getByText(EXPRESSION)).toBeInTheDocument();
+  });
+});

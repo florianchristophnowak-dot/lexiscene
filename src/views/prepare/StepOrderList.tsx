@@ -11,9 +11,11 @@ interface Props {
   onMove?: (from: number, to: number) => void;
   lockedHint?: string;
   hintFor?: (stepId: StepId) => string | undefined;
+  /** Phasenbezeichnung, die über dem ersten Schritt einer Phase erscheint. */
+  phaseFor?: (stepId: StepId) => string | undefined;
 }
 
-export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, hintFor }: Props) {
+export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, hintFor, phaseFor }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -36,6 +38,8 @@ export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, 
           if (!step) return null;
           const hint = hintFor?.(stepId);
           const enabled = isEnabled(stepId);
+          const phase = phaseFor?.(stepId);
+          const phaseChanged = phase !== undefined && phase !== phaseFor?.(order[index - 1]);
 
           return (
             <li
@@ -80,6 +84,7 @@ export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, 
               <label className="step-item__label">
                 <input type="checkbox" checked={enabled} onChange={(event) => onToggle(stepId, event.target.checked)} />
                 <span>
+                  {phaseChanged ? <span className="step-item__phase">Phase: {phase}</span> : null}
                   <span className="step-item__name">{step.label}</span>
                   <span className="field__hint" style={{ display: 'block' }}>
                     {hint ?? step.purpose}

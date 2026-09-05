@@ -6,7 +6,7 @@
  * die App vollständig offline nutzbar. Es werden ausschließlich Anfragen an die
  * eigene Herkunft behandelt; es findet kein Zugriff auf fremde Server statt.
  */
-const CACHE_NAME = 'lexiscene-v0.1.0';
+const CACHE_NAME = 'lexiscene-v0.2.0';
 const SHELL = __PRECACHE_ASSETS__;
 
 self.addEventListener('install', (event) => {

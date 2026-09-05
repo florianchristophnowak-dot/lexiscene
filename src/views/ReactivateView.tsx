@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { navigate } from '../app/router';
 import { useStore } from '../app/storeContext';
-import { classStatusLabel, type Sequence } from '../domain/model';
-import { DAY_MS, OFFSET_PRESETS, buildImpulses, isSequenceDue as isDue, nextDueAt } from '../domain/reactivation';
+import type { Sequence } from '../domain/model';
+import { DAY_MS, OFFSET_PRESETS, buildImpulses, isSequenceDue as isDue, nextDueAt, unsureCount } from '../domain/reactivation';
 import { formatDate, formatRelativeDays } from '../domain/text';
+import { summarizeObservations } from '../domain/observations';
 import { Button } from '../ui/Button';
 import { CheckboxRow, SelectField, TextField } from '../ui/Field';
 import { EmptyState, Notice } from '../ui/Feedback';
@@ -91,20 +92,36 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
               {due ? ` · nächste Reaktivierung ${formatRelativeDays(due, now)} (${formatDate(due)})` : ' · alle Runden abgeschlossen'}
             </p>
 
+            <CheckboxRow
+              label="Unsichere Einheiten zuerst zeigen"
+              hint="Einheiten, die zuletzt „mit Hilfe“ oder „noch nicht“ waren, stehen vorn. Eine transparente Heuristik, kein Lernalgorithmus."
+              checked={plan.prioritiseUnsure}
+              onChange={(prioritiseUnsure) => updatePlan({ prioritiseUnsure })}
+            />
+
             {due !== null ? (
               <div className="row">
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    updatePlan({ completedRounds: plan.completedRounds + 1 });
-                    toast.show('Runde als durchgeführt vermerkt.');
-                  }}
-                >
-                  Runde als durchgeführt markieren
-                </Button>
                 <Button onClick={() => updatePlan({ anchor: Date.now() - DAY_MS * plan.offsetsDays[plan.completedRounds] })}>
                   Jetzt fällig stellen
                 </Button>
+              </div>
+            ) : null}
+
+            <p className="muted text-sm">
+              Eine Runde gilt erst als durchgeführt, wenn sie im Unterrichtsmodus mit „Runde abschließen“ beendet wird.
+            </p>
+
+            {plan.history.length > 0 ? (
+              <div className="stack-tight">
+                <span className="field__label">Verlauf</span>
+                <ul className="stack-tight">
+                  {[...plan.history].reverse().map((round) => (
+                    <li key={round.round} className="muted text-sm">
+                      Runde {round.round} · {formatDate(round.completedAt)} · {round.secure}× sicher, {round.supported}× mit
+                      Hilfe, {round.notYet}× noch nicht
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : null}
           </>
@@ -115,7 +132,6 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
 }
 
 function ImpulseList({ sequence }: { sequence: Sequence }) {
-  const { actions } = useStore();
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const impulses = useMemo(() => buildImpulses(sequence), [sequence]);
 
@@ -135,6 +151,11 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
           Impulse im Unterricht zeigen
         </Button>
       </div>
+      {sequence.reactivation.prioritiseUnsure && unsureCount(sequence) > 0 ? (
+        <p className="field__hint">
+          {unsureCount(sequence)} Einheiten standen zuletzt auf „mit Hilfe“ oder „noch nicht“ und stehen deshalb vorn.
+        </p>
+      ) : null}
       {impulses.map((impulse) => {
         const lexeme = sequence.lexemes.find((entry) => entry.id === impulse.lexemeId);
         return (
@@ -151,13 +172,15 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
                   {revealed[impulse.id] ? 'Lösung verbergen' : 'Lösung zeigen'}
                 </Button>
               ) : null}
-              <Button
-                onClick={() => actions.setLexemeStatus(sequence.id, impulse.lexemeId, 'reaktiviert')}
-                disabled={lexeme?.status === 'reaktiviert'}
-              >
-                Als reaktiviert vermerken
-              </Button>
-              <span className="tag tag--status">{classStatusLabel(lexeme?.status ?? null)}</span>
+              {lexeme
+                ? summarizeObservations(lexeme.observations)
+                    .filter((entry) => entry.result)
+                    .map((entry) => (
+                      <span key={entry.dimension} className={`tag dimension--${entry.result}`}>
+                        {entry.label}: {entry.result === 'secure' ? 'sicher' : entry.result === 'supported' ? 'mit Hilfe' : 'noch nicht'}
+                      </span>
+                    ))
+                : null}
             </div>
           </article>
         );

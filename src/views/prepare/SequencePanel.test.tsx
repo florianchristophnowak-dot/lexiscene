@@ -60,8 +60,18 @@ describe('Sequenzspalte', () => {
     const { actions, sequence } = setup();
 
     await user.click(screen.getByText('Dramaturgie der Einführung'));
-    await user.click(screen.getByLabelText(/^Hören/));
+    await user.click(screen.getByRole('checkbox', { name: /Klangbild anbieten/ }));
     expect(actions.setSequenceStep).toHaveBeenCalledWith(sequence.id, 'audio', false);
+  });
+
+  it('zeigt die sechs Phasen als Grundstruktur', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await user.click(screen.getByText('Dramaturgie der Einführung'));
+    expect(screen.getByText(/Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung/)).toBeInTheDocument();
+    expect(screen.getByText('Phase: Kontext')).toBeInTheDocument();
+    expect(screen.getByText('Phase: Muster')).toBeInTheDocument();
   });
 
   it('sortiert die Dramaturgie um und meldet die neue Position', async () => {
@@ -72,7 +82,19 @@ describe('Sequenzspalte', () => {
     await user.click(screen.getByRole('button', { name: '„Impuls zeigen“ nach oben verschieben' }));
 
     expect(actions.updateSequence).toHaveBeenCalledWith(sequence.id, {
-      stepOrder: ['impuls', 'situation', 'audio', 'vermuten', 'klaeren', 'form', 'fokus', 'kontrolle', 'hilfen-ausblenden', 'abruf', 'aufgabe'],
+      stepOrder: [
+        'impuls',
+        'situation',
+        'vermuten',
+        'klaeren',
+        'audio',
+        'form',
+        'fokus',
+        'kontrolle',
+        'hilfen-ausblenden',
+        'abruf',
+        'aufgabe',
+      ],
     });
     expect(screen.getByRole('status', { name: 'Reihenfolge der Schritte' })).toHaveTextContent(
       '„Impuls zeigen“ ist jetzt an Position 1 von 11',
