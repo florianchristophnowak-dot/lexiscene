@@ -8,13 +8,15 @@ import { HomeView } from './views/HomeView';
 import { PrepareView } from './views/PrepareView';
 import { TeachView } from './views/TeachView';
 import { ReactivateView } from './views/ReactivateView';
+import { ReactivateTeachView } from './views/ReactivateTeachView';
+import { ProjectionView } from './views/ProjectionView';
 import { DataView } from './views/DataView';
 import { HelpView } from './views/HelpView';
 
 const NAV_ITEMS: { label: string; route: Route; match: Route['name'][] }[] = [
   { label: 'Start', route: { name: 'home' }, match: ['home'] },
   { label: 'Vorbereiten', route: { name: 'prepare' }, match: ['prepare'] },
-  { label: 'Reaktivieren', route: { name: 'reactivate' }, match: ['reactivate'] },
+  { label: 'Reaktivieren', route: { name: 'reactivate' }, match: ['reactivate', 'reactivateTeach'] },
   { label: 'Daten', route: { name: 'data' }, match: ['data'] },
   { label: 'Hilfe', route: { name: 'help' }, match: ['help'] },
 ];
@@ -70,6 +72,15 @@ export default function App() {
   // Unterrichtsmodus: bewusst ohne Kopf- und Fußzeile.
   if (route.name === 'teach') {
     return <TeachView sequenceId={route.sequenceId} />;
+  }
+
+  if (route.name === 'reactivateTeach') {
+    return <ReactivateTeachView sequenceId={route.sequenceId} />;
+  }
+
+  // Projektionsfenster: nur die Bühne, keine Bedienelemente.
+  if (route.name === 'projection') {
+    return <ProjectionView sequenceId={route.sequenceId} />;
   }
 
   return (

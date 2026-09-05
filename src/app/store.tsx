@@ -231,6 +231,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return updated ? lexeme.id : null;
       },
 
+      addLexemes: (sequenceId, partials) => {
+        const lexemes = partials.map((partial) => createLexeme(partial));
+        if (lexemes.length === 0) return 0;
+        const updated = mutateSequence(sequenceId, (sequence) => ({ ...sequence, lexemes: [...sequence.lexemes, ...lexemes] }));
+        return updated ? lexemes.length : 0;
+      },
+
       updateLexeme: (sequenceId, lexemeId, patch) => {
         mutateLexeme(sequenceId, lexemeId, (lexeme) => ({ ...lexeme, ...patch }));
       },

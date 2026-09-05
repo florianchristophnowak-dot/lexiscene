@@ -3,13 +3,15 @@ import { navigate } from '../../app/router';
 import { useStore } from '../../app/storeContext';
 import { downloadText } from '../../app/download';
 import { LANGUAGES, repertoireLabel, type Sequence } from '../../domain/model';
-import { STEPS } from '../../domain/steps';
+import { STEP_IDS, effectiveStepOrder, moveStep } from '../../domain/steps';
 import { buildSequenceExport, sequenceExportFileName } from '../../storage/backup';
 import { truncate } from '../../domain/text';
 import { Button, IconButton } from '../../ui/Button';
-import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
+import { SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible, EmptyState } from '../../ui/Feedback';
 import { useToast } from '../../ui/toastContext';
+import { StepOrderList } from './StepOrderList';
+import { TableImport } from './TableImport';
 
 interface Props {
   sequence: Sequence;
@@ -114,18 +116,18 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
 
         <Collapsible title="Dramaturgie der Einführung">
           <p className="field__hint">
-            Die Reihenfolge ist bewusst stabil. Deaktivierte Schritte werden im Unterrichtsmodus übersprungen;
-            Schritte ohne Material entfallen automatisch.
+            Reihenfolge per Ziehen oder über die Pfeilschaltflächen ändern. Deaktivierte Schritte werden im
+            Unterrichtsmodus übersprungen; Schritte ohne Material entfallen automatisch.
           </p>
-          {STEPS.map((step) => (
-            <CheckboxRow
-              key={step.id}
-              label={`${step.position}. ${step.label}`}
-              hint={step.purpose}
-              checked={sequence.steps[step.id] !== false}
-              onChange={(checked) => actions.setSequenceStep(sequence.id, step.id, checked)}
-            />
-          ))}
+          <StepOrderList
+            order={effectiveStepOrder(sequence)}
+            isEnabled={(stepId) => sequence.steps[stepId] !== false}
+            onToggle={(stepId, enabled) => actions.setSequenceStep(sequence.id, stepId, enabled)}
+            onMove={(from, to) => update({ stepOrder: moveStep(effectiveStepOrder(sequence), from, to) })}
+          />
+          <Button variant="ghost" onClick={() => update({ stepOrder: [...STEP_IDS] })}>
+            Standardreihenfolge wiederherstellen
+          </Button>
         </Collapsible>
       </div>
 
@@ -134,7 +136,7 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
           Lexikalische Einheiten ({sequence.lexemes.length})
         </h3>
 
-        <p className="visually-hidden" role="status" aria-live="polite">
+        <p className="visually-hidden" role="status" aria-live="polite" aria-label="Reihenfolge der Einheiten">
           {announcement}
         </p>
 
@@ -254,6 +256,10 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
             Hinzufügen
           </Button>
         </div>
+
+        <Collapsible title="Mehrere Einheiten aus einer Tabelle übernehmen">
+          <TableImport sequence={sequence} />
+        </Collapsible>
       </div>
     </div>
   );

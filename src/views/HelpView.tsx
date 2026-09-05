@@ -41,6 +41,12 @@ export function HelpView() {
             Der Unterricht lässt sich jederzeit über „Vorbereiten“ verlassen und später an derselben Stelle
             fortsetzen – die Startseite bietet dann „Unterricht fortsetzen“ an.
           </p>
+          <p className="muted text-sm">
+            <strong>Zweitbildschirm:</strong> Die gleichnamige Schaltfläche öffnet ein zweites Fenster, das nur die
+            Projektion zeigt. Dieses Fenster gehört auf den Beamer; auf dem Gerät der Lehrkraft erscheinen dann
+            zusätzlich Modelläußerung, Bedeutung, Methode und Notiz, die die Klasse nicht sieht. Der Browser muss
+            Pop-ups für diese Seite erlauben.
+          </p>
         </div>
       </section>
 
@@ -60,8 +66,28 @@ export function HelpView() {
             ))}
           </ol>
           <p className="muted text-sm">
-            Schritte lassen sich pro Sequenz und pro Einheit abschalten. Schritte ohne hinterlegtes Material werden
-            automatisch übersprungen.
+            Schritte lassen sich pro Sequenz und pro Einheit abschalten und frei umsortieren – per Ziehen oder über
+            die Pfeilschaltflächen. Schritte ohne hinterlegtes Material werden automatisch übersprungen.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Einheiten anlegen</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            <strong>Schnelleingabe:</strong> Ausdruck eintippen und mit der Eingabetaste übernehmen – Einzelheiten
+            ergänzen Sie später in der Detailspalte.
+          </p>
+          <p className="muted text-sm">
+            <strong>Aus einer Tabelle:</strong> Text aus einer Tabellenkalkulation einfügen. Tabulator, Semikolon und
+            Komma werden erkannt; die Spaltenzuordnung schlägt die App vor und lässt sich vor dem Übernehmen ändern.
+          </p>
+          <p className="muted text-sm">
+            <strong>Eigene Aufnahme:</strong> Im Feld „Audio“ nimmt „Selbst aufnehmen“ die Modelläußerung direkt über
+            das Mikrofon auf. Die Aufnahme bleibt auf diesem Gerät.
           </p>
         </div>
       </section>

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { navigate } from '../app/router';
+import { navigate, toHash } from '../app/router';
 import { useMediaUrl } from '../app/media';
+import {
+  PROJECTION_WINDOW_NAME,
+  isPresentationSupported,
+  publishStage,
+  useProjectionRequests,
+  type StageState,
+} from '../app/presentation';
 import { useStore } from '../app/storeContext';
-import { buildCheckPrompt } from '../domain/checks';
-import { CLASS_STATUSES, languageLabel, type ClassStatus, type Lexeme } from '../domain/model';
+import { CLASS_STATUSES, type ClassStatus } from '../domain/model';
 import { defaultVisibility, resolveSteps, type StepVisibility } from '../domain/steps';
-import { firstFilled } from '../domain/text';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
+import { useToast } from '../ui/toastContext';
+import { TeachStage, TeacherPanel } from './teach/TeachStage';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -21,34 +28,14 @@ interface RevealState {
   translation: boolean;
 }
 
-/** Bild oder Video der aktuellen Einheit. */
-function StageMedia({ lexeme }: { lexeme: Lexeme }) {
-  const image = useMediaUrl(lexeme.imageId);
-  const video = useMediaUrl(lexeme.videoId);
-
-  if (video.url) {
-    return (
-      <div className="teach__media">
-        <video src={video.url} controls playsInline />
-      </div>
-    );
-  }
-  if (image.url) {
-    return (
-      <div className="teach__media">
-        <img src={image.url} alt="" />
-      </div>
-    );
-  }
-  if (image.loading || video.loading) return <p className="teach__support">Medien werden geladen …</p>;
-  return null;
-}
-
 export function TeachView({ sequenceId }: { sequenceId: string }) {
   const { state, actions } = useStore();
+  const toast = useToast();
   const sequence = state.sequences.find((entry) => entry.id === sequenceId);
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const projectionRef = useRef<Window | null>(null);
+  const stageRef = useRef<StageState | null>(null);
   const isFullscreen = useFullscreenState();
 
   const teachable = useMemo(() => sequence?.lexemes.filter((lexeme) => !lexeme.skipped) ?? [], [sequence]);
@@ -62,6 +49,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const [finished, setFinished] = useState(false);
   const [reveal, setReveal] = useState<RevealState | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [projectionOpen, setProjectionOpen] = useState(false);
 
   const safeLexemeIndex = clamp(lexemeIndex, 0, Math.max(teachable.length - 1, 0));
   const lexeme = teachable[safeLexemeIndex];
@@ -74,15 +62,18 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   // Gestufte Enthüllung: Jeder Schritt beginnt mit seiner Standardsichtbarkeit.
   // Umschaltungen der Lehrkraft gelten nur für den gerade gezeigten Schritt.
   const stepKey = `${safeLexemeIndex}:${safeStepIndex}`;
-  const visibility: StepVisibility =
-    reveal?.key === stepKey ? reveal.visibility : step ? defaultVisibility(step.id) : { meaning: false, form: false, support: false };
+  const visibility: StepVisibility = useMemo(() => {
+    if (reveal?.key === stepKey) return reveal.visibility;
+    return step ? defaultVisibility(step.id) : { meaning: false, form: false, support: false };
+  }, [reveal, step, stepKey]);
   const showTranslation = reveal?.key === stepKey ? reveal.translation : false;
   const updateVisibility = (patch: Partial<StepVisibility>) =>
     setReveal({ key: stepKey, visibility: { ...visibility, ...patch }, translation: showTranslation });
   const toggleTranslation = () => setReveal({ key: stepKey, visibility, translation: !showTranslation });
 
   const totalSteps = stepsPerLexeme.reduce((sum, entries) => sum + entries.length, 0);
-  const completedSteps = stepsPerLexeme.slice(0, safeLexemeIndex).reduce((sum, entries) => sum + entries.length, 0) + safeStepIndex + 1;
+  const completedSteps =
+    stepsPerLexeme.slice(0, safeLexemeIndex).reduce((sum, entries) => sum + entries.length, 0) + safeStepIndex + 1;
 
   // Unterbrechen und später fortsetzen.
   useEffect(() => {
@@ -91,6 +82,49 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     if (session && session.lexemeIndex === safeLexemeIndex && session.stepIndex === safeStepIndex) return;
     actions.setSession(sequence.id, { lexemeIndex: safeLexemeIndex, stepIndex: safeStepIndex, updatedAt: Date.now() });
   }, [actions, finished, safeLexemeIndex, safeStepIndex, sequence]);
+
+  // Stand für das Projektionsfenster bereithalten und senden.
+  useEffect(() => {
+    const stage: StageState | null =
+      lexeme && step
+        ? {
+            sequenceId,
+            lexemeId: lexeme.id,
+            stepId: step.id,
+            visibility,
+            showTranslation,
+            finished,
+          }
+        : null;
+    stageRef.current = stage;
+    if (projectionOpen) publishStage(stage);
+  }, [finished, lexeme, projectionOpen, sequenceId, showTranslation, step, visibility]);
+
+  const handleProjectionHello = useCallback(() => {
+    setProjectionOpen(true);
+    publishStage(stageRef.current);
+  }, []);
+  const handleProjectionClosed = useCallback(() => setProjectionOpen(false), []);
+  useProjectionRequests(handleProjectionHello, handleProjectionClosed);
+
+  const openProjection = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.hash = toHash({ name: 'projection', sequenceId });
+    const opened = window.open(url.toString(), PROJECTION_WINDOW_NAME, 'width=1280,height=800');
+    if (!opened) {
+      toast.show('Das Projektionsfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.', 'error');
+      return;
+    }
+    projectionRef.current = opened;
+    setProjectionOpen(true);
+    publishStage(stageRef.current);
+  }, [sequenceId, toast]);
+
+  const closeProjection = useCallback(() => {
+    projectionRef.current?.close();
+    projectionRef.current = null;
+    setProjectionOpen(false);
+  }, []);
 
   const goNext = useCallback(() => {
     if (safeStepIndex < steps.length - 1) {
@@ -217,6 +251,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
           <Button
             onClick={() => {
               actions.setSession(sequence.id, null);
+              closeProjection();
               leave();
             }}
           >
@@ -227,102 +262,51 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     );
   }
 
-  const checkPrompt = buildCheckPrompt(lexeme);
-  const showMedia = ['impuls', 'vermuten', 'hilfen-ausblenden', 'abruf', 'kontrolle'].includes(step.id);
-  const supportLines = [lexeme.pronunciationHint, lexeme.prosodyNote, lexeme.ipa, lexeme.morphology].filter(
-    (line) => line && line.trim(),
-  );
-
-  const stepContent = (() => {
-    switch (step.id) {
-      case 'situation':
-        return <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example, sequence.topic)}</p>;
-      case 'impuls':
-        return lexeme.imageId || lexeme.videoId ? null : (
-          <p className="teach__placeholder">{firstFilled(lexeme.semantisationMethod, 'Impuls zeigen')}</p>
-        );
-      case 'audio':
-        return audio.url ? null : <p className="teach__prompt">Hört genau zu.</p>;
-      case 'vermuten':
-        return <p className="teach__prompt">Was könnte das bedeuten?</p>;
-      case 'klaeren':
-        return null;
-      case 'form':
-        return null;
-      case 'fokus':
-        return lexeme.sentenceFrame ? <p className="teach__frame">{lexeme.sentenceFrame}</p> : null;
-      case 'kontrolle':
-        return checkPrompt ? <p className="teach__prompt">{checkPrompt}</p> : null;
-      case 'hilfen-ausblenden':
-        return <p className="teach__prompt">Die Hilfen sind weg – wer kann die Einheit noch nennen?</p>;
-      case 'abruf':
-        return (
-          <>
-            <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example)}</p>
-            <p className="teach__prompt">Wie sagt man das auf {languageLabel(sequence.targetLanguage)}?</p>
-          </>
-        );
-      case 'aufgabe':
-        return (
-          <p className="teach__prompt">
-            {firstFilled(
-              lexeme.communicativeTask,
-              lexeme.extensionTask,
-              `Verwendet „${lexeme.expression}“ in einer eigenen Situation.`,
-            )}
-          </p>
-        );
-      default:
-        return null;
-    }
-  })();
-
   return (
     <div className="teach" ref={containerRef}>
       <div className="teach__top">
         <span className="teach__step">
-          <span className="teach__step-number">Schritt {step.position}</span> · {step.label}
+          <span className="teach__step-number">
+            Schritt {safeStepIndex + 1} von {steps.length}
+          </span>{' '}
+          · {step.label}
         </span>
         <span className="teach__counter">
           Einheit {safeLexemeIndex + 1} von {teachable.length}
         </span>
         <span className="spacer" />
+        {isPresentationSupported() ? (
+          <Button onClick={projectionOpen ? closeProjection : openProjection}>
+            {projectionOpen ? 'Projektion beenden' : 'Zweitbildschirm'}
+          </Button>
+        ) : null}
         <IconButton label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild einschalten'} onClick={toggleFullscreen}>
           {isFullscreen ? '⤡' : '⤢'}
         </IconButton>
-        <Button onClick={leave}>Vorbereiten</Button>
+        <Button
+          onClick={() => {
+            closeProjection();
+            leave();
+          }}
+        >
+          Vorbereiten
+        </Button>
       </div>
 
       <div className="teach__progress">
         <ProgressBar value={completedSteps} max={totalSteps} label="Fortschritt der Sequenz" />
       </div>
 
-      <div className="teach__stage">
-        {showMedia ? <StageMedia lexeme={lexeme} /> : null}
-        {stepContent}
+      <TeachStage
+        sequence={sequence}
+        lexeme={lexeme}
+        step={step}
+        visibility={visibility}
+        showTranslation={showTranslation}
+        teacherView={!projectionOpen}
+      />
 
-        {visibility.form ? <p className="teach__expression">{lexeme.expression}</p> : null}
-        {visibility.form && lexeme.modelUtterance && step.id !== 'form' ? (
-          <p className="teach__utterance">{lexeme.modelUtterance}</p>
-        ) : null}
-        {visibility.meaning ? <p className="teach__meaning">{lexeme.coreMeaning}</p> : null}
-        {showTranslation && lexeme.translation ? <p className="teach__meaning">{lexeme.translation}</p> : null}
-
-        {visibility.support && supportLines.length > 0 ? (
-          <p className="teach__support">{supportLines.join(' · ')}</p>
-        ) : null}
-        {visibility.support && lexeme.sentenceFrame && step.id !== 'fokus' ? (
-          <p className="teach__frame">{lexeme.sentenceFrame}</p>
-        ) : null}
-
-        {step.id === 'audio' && !audio.url && lexeme.modelUtterance ? (
-          <p className="teach__teacher-note">Für die Lehrkraft: „{lexeme.modelUtterance}“ zweimal vorsprechen.</p>
-        ) : null}
-        {step.id === 'impuls' && (lexeme.imageId || lexeme.videoId) && lexeme.semantisationMethod ? (
-          <p className="teach__teacher-note">Für die Lehrkraft: {lexeme.semantisationMethod}</p>
-        ) : null}
-        {visibility.support && lexeme.extraHint ? <p className="teach__teacher-note">Hinweis: {lexeme.extraHint}</p> : null}
-      </div>
+      {projectionOpen ? <TeacherPanel lexeme={lexeme} step={step} /> : null}
 
       {audio.url ? <audio ref={audioRef} src={audio.url} preload="auto" /> : null}
 

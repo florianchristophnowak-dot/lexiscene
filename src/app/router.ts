@@ -6,6 +6,8 @@ export type Route =
   | { name: 'prepare'; sequenceId?: string }
   | { name: 'teach'; sequenceId: string }
   | { name: 'reactivate'; sequenceId?: string }
+  | { name: 'reactivateTeach'; sequenceId: string }
+  | { name: 'projection'; sequenceId: string }
   | { name: 'data' }
   | { name: 'help' };
 
@@ -13,13 +15,14 @@ const SEGMENTS = {
   prepare: 'vorbereiten',
   teach: 'unterrichten',
   reactivate: 'reaktivieren',
+  projection: 'projektion',
   data: 'daten',
   help: 'hilfe',
 } as const;
 
 export function parseHash(hash: string): Route {
   const path = hash.replace(/^#\/?/, '');
-  const [segment = '', rawId = ''] = path.split('/');
+  const [segment = '', rawId = '', mode = ''] = path.split('/');
   const id = rawId ? decodeURIComponent(rawId) : '';
 
   switch (segment) {
@@ -28,7 +31,10 @@ export function parseHash(hash: string): Route {
     case SEGMENTS.teach:
       return id ? { name: 'teach', sequenceId: id } : { name: 'home' };
     case SEGMENTS.reactivate:
+      if (id && mode === 'unterricht') return { name: 'reactivateTeach', sequenceId: id };
       return { name: 'reactivate', sequenceId: id || undefined };
+    case SEGMENTS.projection:
+      return id ? { name: 'projection', sequenceId: id } : { name: 'home' };
     case SEGMENTS.data:
       return { name: 'data' };
     case SEGMENTS.help:
@@ -46,6 +52,10 @@ export function toHash(route: Route): string {
       return `#/${SEGMENTS.teach}/${encodeURIComponent(route.sequenceId)}`;
     case 'reactivate':
       return route.sequenceId ? `#/${SEGMENTS.reactivate}/${encodeURIComponent(route.sequenceId)}` : `#/${SEGMENTS.reactivate}`;
+    case 'reactivateTeach':
+      return `#/${SEGMENTS.reactivate}/${encodeURIComponent(route.sequenceId)}/unterricht`;
+    case 'projection':
+      return `#/${SEGMENTS.projection}/${encodeURIComponent(route.sequenceId)}`;
     case 'data':
       return `#/${SEGMENTS.data}`;
     case 'help':

@@ -119,18 +119,50 @@ mindestens 44 × 44 Pixel):
 Die Standarddramaturgie umfasst elf Schritte (Situation, Impuls, Hören,
 Vermuten, Klären, Form zeigen, Aussprache und Muster, Verständniskontrolle,
 Hilfen ausblenden, freier Abruf, Mini-Aufgabe). Sie lässt sich pro Sequenz und
-pro Einheit abschalten; Schritte ohne hinterlegtes Material entfallen
-automatisch.
+pro Einheit abschalten **und frei umsortieren**; Schritte ohne hinterlegtes
+Material entfallen automatisch.
+
+### Zweitbildschirm
+
+Die Schaltfläche **Zweitbildschirm** öffnet ein zweites Fenster, das nur die
+Projektion zeigt – ohne Bedienelemente und ohne Hinweise für die Lehrkraft.
+Dieses Fenster ziehen Sie auf den Beamer oder das zweite Display und schalten es
+dort in den Vollbildmodus. Auf dem Gerät der Lehrkraft erscheint dann zusätzlich
+ein Feld mit Modelläußerung, Bedeutung, Methode, Stolperstellen und Ihrer Notiz,
+das die Klasse nicht sieht. Beide Fenster laufen lokal im selben Browserprofil
+und tauschen nur die aktuelle Position aus; der Browser muss Pop-ups für die
+Seite erlauben.
+
+### Reaktivierung im Unterricht
+
+Unter *Reaktivieren → Impulse im Unterricht zeigen* laufen die Impulse in
+derselben ablenkungsfreien Vollbildansicht: Pfeiltasten blättern, die Leertaste
+deckt zuerst die Lösung auf und geht dann weiter, „Als reaktiviert vermerken“
+setzt den Klassenstatus.
+
+## Einheiten anlegen
+
+* **Schnelleingabe:** Ausdruck und optional die Kernbedeutung eintippen, mit
+  Eingabetaste oder „Hinzufügen“ übernehmen.
+* **Serienimport:** Unter *Mehrere Einheiten aus einer Tabelle übernehmen* Text
+  aus einer Tabellenkalkulation oder Liste einfügen – Tabulator, Semikolon und
+  Komma werden erkannt. Überschriften und Spaltenzuordnung schlägt die App vor,
+  beides lässt sich vor dem Übernehmen ändern. Eine Vorschau zeigt, was
+  ankommt; Zeilen ohne Ausdruck werden übersprungen.
+* **Eigene Audioaufnahme:** Im Feld „Audio“ nimmt *Selbst aufnehmen* die
+  Modelläußerung direkt über das Mikrofon auf (Aufnahme läuft sichtbar mit,
+  „Verwerfen“ bricht ab). Die Aufnahme landet unverändert in der lokalen
+  Datenbank – sie verlässt das Gerät nicht.
 
 ## Aufbau des Projekts
 
 ```
 src/
-├── domain/     Modell, Schema, Dramaturgie, Berater, Kontrollen, Reaktivierung, Demo
+├── domain/     Modell, Schema, Dramaturgie, Berater, Kontrollen, Reaktivierung, Import, Demo
 ├── storage/    IndexedDB, Repository, ZIP-Codec, Sicherung
-├── app/        Zustand, Router, Medien-URLs
+├── app/        Zustand, Router, Medien-URLs, Aufnahme, Projektionskopplung
 ├── ui/         Basiskomponenten (Schaltflächen, Felder, Dialoge, Hinweise)
-├── views/      Startseite, Vorbereiten, Unterrichten, Reaktivieren, Daten, Hilfe
+├── views/      Startseite, Vorbereiten, Unterrichten, Projektion, Reaktivieren, Daten, Hilfe
 └── styles/     Gestaltungsgrundlage (Tokens), Layout, Unterrichtsmodus
 ```
 
@@ -138,14 +170,14 @@ src/
 
 * Keine Schülerkonten, keine Cloud-Synchronisierung, keine Live-Quizfunktionen.
 * Keine KI-Funktionen, keine Spracherkennung, keine Online-Bildersuche – Medien
-  werden aus eigenen Dateien hinterlegt.
+  werden aus eigenen Dateien hinterlegt oder selbst aufgenommen.
 * Keine Leistungsstatistiken, Ranglisten oder Streaks. Der Klassenstatus wird
   bewusst von der Lehrkraft gesetzt.
-* Die Reihenfolge der Dramaturgie ist fest; Schritte lassen sich nur
-  aktivieren oder deaktivieren, nicht frei umsortieren.
 * Reaktivierungsrunden werden manuell als durchgeführt markiert; es gibt keine
   automatische Erinnerung außerhalb der App.
 * Datenaustausch zwischen Geräten läuft ausschließlich über Sicherungsdateien.
+* Der Zweitbildschirm setzt zwei Fenster desselben Browserprofils voraus; eine
+  Übertragung auf ein anderes Gerät ist nicht vorgesehen.
 * Eine direkte Prép-ybara-Integration ist nicht enthalten, solange dessen
   Datenformat nicht vorliegt – der Export ist darauf vorbereitet.
 * Geprüft mit aktuellen Versionen von Edge und Chrome; andere Browser sind

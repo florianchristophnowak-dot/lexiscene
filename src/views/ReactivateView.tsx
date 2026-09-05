@@ -129,7 +129,12 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
 
   return (
     <div className="stack">
-      <h2 className="pane-head__title">Unterrichtsimpulse ({impulses.length})</h2>
+      <div className="row-between">
+        <h2 className="pane-head__title">Unterrichtsimpulse ({impulses.length})</h2>
+        <Button variant="primary" onClick={() => navigate({ name: 'reactivateTeach', sequenceId: sequence.id })}>
+          Impulse im Unterricht zeigen
+        </Button>
+      </div>
       {impulses.map((impulse) => {
         const lexeme = sequence.lexemes.find((entry) => entry.id === impulse.lexemeId);
         return (
