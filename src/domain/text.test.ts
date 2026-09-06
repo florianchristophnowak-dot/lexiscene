@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { firstFilled, formatBytes, formatRelativeDays, gapText, slugify, truncate } from './text';
+import { firstFilled, formatBytes, formatRelativeDays, gapText, slugify, splitPatternAnchor, truncate } from './text';
 import { buildCheckPrompt, checkTemplate, recommendedChecks } from './checks';
 import { createLexeme } from './schema';
-import { suggestMethods } from './advisor';
-import { LEXICAL_TYPES } from './model';
 
 describe('gapText', () => {
   it('ersetzt das längste Wort durch eine Lücke', () => {
@@ -71,19 +69,28 @@ describe('Verständniskontrollen', () => {
   });
 });
 
-describe('Semantisierungsberater', () => {
-  it('schlägt zu jedem Typ begründete Methoden vor', () => {
-    for (const type of LEXICAL_TYPES) {
-      const suggestions = suggestMethods(type.id);
-      expect(suggestions.length).toBeGreaterThan(0);
-      for (const suggestion of suggestions) {
-        expect(suggestion.method.length).toBeGreaterThan(3);
-        expect(suggestion.rationale.length).toBeGreaterThan(10);
-      }
-    }
+describe('splitPatternAnchor', () => {
+  it('trennt festen Teil und Slot nach dem Pluszeichen', () => {
+    expect(splitPatternAnchor('avoir peur de + nom/infinitif')).toEqual([
+      { text: 'avoir peur de ', slot: false },
+      { text: ' + ', slot: false },
+      { text: 'nom/infinitif', slot: true },
+    ]);
   });
 
-  it('empfiehlt für Handlungen Bewegung statt Standbild', () => {
-    expect(suggestMethods('handlung')[0].method).toMatch(/Video|Animation/);
+  it('erkennt Kürzel und Lücken als Slots', () => {
+    expect(splitPatternAnchor('avoir besoin de qc')).toEqual([
+      { text: 'avoir besoin de ', slot: false },
+      { text: 'qc', slot: true },
+    ]);
+    expect(splitPatternAnchor('On se retrouve à ______ ?')).toEqual([
+      { text: 'On se retrouve à ', slot: false },
+      { text: '______', slot: true },
+      { text: ' ?', slot: false },
+    ]);
+  });
+
+  it('lässt einen Anker ohne Slot unverändert', () => {
+    expect(splitPatternAnchor('prendre une décision')).toEqual([{ text: 'prendre une décision', slot: false }]);
   });
 });

@@ -1,5 +1,5 @@
 import { APP_NAME, APP_VERSION } from '../domain/model';
-import { STEPS } from '../domain/steps';
+import { PHASES, STEPS, stepsOfPhase } from '../domain/steps';
 
 const SHORTCUTS: [string, string][] = [
   ['→', 'Nächster Schritt'],
@@ -52,7 +52,37 @@ export function HelpView() {
 
       <section className="panel">
         <div className="panel__header">
-          <span className="panel__title">Standarddramaturgie</span>
+          <span className="panel__title">Sechs Phasen als Grundstruktur</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            LexiScène folgt dem Modell <strong>Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung</strong>.
+            Die Phasen geben die Richtung; welche Schritte darin vorkommen, entscheiden Sie je Sequenz und Einheit.
+            Es gibt keinen festen Ablauf, den jede Einführung durchlaufen müsste.
+          </p>
+          <ol className="help-list">
+            {PHASES.map((phase) => (
+              <li key={phase.id}>
+                <span className="kbd">{phase.position}</span>
+                <span>
+                  <strong>{phase.label}</strong> — <span className="muted">{phase.purpose}</span>
+                  <span className="field__hint" style={{ display: 'block' }}>
+                    {stepsOfPhase(phase.id).length > 0
+                      ? `Schritte: ${stepsOfPhase(phase.id)
+                          .map((step) => step.label)
+                          .join(', ')}`
+                      : 'Eigener Bereich: Reaktivieren'}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Die zwölf Schritte im Einzelnen</span>
         </div>
         <div className="panel__body stack">
           <ol className="help-list">
@@ -66,8 +96,79 @@ export function HelpView() {
             ))}
           </ol>
           <p className="muted text-sm">
-            Schritte lassen sich pro Sequenz und pro Einheit abschalten und frei umsortieren – per Ziehen oder über
-            die Pfeilschaltflächen. Schritte ohne hinterlegtes Material werden automatisch übersprungen.
+            Schritte lassen sich pro Sequenz und pro Einheit abschalten und frei umsortieren – per Ziehen oder über die
+            Pfeilschaltflächen. Schritte ohne hinterlegtes Material werden automatisch übersprungen. Ob das Klangbild
+            vor dem Schriftbild kommt und wann die Schrift erscheint, ist eine Regieentscheidung, keine feste Regel.
+          </p>
+          <p className="muted text-sm">
+            <strong>Bedeutung erschließen</strong> ist kein Pflichtschritt. In den Sequenzeinstellungen wählen Sie, ob
+            erschlossen wird: gar nicht, wo der Kontext es hergibt, oder bewusst als Strategietraining. Die Klärung
+            folgt in jedem Fall.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Korpusminiaturen</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            Eine Korpusminiatur ist eine kleine, selbst kuratierte Sammlung von etwa fünf bis zehn Belegen. Sie zeigt
+            bewusst <strong>wenige ausgewählte Belege statt einer ungefilterten Trefferliste</strong>. Alle Belege
+            tragen Sie selbst ein oder fügen sie zeilenweise ein; {APP_NAME} ruft nichts ab und verbindet sich mit
+            keinem Onlinekorpus.
+          </p>
+          <p className="muted text-sm">
+            Besonders geeignet sind Miniaturen für <strong>Kollokationen, Valenz, Präpositionen, Polysemie und
+            Register</strong> – überall dort, wo sich ein Muster an mehreren Belegen zeigt. Die Leitfrage sollte sich
+            auf ein erkennbares Merkmal beschränken; für Anfängerinnen und Anfänger brauchen die Belege kurze,
+            verständliche Sätze und eine strenge Auswahl.
+          </p>
+          <p className="muted text-sm">
+            Im Unterricht wird die Miniatur <strong>gestuft</strong> aufgedeckt: erst Leitfrage und unmarkierte Belege,
+            dann „Fokus markieren“, „Gruppen zeigen“, „Regel zeigen“ und „Transfer zeigen“. Angeboten werden nur
+            Schaltflächen, für die Sie tatsächlich etwas hinterlegt haben. Die beobachtete Regel wird anschließend
+            ausdrücklich bestätigt – das Entdecken bleibt sonst Vermutung.
+          </p>
+          <p className="muted text-sm">
+            Die Funktion ersetzt weder eine eindeutige Bedeutungsklärung noch den aktiven Abruf und die spätere
+            Verwendung; sie ergänzt die Phase „Muster“. Ob Sie ein Muster entdecken lassen oder es erklären, bleibt
+            eine Regieentscheidung – beides ist je nach Einheit und Lerngruppe sinnvoll.
+          </p>
+          <p className="muted text-sm">
+            <strong>Vorbereiten:</strong> In der Detailspalte unter „Korpusminiatur – Muster entdecken (optional)“
+            schalten Sie die Funktion für eine Einheit ein, tragen Belege ein, markieren je Beleg eine Textstelle und
+            vergeben optional eine Lösungsgruppe. Kommt eine Markierung im Beleg nicht vor, wird das dort gemeldet;
+            verglichen wird Zeichen für Zeichen, also auch Akzent, Apostroph und Groß-/Kleinschreibung.
+            Lehrkraftnotizen und Quellenhinweis erscheinen nur auf Ihrem Bildschirm, nie in der Projektion.
+          </p>
+          <p className="muted text-sm">
+            <strong>Der Schritt ist ein Angebot:</strong> Er ist in neuen und bestehenden Sequenzen abgeschaltet.
+            Schalten Sie ihn gezielt für die Einheit ein, für die Sie eine Miniatur vorbereitet haben. Angeboten wird
+            er ab drei Belegen.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Beobachten statt bewerten</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            In Abruf- und Gebrauchsschritten halten Sie mit „sicher“, „mit Hilfe“ oder „noch nicht“ fest, wie die
+            <strong> Klasse</strong> reagiert hat – nicht einzelne Lernende. Die Rückmeldung wird der jeweiligen
+            Wissensdimension zugeordnet: Bedeutung, Form, Muster oder Gebrauch.
+          </p>
+          <p className="muted text-sm">
+            Daraus entstehen keine Punkte, Noten oder Gesamtlernstände. In der Vorbereitung sehen Sie je Einheit den
+            jüngsten Stand der vier Dimensionen und darunter den vollständigen Verlauf. Eine Reaktivierung überschreibt
+            einen erreichten Stand nicht.
+          </p>
+          <p className="muted text-sm">
+            Verklickt? Ein zweiter Klick auf eine andere Rückmeldung ersetzt die des laufenden Schritts. Einzelne
+            Einträge lassen sich im Verlauf der Einheit entfernen.
           </p>
         </div>
       </section>

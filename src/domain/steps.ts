@@ -1,38 +1,179 @@
 /**
- * Standarddramaturgie einer Semantisierung.
+ * Dramaturgie einer Semantisierung.
  *
- * Die Reihenfolge ist bewusst stabil; die Lehrkraft aktiviert oder deaktiviert
- * einzelne Schritte auf Sequenz- oder Einheitenebene.
+ * Über den zwölf Mikro-Schritten liegen sechs didaktische Phasen:
+ * Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung.
+ * Die Phasen geben die Grundstruktur; welche Schritte darin vorkommen und in
+ * welcher Reihenfolge, entscheidet die Lehrkraft je Sequenz und Einheit.
  */
-import type { Lexeme, Sequence, StepId } from './model';
+import type { Lexeme, ObservationDimension, PhaseId, Sequence, StepId } from './model';
+import { checkTemplate } from './checks';
+import { corpusMiniatureReady } from './corpus';
+
+export interface PhaseDefinition {
+  id: PhaseId;
+  position: number;
+  label: string;
+  purpose: string;
+}
+
+export const PHASES: readonly PhaseDefinition[] = [
+  {
+    id: 'kontext',
+    position: 1,
+    label: 'Kontext',
+    purpose: 'Situation und kommunikativen Bedarf aufbauen, bevor Sprache angeboten wird.',
+  },
+  {
+    id: 'klarheit',
+    position: 2,
+    label: 'Klarheit',
+    purpose: 'Die Bedeutung eindeutig sichern – erschlossen oder direkt geklärt.',
+  },
+  {
+    id: 'muster',
+    position: 3,
+    label: 'Muster',
+    purpose: 'Klangbild, Schriftbild und Musteranker verfügbar machen.',
+  },
+  {
+    id: 'abruf',
+    position: 4,
+    label: 'Abruf',
+    purpose: 'Prüfen und üben, was ohne Hilfen abrufbar ist.',
+  },
+  {
+    id: 'gebrauch',
+    position: 5,
+    label: 'Gebrauch',
+    purpose: 'Die Einheit in eigenem Sprachhandeln verwenden.',
+  },
+  {
+    id: 'wiederbegegnung',
+    position: 6,
+    label: 'Wiederbegegnung',
+    purpose: 'Später erneut aktivieren – im Bereich „Reaktivieren“ geplant und durchgeführt.',
+  },
+];
+
+export function phaseDefinition(id: PhaseId): PhaseDefinition | undefined {
+  return PHASES.find((phase) => phase.id === id);
+}
 
 export interface StepDefinition {
   id: StepId;
   position: number;
+  phase: PhaseId;
   label: string;
   /** Knappe didaktische Begründung – erscheint als Hinweis in der Vorbereitung. */
   purpose: string;
 }
 
+/**
+ * Standardreihenfolge: Sie folgt den Phasen, ist aber nur ein Vorschlag –
+ * Reihenfolge und Auswahl sind je Sequenz und Einheit änderbar.
+ */
 export const STEPS: readonly StepDefinition[] = [
-  { id: 'situation', position: 1, label: 'Situation', purpose: 'Kommunikativen Bedarf sichtbar machen, bevor Sprache angeboten wird.' },
-  { id: 'impuls', position: 2, label: 'Impuls zeigen', purpose: 'Bild, Gegenstand, Geste oder Video als Bedeutungsträger anbieten.' },
-  { id: 'audio', position: 3, label: 'Hören', purpose: 'Klangbild vor dem Schriftbild anbieten.' },
-  { id: 'vermuten', position: 4, label: 'Bedeutung vermuten', purpose: 'Lernende erschließen die Bedeutung selbst – das sichert Verarbeitungstiefe.' },
-  { id: 'klaeren', position: 5, label: 'Bedeutung klären', purpose: 'Bedeutung eindeutig sichern, damit keine falsche Hypothese bestehen bleibt.' },
-  { id: 'form', position: 6, label: 'Form zeigen', purpose: 'Schriftbild erst nach der Bedeutungsklärung einführen.' },
-  { id: 'fokus', position: 7, label: 'Aussprache und Muster', purpose: 'Lautung, Betonung und Satzrahmen gezielt fokussieren.' },
-  { id: 'kontrolle', position: 8, label: 'Verständniskontrolle', purpose: 'Formative Rückmeldung einholen, ohne zu bewerten.' },
-  { id: 'hilfen-ausblenden', position: 9, label: 'Hilfen ausblenden', purpose: 'Stützen schrittweise entfernen und Abrufbarkeit prüfen.' },
-  { id: 'abruf', position: 10, label: 'Freier Abruf', purpose: 'Abruf ohne Vorlage anregen.' },
-  { id: 'aufgabe', position: 11, label: 'Kommunikative Mini-Aufgabe', purpose: 'Erstes eigenes Sprachhandeln mit der neuen Einheit ermöglichen.' },
+  {
+    id: 'situation',
+    position: 1,
+    phase: 'kontext',
+    label: 'Situation',
+    purpose: 'Kommunikativen Bedarf sichtbar machen, bevor Sprache angeboten wird.',
+  },
+  {
+    id: 'impuls',
+    position: 2,
+    phase: 'kontext',
+    label: 'Impuls zeigen',
+    purpose: 'Bild, Gegenstand, Geste oder Video als Bedeutungsträger anbieten.',
+  },
+  {
+    id: 'vermuten',
+    position: 3,
+    phase: 'klarheit',
+    label: 'Bedeutung erschließen',
+    purpose:
+      'Nur sinnvoll, wenn der Kontext informativ genug ist oder Erschließen bewusst geübt wird – die Klärung muss immer folgen.',
+  },
+  {
+    id: 'klaeren',
+    position: 4,
+    phase: 'klarheit',
+    label: 'Bedeutung klären',
+    purpose: 'Bedeutung eindeutig sichern, damit keine falsche Hypothese bestehen bleibt.',
+  },
+  {
+    id: 'audio',
+    position: 5,
+    phase: 'muster',
+    label: 'Hören',
+    purpose: 'Klangbild anbieten. Ob es vor oder nach dem Schriftbild kommt, ist eine Regieentscheidung.',
+  },
+  {
+    id: 'form',
+    position: 6,
+    phase: 'muster',
+    label: 'Form zeigen',
+    purpose: 'Schriftbild einführen. Der Zeitpunkt ist wählbar – früh stützt, spät fordert das Hören.',
+  },
+  {
+    id: 'fokus',
+    position: 7,
+    phase: 'muster',
+    label: 'Aussprache und Muster',
+    purpose: 'Lautung, Betonung und Musteranker gezielt fokussieren.',
+  },
+  {
+    id: 'korpusminiatur',
+    position: 8,
+    phase: 'muster',
+    label: 'Korpusminiatur',
+    purpose:
+      'An wenigen kuratierten Belegen ein Muster gelenkt entdecken. Optionaler Schritt – die Regel wird anschließend ausdrücklich bestätigt.',
+  },
+  {
+    id: 'kontrolle',
+    position: 9,
+    phase: 'abruf',
+    label: 'Verständniskontrolle',
+    purpose: 'Formative Rückmeldung einholen, ohne zu bewerten.',
+  },
+  {
+    id: 'hilfen-ausblenden',
+    position: 10,
+    phase: 'abruf',
+    label: 'Hilfen ausblenden',
+    purpose: 'Stützen entfernen und sehen, was ohne Vorlage abrufbar ist.',
+  },
+  {
+    id: 'abruf',
+    position: 11,
+    phase: 'abruf',
+    label: 'Freier Abruf',
+    purpose: 'Abruf ohne Vorlage anregen – erst Denkzeit, dann Lösung.',
+  },
+  {
+    id: 'aufgabe',
+    position: 12,
+    phase: 'gebrauch',
+    label: 'Kommunikative Mini-Aufgabe',
+    purpose: 'Erstes eigenes Sprachhandeln mit der neuen Einheit ermöglichen.',
+  },
 ];
+
+/**
+ * Schritte, die bei neuen Sequenzen zunächst abgeschaltet bleiben.
+ * Die Korpusminiatur ist ein Angebot: Sie erscheint erst, wenn die Lehrkraft
+ * sie für eine Sequenz oder eine einzelne Einheit einschaltet.
+ */
+export const OPT_IN_STEPS: readonly StepId[] = ['korpusminiatur'];
 
 export const STEP_IDS: readonly StepId[] = STEPS.map((step) => step.id);
 
 export function defaultStepConfig(): Record<StepId, boolean> {
   const config = {} as Record<StepId, boolean>;
-  for (const step of STEPS) config[step.id] = true;
+  for (const step of STEPS) config[step.id] = !OPT_IN_STEPS.includes(step.id);
   return config;
 }
 
@@ -40,9 +181,20 @@ export function stepDefinition(id: StepId): StepDefinition | undefined {
   return STEPS.find((step) => step.id === id);
 }
 
+export function stepPhase(id: StepId): PhaseDefinition | undefined {
+  const step = stepDefinition(id);
+  return step ? phaseDefinition(step.phase) : undefined;
+}
+
+/** Alle Schritte einer Phase in der Standardreihenfolge. */
+export function stepsOfPhase(phase: PhaseId): StepDefinition[] {
+  return STEPS.filter((step) => step.phase === phase);
+}
+
 /**
  * Macht aus beliebigen Eingaben eine gültige Reihenfolge: unbekannte und
- * doppelte Einträge fallen weg, fehlende Schritte werden hinten ergänzt.
+ * doppelte Einträge fallen weg, fehlende Schritte werden an ihrer
+ * Standardposition ergänzt.
  */
 export function normalizeStepOrder(raw: unknown): StepId[] {
   const known = new Set<StepId>(STEP_IDS);
@@ -56,7 +208,25 @@ export function normalizeStepOrder(raw: unknown): StepId[] {
     }
   }
 
-  for (const stepId of STEP_IDS) if (!order.includes(stepId)) order.push(stepId);
+  /*
+   * Fehlende Schritte – etwa ein in einer neueren Version ergänzter – werden
+   * an ihrer Standardposition eingefügt: hinter dem nächstgelegenen Vorgänger
+   * aus der Standardreihenfolge. Eine selbst gewählte Reihenfolge bleibt so
+   * unverändert erhalten, und neue Schritte landen nicht am Ende.
+   */
+  for (const [defaultIndex, stepId] of STEP_IDS.entries()) {
+    if (order.includes(stepId)) continue;
+    let insertAt = order.length;
+    for (let previous = defaultIndex - 1; previous >= 0; previous -= 1) {
+      const position = order.indexOf(STEP_IDS[previous]);
+      if (position >= 0) {
+        insertAt = position + 1;
+        break;
+      }
+    }
+    order.splice(insertAt, 0, stepId);
+  }
+
   return order;
 }
 
@@ -78,8 +248,23 @@ export function moveStep(order: StepId[], from: number, to: number): StepId[] {
 
 const hasText = (...values: (string | undefined)[]): boolean => values.some((value) => Boolean(value && value.trim()));
 
+/**
+ * Ist ein Erschließungsversuch für diese Einheit vorgesehen?
+ *
+ * Erschließen setzt einen Kontext voraus, der die Bedeutung überhaupt hergibt.
+ * Ohne diese Grundlage wird der Schritt nicht angeboten; die Klärung folgt in
+ * jedem Fall im nächsten Schritt.
+ */
+export function inferenceAvailable(lexeme: Lexeme, sequence?: Sequence): boolean {
+  const mode = sequence?.inferenceMode ?? 'optional';
+  if (mode === 'off') return false;
+  if (!hasText(lexeme.situation, lexeme.example, lexeme.modelUtterance)) return false;
+  if (mode === 'planned') return true;
+  return lexeme.inferenceSuitability !== 'ungeeignet';
+}
+
 /** Ein Schritt wird nur angeboten, wenn dafür überhaupt Material vorliegt. */
-export function stepHasContent(id: StepId, lexeme: Lexeme): boolean {
+export function stepHasContent(id: StepId, lexeme: Lexeme, sequence?: Sequence): boolean {
   switch (id) {
     case 'situation':
       return hasText(lexeme.situation, lexeme.example, lexeme.modelUtterance);
@@ -88,7 +273,7 @@ export function stepHasContent(id: StepId, lexeme: Lexeme): boolean {
     case 'audio':
       return Boolean(lexeme.audioId) || hasText(lexeme.modelUtterance);
     case 'vermuten':
-      return true;
+      return inferenceAvailable(lexeme, sequence);
     case 'klaeren':
       return hasText(lexeme.coreMeaning, lexeme.translation, lexeme.simplifiedExplanation);
     case 'form':
@@ -103,12 +288,13 @@ export function stepHasContent(id: StepId, lexeme: Lexeme): boolean {
         lexeme.valency,
         lexeme.collocations,
       );
+    case 'korpusminiatur':
+      return corpusMiniatureReady(lexeme.corpus);
     case 'kontrolle':
       return hasText(lexeme.checkTemplateId, lexeme.checkPrompt);
     case 'hilfen-ausblenden':
-      return true;
     case 'abruf':
-      return true;
+      return hasText(lexeme.expression);
     case 'aufgabe':
       return hasText(lexeme.communicativeTask, lexeme.extensionTask, lexeme.modelUtterance);
     default:
@@ -127,7 +313,53 @@ export function resolveSteps(sequence: Sequence, lexeme: Lexeme): StepDefinition
   return effectiveStepOrder(sequence, lexeme)
     .map((stepId) => stepDefinition(stepId))
     .filter((step): step is StepDefinition => Boolean(step))
-    .filter((step) => isStepEnabled(sequence, lexeme, step.id) && stepHasContent(step.id, lexeme));
+    .filter((step) => isStepEnabled(sequence, lexeme, step.id) && stepHasContent(step.id, lexeme, sequence));
+}
+
+/** Die Phasen, die in dieser Einheit tatsächlich vorkommen. */
+export function resolvePhases(sequence: Sequence, lexeme: Lexeme): PhaseDefinition[] {
+  const seen = new Set<PhaseId>();
+  const phases: PhaseDefinition[] = [];
+  for (const step of resolveSteps(sequence, lexeme)) {
+    if (seen.has(step.phase)) continue;
+    seen.add(step.phase);
+    const phase = phaseDefinition(step.phase);
+    if (phase) phases.push(phase);
+  }
+  return phases;
+}
+
+/**
+ * Wissensdimension, auf die sich eine Rückmeldung in diesem Schritt bezieht.
+ * Bei der Verständniskontrolle richtet sie sich nach der gewählten Vorlage.
+ */
+export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension {
+  switch (id) {
+    case 'situation':
+    case 'impuls':
+    case 'vermuten':
+    case 'klaeren':
+      return 'meaning';
+    case 'audio':
+    case 'form':
+    case 'hilfen-ausblenden':
+    case 'abruf':
+      return 'form';
+    case 'fokus':
+    case 'korpusminiatur':
+      return 'pattern';
+    case 'aufgabe':
+      return 'use';
+    case 'kontrolle':
+      return lexeme ? (checkTemplate(lexeme.checkTemplateId)?.target ?? 'meaning') : 'meaning';
+    default:
+      return 'meaning';
+  }
+}
+
+/** In diesen Schritten ist eine Rückmeldung der Lerngruppe sinnvoll. */
+export function stepInvitesFeedback(id: StepId): boolean {
+  return ['kontrolle', 'hilfen-ausblenden', 'abruf', 'aufgabe'].includes(id);
 }
 
 /** Sichtbarkeit der Hilfen beim Betreten eines Schritts (gestufte Enthüllung). */
@@ -137,29 +369,43 @@ export interface StepVisibility {
   support: boolean;
 }
 
+/**
+ * Sichtbarkeitsprofil je Phase: Was die Klasse beim Betreten eines Schritts
+ * dieser Phase standardmäßig sieht. Die Lehrkraft kann jederzeit umschalten.
+ */
+export const PHASE_VISIBILITY: Record<PhaseId, StepVisibility> = {
+  kontext: { meaning: false, form: false, support: false },
+  klarheit: { meaning: true, form: false, support: false },
+  muster: { meaning: true, form: true, support: false },
+  abruf: { meaning: false, form: false, support: false },
+  gebrauch: { meaning: false, form: true, support: false },
+  wiederbegegnung: { meaning: false, form: false, support: false },
+};
+
+/** Begründete Abweichungen einzelner Schritte vom Profil ihrer Phase. */
+const STEP_VISIBILITY_EXCEPTIONS: Partial<Record<StepId, Partial<StepVisibility>>> = {
+  // Erst vermuten lassen, dann klären – sonst ist die Frage beantwortet.
+  vermuten: { meaning: false },
+  // Innerhalb der Phase „Muster“ kommt das Klangbild vor dem Schriftbild.
+  audio: { form: false },
+  // Im Fokusschritt stehen Musteranker und Lautung im Vordergrund.
+  fokus: { meaning: false, support: true },
+  // In der Korpusminiatur tragen die Belege. Bedeutung und Schriftbild sind
+  // bereits gesichert und würden die Bühne nur füllen.
+  korpusminiatur: { meaning: false, form: false, support: false },
+};
+
 export function defaultVisibility(id: StepId): StepVisibility {
-  switch (id) {
-    case 'situation':
-    case 'impuls':
-    case 'audio':
-    case 'vermuten':
-      return { meaning: false, form: false, support: false };
-    case 'klaeren':
-      return { meaning: true, form: false, support: false };
-    case 'form':
-      return { meaning: true, form: true, support: false };
-    case 'fokus':
-      // Lautung und Muster stehen im Vordergrund, die Bedeutung ist geklärt.
-      return { meaning: false, form: true, support: true };
-    case 'kontrolle':
-      // Die Kontrollfrage steht allein – Hilfen blendet die Lehrkraft bei Bedarf ein.
-      return { meaning: false, form: false, support: false };
-    case 'hilfen-ausblenden':
-    case 'abruf':
-      return { meaning: false, form: false, support: false };
-    case 'aufgabe':
-      return { meaning: false, form: true, support: false };
-    default:
-      return { meaning: false, form: false, support: false };
-  }
+  const phase = stepDefinition(id)?.phase ?? 'kontext';
+  return { ...PHASE_VISIBILITY[phase], ...(STEP_VISIBILITY_EXCEPTIONS[id] ?? {}) };
+}
+
+/** Kurzbeschreibung des Profils für die Vorbereitung. */
+export function visibilityLabel(visibility: StepVisibility): string {
+  const parts = [
+    visibility.meaning ? 'Bedeutung' : '',
+    visibility.form ? 'Schriftbild' : '',
+    visibility.support ? 'Hilfen' : '',
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : 'nichts';
 }

@@ -76,3 +76,55 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** Ein Abschnitt eines Musterankers: fester Bestandteil oder variabler Slot. */
+export interface PatternSegment {
+  text: string;
+  slot: boolean;
+}
+
+const SLOT_TOKEN = /(_{2,}|…|\.{3}|\[[^\]]*\]|\b(?:qc|qch|qqch|qn|qqn|jdn|jdm|etw)\b)/g;
+
+function tokenizeFixed(part: string, push: (value: string, slot: boolean) => void): void {
+  SLOT_TOKEN.lastIndex = 0;
+  let last = 0;
+  let match = SLOT_TOKEN.exec(part);
+  while (match) {
+    push(part.slice(last, match.index), false);
+    push(match[0], true);
+    last = match.index + match[0].length;
+    match = SLOT_TOKEN.exec(part);
+  }
+  push(part.slice(last), false);
+}
+
+/**
+ * Zerlegt einen Musteranker in feste Bestandteile und variable Slots.
+ * Als Slot gelten Lücken (`____`, `…`), Platzhalter in Klammern, die üblichen
+ * Kürzel (qc, qn, jdn …) sowie das, was nach einem „+“ eingesetzt wird.
+ */
+export function splitPatternAnchor(text: string): PatternSegment[] {
+  const segments: PatternSegment[] = [];
+  const push = (value: string, slot: boolean): void => {
+    if (value.trim()) segments.push({ text: slot ? value.trim() : value, slot });
+  };
+
+  const parts = text.split('+');
+  parts.forEach((part, index) => {
+    if (index === 0) {
+      tokenizeFixed(part, push);
+      return;
+    }
+    push(' + ', false);
+    // Nur die erste Angabe nach dem Pluszeichen ist der Slot.
+    const separator = part.search(/\s\/\s|,|;/);
+    if (separator === -1) {
+      push(part, true);
+      return;
+    }
+    push(part.slice(0, separator), true);
+    tokenizeFixed(part.slice(separator), push);
+  });
+
+  return segments;
+}

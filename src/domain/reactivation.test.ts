@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { createLexeme, createSequence } from './schema';
-import { DAY_MS, buildImpulses, dueSequences, isSequenceDue, nextDueAt } from './reactivation';
+import { createLexeme, createReactivationPlan, createSequence } from './schema';
+import { DAY_MS, buildImpulses, completeRound, dueSequences, isSequenceDue, nextDueAt, summariseOutcomes, unsureCount } from './reactivation';
+import { createObservation } from './observations';
 
 const NOW = new Date('2026-05-04T09:00:00Z').getTime();
 
 function planned(offsets: number[], anchorDaysAgo: number, completedRounds = 0) {
   return createSequence({
     title: 'Plan',
-    reactivation: { enabled: true, offsetsDays: offsets, anchor: NOW - anchorDaysAgo * DAY_MS, completedRounds },
-    lexemes: [createLexeme({ expression: 'Ça te dit de… ?', coreMeaning: 'Hast du Lust?', status: 'begegnet' })],
+    reactivation: createReactivationPlan({
+      enabled: true,
+      offsetsDays: offsets,
+      anchor: NOW - anchorDaysAgo * DAY_MS,
+      completedRounds,
+    }),
+    lexemes: [
+      createLexeme({
+        expression: 'Ça te dit de… ?',
+        coreMeaning: 'Hast du Lust?',
+        observations: [createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })],
+      }),
+    ],
   });
 }
 
@@ -52,10 +64,19 @@ describe('buildImpulses', () => {
         coreMeaning: 'Hast du Lust?',
         modelUtterance: 'Ça te dit d’aller au cinéma ?',
         situation: 'Zwei Jugendliche verabreden sich.',
-        status: 'begegnet',
+        observations: [createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })],
       }),
-      createLexeme({ expression: 'Pourquoi pas !', coreMeaning: 'Gerne!', status: 'begegnet' }),
-      createLexeme({ expression: 'übersprungen', coreMeaning: 'x', skipped: true, status: 'begegnet' }),
+      createLexeme({
+        expression: 'Pourquoi pas !',
+        coreMeaning: 'Gerne!',
+        observations: [createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })],
+      }),
+      createLexeme({
+        expression: 'übersprungen',
+        coreMeaning: 'x',
+        skipped: true,
+        observations: [createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })],
+      }),
     ],
   });
 
@@ -79,5 +100,59 @@ describe('buildImpulses', () => {
 
   it('begrenzt die Anzahl auf Wunsch', () => {
     expect(buildImpulses(sequence, { limit: 1 })).toHaveLength(1);
+  });
+});
+
+describe('Runden abschließen', () => {
+  it('zählt die Runde erst mit dem Abschluss und schreibt den Verlauf fort', () => {
+    const plan = createReactivationPlan({ enabled: true, offsetsDays: [1, 3], anchor: NOW });
+    const updated = completeRound(
+      plan,
+      [
+        { lexemeId: 'lex_1', kind: 'bedeutung-erinnern', dimension: 'meaning', result: 'secure' },
+        { lexemeId: 'lex_2', kind: 'chunk-ergaenzen', dimension: 'pattern', result: 'not-yet' },
+      ],
+      NOW,
+    );
+
+    expect(plan.completedRounds).toBe(0);
+    expect(updated.completedRounds).toBe(1);
+    expect(updated.history).toEqual([{ round: 1, completedAt: NOW, secure: 1, supported: 0, notYet: 1 }]);
+  });
+
+  it('fasst Ergebnisse ohne Verrechnung zusammen', () => {
+    expect(
+      summariseOutcomes([
+        { lexemeId: 'a', kind: 'bedeutung-erinnern', dimension: 'meaning', result: 'supported' },
+        { lexemeId: 'b', kind: 'bedeutung-erinnern', dimension: 'meaning', result: 'supported' },
+      ]),
+    ).toEqual({ secure: 0, supported: 2, notYet: 0 });
+  });
+});
+
+describe('Priorisierung', () => {
+  const unsure = createLexeme({
+    expression: 'On y va !',
+    coreMeaning: 'Los!',
+    observations: [createObservation({ dimension: 'meaning', result: 'not-yet', source: 'introduction' })],
+  });
+  const secure = createLexeme({
+    expression: 'Pourquoi pas !',
+    coreMeaning: 'Gerne!',
+    observations: [createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })],
+  });
+
+  it('stellt unsichere Einheiten nach vorn, wenn die Sequenz das vorsieht', () => {
+    const sequence = createSequence({ lexemes: [secure, unsure] });
+    expect(buildImpulses(sequence)[0].lexemeId).toBe(unsure.id);
+    expect(unsureCount(sequence)).toBe(1);
+  });
+
+  it('behält die Reihenfolge bei abgeschalteter Priorisierung', () => {
+    const sequence = createSequence({
+      lexemes: [secure, unsure],
+      reactivation: createReactivationPlan({ prioritiseUnsure: false }),
+    });
+    expect(buildImpulses(sequence)[0].lexemeId).toBe(secure.id);
   });
 });

@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from 'react';
 import type { StepId } from '../domain/model';
+import type { CorpusReveal } from '../domain/corpus';
 import type { StepVisibility } from '../domain/steps';
 
 export const PRESENTATION_CHANNEL = 'lexiscene-praesentation';
@@ -19,6 +20,8 @@ export interface StageState {
   stepId: StepId;
   visibility: StepVisibility;
   showTranslation: boolean;
+  /** Aufgedeckte Stufen der Korpusminiatur. */
+  corpusReveal: CorpusReveal;
   finished: boolean;
 }
 
