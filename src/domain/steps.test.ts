@@ -49,7 +49,7 @@ describe('Phasen', () => {
   it('ordnet jeden Schritt genau einer Phase zu', () => {
     expect(stepsOfPhase('kontext').map((step) => step.id)).toEqual(['situation', 'impuls']);
     expect(stepsOfPhase('klarheit').map((step) => step.id)).toEqual(['vermuten', 'klaeren']);
-    expect(stepsOfPhase('muster').map((step) => step.id)).toEqual(['audio', 'form', 'fokus']);
+    expect(stepsOfPhase('muster').map((step) => step.id)).toEqual(['audio', 'form', 'fokus', 'korpusminiatur']);
     expect(stepsOfPhase('abruf').map((step) => step.id)).toEqual(['kontrolle', 'hilfen-ausblenden', 'abruf']);
     expect(stepsOfPhase('gebrauch').map((step) => step.id)).toEqual(['aufgabe']);
     // Die Wiederbegegnung ist keine Station im Unterrichtsmodus, sondern der Reaktivierungsbereich.
@@ -187,6 +187,8 @@ describe('Sichtbarkeitsprofile der Phasen', () => {
     expect(defaultVisibility('audio')).toMatchObject({ meaning: true, form: false });
     // Musteranker und Lautung im Vordergrund.
     expect(defaultVisibility('fokus')).toMatchObject({ meaning: false, form: true, support: true });
+    // In der Korpusminiatur tragen die Belege.
+    expect(defaultVisibility('korpusminiatur')).toEqual({ meaning: false, form: false, support: false });
   });
 
   it('beschreibt ein Profil in Worten', () => {
@@ -214,9 +216,18 @@ describe('defaultVisibility', () => {
 describe('normalizeStepOrder', () => {
   it('ergänzt fehlende Schritte und verwirft Unbekanntes', () => {
     const order = normalizeStepOrder(['form', 'unsinn', 'situation', 'form']);
-    expect(order.slice(0, 2)).toEqual(['form', 'situation']);
-    expect(order).toHaveLength(11);
-    expect(new Set(order).size).toBe(11);
+    // Die ausdrücklich genannten Schritte behalten ihre Reihenfolge zueinander.
+    expect(order.indexOf('form')).toBeLessThan(order.indexOf('situation'));
+    expect(order).toHaveLength(STEP_IDS.length);
+    expect(new Set(order).size).toBe(STEP_IDS.length);
+  });
+
+  it('setzt einen neu hinzugekommenen Schritt an seine Standardposition', () => {
+    // Reihenfolge einer älteren Datei, die den Schritt „Korpusminiatur“ nicht kennt.
+    const legacy = STEP_IDS.filter((stepId) => stepId !== 'korpusminiatur');
+    const order = normalizeStepOrder(legacy);
+    expect(order).toEqual([...STEP_IDS]);
+    expect(order[order.indexOf('korpusminiatur') - 1]).toBe('fokus');
   });
 
   it('liefert bei fehlender Angabe die Standardreihenfolge', () => {

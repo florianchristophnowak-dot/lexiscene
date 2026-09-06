@@ -3,8 +3,8 @@
  *
  * Import-Daten werden absichtlich tolerant gelesen (fehlende Felder werden mit
  * Standardwerten gefüllt), aber niemals ungeprüft übernommen. Dateien der
- * Schemaversion 1 werden vollständig nach Version 2 überführt, ohne Inhalte zu
- * verlieren.
+ * Schemaversionen 1 und 2 werden vollständig nach Version 3 überführt, ohne
+ * Inhalte zu verlieren.
  */
 import {
   DEFAULT_SETTINGS,
@@ -38,20 +38,16 @@ import {
 } from './model';
 import { STEP_IDS, defaultStepConfig, normalizeStepOrder } from './steps';
 import { migrateLegacyStatus } from './observations';
+import { createCorpusMiniature, normalizeCorpusMiniature } from './corpus';
+import { createId } from './ids';
+
+export { createId };
 
 export class SchemaError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SchemaError';
   }
-}
-
-export function createId(prefix = 'id'): string {
-  const uuid =
-    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return `${prefix}_${uuid}`;
 }
 
 const asString = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
@@ -142,6 +138,7 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     extensionTask: '',
     situation: '',
     communicativeTask: '',
+    corpus: createCorpusMiniature(),
     stepOverrides: {},
     stepOrderOverride: null,
     skipped: false,
@@ -287,6 +284,9 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     extensionTask: asString(source.extensionTask),
     situation: asString(source.situation),
     communicativeTask: asString(source.communicativeTask),
+    // Schema 2 kannte keine Korpusminiatur – ältere Einheiten erhalten eine
+    // leere, deaktivierte Miniatur und bleiben damit unverändert.
+    corpus: normalizeCorpusMiniature(source.corpus),
     stepOverrides,
     stepOrderOverride: Array.isArray(source.stepOrderOverride) ? normalizeStepOrder(source.stepOrderOverride) : null,
     skipped: asBoolean(source.skipped),
@@ -327,6 +327,13 @@ export function normalizeSequence(raw: unknown): Sequence {
     );
   }
 
+  /*
+   * Migration Schema 2 → 3: Der Schritt „Korpusminiatur“ ist ein Angebot und
+   * in `defaultStepConfig()` abgeschaltet. Ältere Dateien kennen ihn nicht und
+   * behalten ihn deshalb aus – keine Sequenz erhält ungefragt einen
+   * zusätzlichen Unterrichtsschritt. Nur eine ausdrückliche Angabe schaltet
+   * ihn ein.
+   */
   const steps = defaultStepConfig();
   const rawSteps = asRecord(source.steps);
   for (const stepId of STEP_IDS) {

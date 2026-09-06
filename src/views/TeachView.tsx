@@ -19,6 +19,7 @@ import {
   type StepVisibility,
 } from '../domain/steps';
 import { buildSecondaryPrompt } from '../domain/checks';
+import { CLOSED_CORPUS_REVEAL, corpusStages, type CorpusReveal } from '../domain/corpus';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
@@ -38,6 +39,8 @@ interface RevealState {
   solution: boolean;
   /** Zusätzliche Aufgabe in der Gegenrichtung. */
   counterpart: boolean;
+  /** Gestufte Enthüllung der Korpusminiatur. */
+  corpus: CorpusReveal;
 }
 
 export function TeachView({ sequenceId }: { sequenceId: string }) {
@@ -82,6 +85,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const showTranslation = reveal?.key === stepKey ? reveal.translation : false;
   const showSolution = reveal?.key === stepKey ? reveal.solution : false;
   const showCounterpart = reveal?.key === stepKey ? reveal.counterpart : false;
+  const corpusReveal = reveal?.key === stepKey ? reveal.corpus : CLOSED_CORPUS_REVEAL;
   const revealState = (patch: Partial<Omit<RevealState, 'key'>>) =>
     setReveal({
       key: stepKey,
@@ -89,8 +93,10 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
       translation: showTranslation,
       solution: showSolution,
       counterpart: showCounterpart,
+      corpus: corpusReveal,
       ...patch,
     });
+  const revealCorpus = (patch: Partial<CorpusReveal>) => revealState({ corpus: { ...corpusReveal, ...patch } });
   const updateVisibility = (patch: Partial<StepVisibility>) => revealState({ visibility: { ...visibility, ...patch } });
   const toggleTranslation = () => revealState({ translation: !showTranslation });
 
@@ -116,12 +122,13 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             stepId: step.id,
             visibility,
             showTranslation,
+            corpusReveal,
             finished,
           }
         : null;
     stageRef.current = stage;
     if (projectionOpen) publishStage(stage);
-  }, [finished, lexeme, projectionOpen, sequenceId, showTranslation, step, visibility]);
+  }, [corpusReveal, finished, lexeme, projectionOpen, sequenceId, showTranslation, step, visibility]);
 
   const handleProjectionHello = useCallback(() => {
     setProjectionOpen(true);
@@ -289,6 +296,8 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const invitesFeedback = stepInvitesFeedback(step.id);
   const dimension = stepDimension(step.id, lexeme);
   const counterpartPrompt = step.id === 'kontrolle' ? buildSecondaryPrompt(lexeme) : '';
+  // Nur Stufen anbieten, für die es tatsächlich Inhalt gibt.
+  const stages = step.id === 'korpusminiatur' ? corpusStages(lexeme.corpus) : null;
   const feedbackKey = `${stepKey}:${dimension}`;
 
   return (
@@ -334,6 +343,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
         showTranslation={showTranslation}
         showSolution={showSolution}
         counterpartPrompt={showCounterpart ? counterpartPrompt : ''}
+        corpusReveal={corpusReveal}
         teacherView={!projectionOpen}
       />
 
@@ -417,6 +427,46 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               onClick={() => revealState({ counterpart: !showCounterpart })}
             >
               Gegenrichtung
+            </button>
+          ) : null}
+          {stages?.highlight ? (
+            <button
+              type="button"
+              className={corpusReveal.highlight ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={corpusReveal.highlight}
+              onClick={() => revealCorpus({ highlight: !corpusReveal.highlight })}
+            >
+              Fokus markieren
+            </button>
+          ) : null}
+          {stages?.groups ? (
+            <button
+              type="button"
+              className={corpusReveal.groups ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={corpusReveal.groups}
+              onClick={() => revealCorpus({ groups: !corpusReveal.groups })}
+            >
+              Gruppen zeigen
+            </button>
+          ) : null}
+          {stages?.rule ? (
+            <button
+              type="button"
+              className={corpusReveal.rule ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={corpusReveal.rule}
+              onClick={() => revealCorpus({ rule: !corpusReveal.rule })}
+            >
+              Regel zeigen
+            </button>
+          ) : null}
+          {stages?.transfer ? (
+            <button
+              type="button"
+              className={corpusReveal.transfer ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={corpusReveal.transfer}
+              onClick={() => revealCorpus({ transfer: !corpusReveal.transfer })}
+            >
+              Transfer zeigen
             </button>
           ) : null}
           {audio.url ? (

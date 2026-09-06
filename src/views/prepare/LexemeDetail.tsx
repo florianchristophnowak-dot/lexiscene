@@ -35,6 +35,7 @@ import { formatDate, formatDateTime } from '../../domain/text';
 import { Button, IconButton } from '../../ui/Button';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible } from '../../ui/Feedback';
+import { CorpusPanel } from './CorpusPanel';
 import { MediaSlot } from './MediaSlot';
 import { StepOrderList } from './StepOrderList';
 
@@ -314,6 +315,10 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
           onChange={(culturalNote) => set({ culturalNote })}
           rows={2}
         />
+      </Collapsible>
+
+      <Collapsible title="Korpusminiatur – Muster entdecken (optional)">
+        <CorpusPanel sequence={sequence} lexeme={lexeme} />
       </Collapsible>
 
       <Collapsible title="Bedeutungssicherung und Abruf">

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createDemoSequence } from '../domain/demo';
+import { createCorpusExample, createCorpusMiniature } from '../domain/corpus';
 import { createLexeme, createSequence, SchemaError } from '../domain/schema';
 import type { MediaRecord } from '../domain/model';
 import { ZipError } from './zip';
@@ -128,7 +129,7 @@ describe('Alte Sicherungen', () => {
     const sequence = restored.sequences[0];
 
     expect(restored.warnings).toEqual([]);
-    expect(sequence.schemaVersion).toBe(2);
+    expect(sequence.schemaVersion).toBe(3);
     expect(sequence.inferenceMode).toBe('off');
     expect(sequence.reactivation).toMatchObject({ offsetsDays: [2, 5], completedRounds: 1, history: [] });
     expect(sequence.lexemes[0]).toMatchObject({
@@ -144,8 +145,109 @@ describe('Alte Sicherungen', () => {
   it('schreibt eine neue Sicherung, die wieder eingelesen werden kann', async () => {
     const demo = createDemoSequence();
     const roundtrip = await parseBackup(await (await buildBackup([demo], [])).arrayBuffer());
-    expect(roundtrip.sequences[0].schemaVersion).toBe(2);
+    expect(roundtrip.sequences[0].schemaVersion).toBe(3);
     expect(roundtrip.sequences[0]).toEqual(demo);
+  });
+});
+
+describe('Korpusminiaturen in Sicherung und Export', () => {
+  const withMiniature = () =>
+    createSequence({
+      title: 'jouer',
+      steps: { ...createSequence().steps, korpusminiatur: true },
+      lexemes: [
+        createLexeme({
+          expression: 'jouer à / jouer de',
+          coreMeaning: 'spielen',
+          corpus: createCorpusMiniature({
+            enabled: true,
+            title: 'jouer à oder jouer de?',
+            guidingQuestion: 'Was steht nach jouer?',
+            focus: 'pattern',
+            examples: [
+              createCorpusExample({ text: 'Nous jouons au tennis.', highlight: 'au tennis', category: 'Sport/Spiel' }),
+              createCorpusExample({ text: 'Ils jouent aux échecs.', highlight: 'aux échecs', category: 'Sport/Spiel' }),
+              createCorpusExample({
+                text: 'Elle joue du piano.',
+                highlight: 'du piano',
+                category: 'Instrument',
+                teacherNote: 'Gegenbeispiel',
+              }),
+            ],
+            ruleOrFinding: 'jouer à + Sport · jouer de + Instrument',
+            transferPrompt: 'Bildet je einen eigenen Satz.',
+            provenance: 'teacher-created',
+            sourceNote: 'Selbst formuliert.',
+          }),
+        }),
+      ],
+    });
+
+  it('überträgt eine Miniatur durch Sicherung und Wiederherstellung', async () => {
+    const sequence = withMiniature();
+    const restored = await parseBackup(await (await buildBackup([sequence], [])).arrayBuffer());
+    expect(restored.sequences[0]).toEqual(sequence);
+    expect(restored.sequences[0].lexemes[0].corpus.examples[2].teacherNote).toBe('Gegenbeispiel');
+  });
+
+  it('überträgt eine Miniatur durch den Einzelexport', () => {
+    const sequence = withMiniature();
+    const document = buildSequenceExport(sequence);
+    const [reimported] = parseSequenceDocument(JSON.stringify(document));
+
+    expect(document.schemaVersion).toBe(3);
+    expect(document.phase.steps.map((step) => step.id)).toContain('korpusminiatur');
+    expect(reimported.lexemes[0].corpus).toEqual(sequence.lexemes[0].corpus);
+  });
+
+  it('lässt den Schritt aus dem Export, solange die Sequenz ihn nicht führt', () => {
+    const document = buildSequenceExport(createSequence({ lexemes: [createLexeme({ expression: 'x' })] }));
+    expect(document.phase.steps.map((step) => step.id)).not.toContain('korpusminiatur');
+  });
+
+  it('liest Dateien der Schemaversion 2 ohne Korpusfeld unverändert', () => {
+    const [sequence] = parseSequenceDocument(
+      JSON.stringify({
+        schemaVersion: 2,
+        title: 'Ältere Sequenz',
+        steps: { situation: true, form: true },
+        lexemes: [{ id: 'lex_1', expression: 'Ça te dit de… ?', coreMeaning: 'Hast du Lust?' }],
+      }),
+    );
+
+    expect(sequence.schemaVersion).toBe(3);
+    expect(sequence.lexemes[0].expression).toBe('Ça te dit de… ?');
+    expect(sequence.lexemes[0].corpus).toEqual(createCorpusMiniature());
+    expect(sequence.steps.korpusminiatur).toBe(false);
+  });
+
+  it('übergeht unbekannte künftige Felder und behält die bekannten', () => {
+    const [sequence] = parseSequenceDocument(
+      JSON.stringify({
+        schemaVersion: 3,
+        title: 'Aus einer späteren Fassung',
+        lexemes: [
+          {
+            id: 'lex_1',
+            expression: 'jouer',
+            corpus: {
+              enabled: true,
+              title: 'Titel',
+              examples: [{ id: 'beleg_1', text: 'Beleg', kuenftigesFeld: 42 }],
+              kuenftigesFeld: 'unbekannt',
+            },
+          },
+        ],
+      }),
+    );
+
+    const corpus = sequence.lexemes[0].corpus;
+    expect(corpus.enabled).toBe(true);
+    expect(corpus.title).toBe('Titel');
+    expect(corpus.examples).toEqual([
+      { id: 'beleg_1', text: 'Beleg', highlight: '', category: '', teacherNote: '' },
+    ]);
+    expect(corpus).not.toHaveProperty('kuenftigesFeld');
   });
 });
 

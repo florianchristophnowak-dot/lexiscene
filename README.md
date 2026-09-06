@@ -15,12 +15,12 @@ Regie von der ersten Begegnung bis zum eigenen Sprachhandeln.
 | --- | --- |
 | 1 Kontext | Situation und kommunikativen Bedarf aufbauen, bevor Sprache angeboten wird. |
 | 2 Klarheit | Die Bedeutung eindeutig sichern – erschlossen oder direkt geklärt. |
-| 3 Muster | Klangbild, Schriftbild und Musteranker verfügbar machen. |
+| 3 Muster | Klangbild, Schriftbild, Musteranker – auf Wunsch mit einer Korpusminiatur. |
 | 4 Abruf | Prüfen und üben, was ohne Hilfen abrufbar ist. |
 | 5 Gebrauch | Die Einheit in eigenem Sprachhandeln verwenden. |
 | 6 Wiederbegegnung | Später erneut aktivieren – im Bereich „Reaktivieren“. |
 
-Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen elf
+Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen zwölf
 Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten und frei
 umsortieren lassen. Schritte ohne hinterlegtes Material entfallen automatisch.
 
@@ -152,17 +152,20 @@ mindestens 44 × 44 Pixel):
   aus dem sich einzelne Einträge entfernen lassen.
 * **Gegenrichtung** blendet in der Verständniskontrolle die zweite Aufgabe ein –
   entweder die ausdrücklich gewählte oder den Vorschlag der App.
+* **Fokus markieren / Gruppen zeigen / Regel zeigen / Transfer zeigen** decken
+  im Schritt „Korpusminiatur“ eine Stufe nach der anderen auf.
 * **Lösung** hält im Abruf die Antwort zurück, bis die Denkzeit vorbei ist.
 * **Notiz** hält eine spontane Beobachtung zur Einheit fest.
 * **Überspringen** nimmt eine Einheit aus dem laufenden Durchgang.
 * **Vorbereiten** verlässt den Unterricht; die Stelle bleibt erhalten und die
   Startseite bietet danach „Unterricht fortsetzen“ an.
 
-Die Standarddramaturgie umfasst elf Schritte (Situation, Impuls, Hören,
-Vermuten, Klären, Form zeigen, Aussprache und Muster, Verständniskontrolle,
-Hilfen ausblenden, freier Abruf, Mini-Aufgabe). Sie lässt sich pro Sequenz und
-pro Einheit abschalten **und frei umsortieren**; Schritte ohne hinterlegtes
-Material entfallen automatisch.
+Die Standarddramaturgie umfasst zwölf Schritte (Situation, Impuls, Hören,
+Vermuten, Klären, Form zeigen, Aussprache und Muster, Korpusminiatur,
+Verständniskontrolle, Hilfen ausblenden, freier Abruf, Mini-Aufgabe). Sie lässt
+sich pro Sequenz und pro Einheit abschalten **und frei umsortieren**; Schritte
+ohne hinterlegtes Material entfallen automatisch. Die Korpusminiatur ist ein
+Angebot und bleibt abgeschaltet, bis Sie sie einschalten.
 
 ### Zweitbildschirm
 
@@ -174,6 +177,50 @@ ein Feld mit Modelläußerung, Bedeutung, Methode, Stolperstellen und Ihrer Noti
 das die Klasse nicht sieht. Beide Fenster laufen lokal im selben Browserprofil
 und tauschen nur die aktuelle Position aus; der Browser muss Pop-ups für die
 Seite erlauben.
+
+### Korpusminiaturen
+
+Eine **Korpusminiatur** ist eine kleine, selbst kuratierte Sammlung von etwa
+fünf bis zehn Belegen, an denen sich ein wiederkehrendes Muster zeigen lässt –
+eine Kollokation, eine Valenz, eine Präposition, ein Bedeutungsunterschied oder
+ein Registermerkmal. Sie zeigt bewusst **wenige ausgewählte Belege statt einer
+ungefilterten Trefferliste**. Alle Belege tragen Sie selbst ein oder fügen sie
+zeilenweise ein: LexiScène ruft nichts ab und ist mit keinem Onlinekorpus
+verbunden; auch ein Quellenhinweis wird nur als Text auf dem Gerät gespeichert.
+
+**Vorbereiten** (Detailspalte, Bereich *Korpusminiatur – Muster entdecken
+(optional)*):
+
+* Funktion für die Einheit einschalten, Titel, Leitfrage und Schwerpunkt
+  festlegen.
+* Belege einzeln hinzufügen oder mehrere Zeilen auf einmal einfügen – eine
+  Zeile wird ein Beleg, leere Zeilen entfallen, vorhandene Belege bleiben
+  erhalten.
+* Je Beleg eine zu markierende Textstelle und optional eine Lösungsgruppe
+  („Sport/Spiel“, „Instrument“) angeben; Notizen sieht nur die Lehrkraft.
+  Die Markierung wird Zeichen für Zeichen verglichen – Akzent, Apostroph und
+  Groß-/Kleinschreibung zählen mit. Wird sie nicht gefunden, sagt die
+  Vorbereitung das; der Beleg selbst wird nie verändert.
+* Belege lassen sich duplizieren, entfernen und per Ziehen oder über die
+  Pfeilschaltflächen umsortieren.
+* Regel beziehungsweise Musteranker, Transferaufgabe, Herkunft und
+  Quellenhinweis ergänzen; **Vorschau** zeigt die Bühne wie im Unterricht.
+
+**Im Unterricht** wird die Miniatur gestuft aufgedeckt: zuerst Leitfrage und
+unmarkierte Belege, dann über die Schaltflächen **Fokus markieren**, **Gruppen
+zeigen**, **Regel zeigen** und **Transfer zeigen**. Angeboten wird nur, wofür
+tatsächlich etwas hinterlegt ist. Lehrkraftnotizen und Quellenhinweis
+erscheinen ausschließlich auf dem Gerät der Lehrkraft, nie in der Projektion.
+
+Der Schritt gehört zur Phase **Muster** und steht standardmäßig hinter
+„Aussprache und Muster“. Er ist ein Angebot: In neuen wie in bestehenden
+Sequenzen bleibt er abgeschaltet und wird gezielt für die Einheit eingeschaltet,
+für die eine Miniatur vorbereitet ist. Angeboten wird er ab drei Belegen.
+
+Die Funktion ersetzt weder eine eindeutige Bedeutungsklärung noch den aktiven
+Abruf und die spätere Verwendung. Ob ein Muster entdeckt oder erklärt wird,
+bleibt eine Regieentscheidung; die beobachtete Regel wird anschließend
+ausdrücklich bestätigt.
 
 ### Reaktivierung im Unterricht
 
@@ -217,7 +264,8 @@ Lernalgorithmus. Für die Abstände gibt es kein einzig richtiges Intervall.
 ```
 src/
 ├── domain/     Modell, Schema und Migration, Phasen und Schritte, Berater,
-│               Abrufvorlagen, Beobachtungen, Reaktivierung, Bereitschaft, Import, Demo
+│               Abrufvorlagen, Beobachtungen, Korpusminiaturen, Reaktivierung,
+│               Bereitschaft, Import, Demo
 ├── storage/    IndexedDB, Repository, ZIP-Codec, Sicherung
 ├── app/        Zustand, Router, Medien-URLs, Aufnahme, Projektionskopplung
 ├── ui/         Basiskomponenten (Schaltflächen, Felder, Dialoge, Hinweise)
@@ -230,6 +278,10 @@ src/
 * Keine Schülerkonten, keine Cloud-Synchronisierung, keine Live-Quizfunktionen.
 * Keine KI-Funktionen, keine Spracherkennung, keine Online-Bildersuche – Medien
   werden aus eigenen Dateien hinterlegt oder selbst aufgenommen.
+* Korpusminiaturen sind selbst kuratierte Belegsammlungen. Es gibt keine
+  Anbindung an Onlinekorpora, keine Suche, keine Häufigkeitsangaben und keine
+  automatische Auswahl von Belegen; LexiScène wird dadurch keine
+  Korpussoftware.
 * Keine Leistungsstatistiken, Ranglisten oder Streaks. Beobachtungen setzt die
   Lehrkraft bewusst selbst; sie werden nicht verrechnet.
 * Der Bereitschaftscheck prüft nur, was eingetragen wurde – er analysiert keine

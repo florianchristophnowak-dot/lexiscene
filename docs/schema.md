@@ -1,9 +1,9 @@
 # Datenschema von LexiScène
 
-Version des Schemas: **2** (`schemaVersion: 2`)
-Stand: Version 0.2.0 der Anwendung
+Version des Schemas: **3** (`schemaVersion: 3`)
+Stand: Version 0.3.0 der Anwendung
 
-Dateien der Schemaversion 1 werden beim Einlesen vollständig migriert
+Dateien der Schemaversionen 1 und 2 werden beim Einlesen vollständig migriert
 (siehe Abschnitt 6). Ältere Sicherungen und Exporte bleiben nutzbar.
 
 Alle Daten liegen ausschließlich lokal im Browser (IndexedDB). Dieses Dokument
@@ -15,7 +15,7 @@ andere Werkzeuge übernommen werden können.
 ```jsonc
 {
   "id": "seq_…",              // eindeutige Kennung
-  "schemaVersion": 1,
+  "schemaVersion": 3,
   "title": "Freizeit verabreden",
   "targetLanguage": "fr",     // fr | en | es | it | ru | la (offen erweiterbar)
   "learningGroup": "Klasse 7 · Französisch, 2. Lernjahr",
@@ -26,13 +26,15 @@ andere Werkzeuge übernommen werden können.
   "archived": false,
   "steps": {                  // Standarddramaturgie, je Schritt an/aus
     "situation": true, "impuls": true, "audio": true, "vermuten": true,
-    "klaeren": true, "form": true, "fokus": true, "kontrolle": true,
+    "klaeren": true, "form": true, "fokus": true,
+    "korpusminiatur": false,  // Angebot: standardmäßig aus (siehe 2c)
+    "kontrolle": true,
     "hilfen-ausblenden": true, "abruf": true, "aufgabe": true
   },
   "inferenceMode": "optional", // off | optional | planned – Bedeutung erschließen lassen
   "stepOrder": [              // frei sortierbare Reihenfolge der Schritte
     "situation", "impuls", "audio", "vermuten", "klaeren", "form",
-    "fokus", "kontrolle", "hilfen-ausblenden", "abruf", "aufgabe"
+    "fokus", "korpusminiatur", "kontrolle", "hilfen-ausblenden", "abruf", "aufgabe"
   ],
   "lexemes": [ /* siehe 2. */ ],
   "reactivation": {
@@ -89,6 +91,8 @@ gültig, die Schemaversion ändert sich dadurch nicht.
 
 **Differenzierung:** `extraHint`, `simplifiedExplanation`, `translation`, `multilingualComparison`, `extensionTask`
 
+**Korpusminiatur:** `corpus` (siehe 2c)
+
 **Unterricht:** `situation`, `communicativeTask`, `stepOverrides` (überschreibt `steps` der Sequenz je Schritt), `stepOrderOverride` (eigene Schrittreihenfolge; `null` = Reihenfolge der Sequenz), `skipped`, `observations`, `liveNote`
 
 ## 2a. Beobachtungen (`observations`)
@@ -114,13 +118,13 @@ aus dem sich keine Kompetenz ableiten lässt – etwa eine frühere Reaktivierun
 
 ## 2b. Phasen
 
-Die elf Schritte sind sechs Phasen zugeordnet:
+Die zwölf Schritte sind sechs Phasen zugeordnet:
 
 | Phase | Schritte |
 | --- | --- |
 | 1 Kontext | `situation`, `impuls` |
 | 2 Klarheit | `vermuten`, `klaeren` |
-| 3 Muster | `audio`, `form`, `fokus` |
+| 3 Muster | `audio`, `form`, `fokus`, `korpusminiatur` |
 | 4 Abruf | `kontrolle`, `hilfen-ausblenden`, `abruf` |
 | 5 Gebrauch | `aufgabe` |
 | 6 Wiederbegegnung | Reaktivierungsbereich (keine Schritte im Unterrichtsmodus) |
@@ -133,6 +137,45 @@ Es legt fest, was die Klasse beim Betreten eines Schritts zuerst sieht. Einzelne
 Schritte weichen begründet ab – „Bedeutung erschließen“ zeigt die Bedeutung
 nicht, „Hören“ hält das Schriftbild zurück, „Aussprache und Muster“ stellt
 Musteranker und Lautung nach vorn. Im Unterricht ist alles umschaltbar.
+
+## 2c. Korpusminiatur (`corpus`)
+
+Eine kleine, von der Lehrkraft kuratierte Belegsammlung. Sie ist **immer
+optional**; alle Felder außer `enabled` und den Kennungen dürfen leer sein. Es
+gibt keine Verbindung zu Onlinekorpora – auch `sourceNote` ist reiner Text und
+wird niemals abgerufen.
+
+```jsonc
+{
+  "enabled": true,
+  "title": "jouer à oder jouer de?",
+  "guidingQuestion": "Was steht nach jouer …?",  // Beobachtungsauftrag
+  "focus": "pattern",        // pattern | collocation | meaning | register
+  "examples": [
+    {
+      "id": "beleg_…",
+      "text": "Nous jouons au tennis le samedi.", // vollständiger Beleg
+      "highlight": "au tennis",                   // exakt zu markierende Stelle
+      "category": "Sport/Spiel",                  // optionale Lösungsgruppe
+      "teacherNote": "Erster klarer Fall."        // nur für die Lehrkraft
+    }
+  ],
+  "discoveryPrompt": "Sortiert die Belege in zwei Gruppen.",
+  "ruleOrFinding": "jouer à + Sport/Spiel · jouer de + Instrument",
+  "transferPrompt": "Bildet je einen eigenen Satz mit beiden Mustern.",
+  "provenance": "teacher-created",  // corpus | teacher-created | mixed
+  "sourceNote": "Selbst formulierte Beispielsätze."
+}
+```
+
+* `highlight` wird als **exakte Zeichenfolge** im Beleg gesucht; alle Vorkommen
+  werden markiert. Akzente, Apostrophe und Groß-/Kleinschreibung zählen mit.
+  Kommt die Zeichenfolge nicht vor, meldet das die Vorbereitung – der Beleg
+  selbst wird nie verändert.
+* `teacherNote` und `sourceNote` erscheinen ausschließlich in der
+  Lehrkraftansicht, niemals im Projektionsfenster.
+* Der Unterrichtsschritt `korpusminiatur` wird nur angeboten, wenn `enabled`
+  gesetzt ist und mindestens **drei** Belege einen nicht leeren `text` haben.
 
 ## 3. Sicherungsdatei (ZIP)
 
@@ -149,8 +192,8 @@ lexiscene-sicherung-JJJJ-MM-TT.zip
 {
   "format": "lexiscene-backup",
   "version": 1,
-  "schemaVersion": 2,
-  "app": { "name": "LexiScène", "version": "0.2.0" },
+  "schemaVersion": 3,
+  "app": { "name": "LexiScène", "version": "0.3.0" },
   "createdAt": "2026-09-04T20:57:08.614Z",
   "sequences": [ /* vollständige Sequenzen */ ],
   "media": [
@@ -177,8 +220,8 @@ beschreibt:
 {
   "format": "lexiscene.sequence",
   "version": 1,
-  "schemaVersion": 2,
-  "app": { "name": "LexiScène", "version": "0.2.0" },
+  "schemaVersion": 3,
+  "app": { "name": "LexiScène", "version": "0.3.0" },
   "exportedAt": "2026-09-04T20:58:35.519Z",
   "phase": {
     "title": "Freizeit verabreden",
@@ -202,11 +245,13 @@ vorliegt, wird **keine** Schnittstelle erfunden: Die Übernahme erfolgt über di
 dokumentierte JSON-Datei. Sobald das Zielformat bekannt ist, genügt eine
 Abbildung von `phase` auf dessen Phasenobjekt.
 
-## 6. Migration von Schema 1 nach 2
+## 6. Migration älterer Dateien
 
-`normalizeSequence` überführt ältere Dateien vollständig:
+`normalizeSequence` überführt ältere Dateien vollständig.
 
-| Schema 1 | Schema 2 |
+### Schema 1 → 3
+
+| Schema 1 | Schema 3 |
 | --- | --- |
 | `steps.vermuten: true` | `inferenceMode: "optional"` (Schritt bleibt möglich) |
 | `steps.vermuten: false` | `inferenceMode: "off"` |
@@ -221,9 +266,23 @@ Abbildung von `phase` auf dessen Phasenobjekt.
 | kein Profil | Startwerte aus dem lexikalischen Typ |
 | `reactivation` ohne Verlauf | `history: []`, `prioritiseUnsure: true` |
 
-Freitexte, Medienverweise, Schrittauswahl, Schrittreihenfolge, Sitzungsstand und
-Reaktivierungsplan bleiben unverändert erhalten. Sequenzen ohne gespeicherte
-Reihenfolge erhalten die neue, an den Phasen ausgerichtete Standardreihenfolge.
+### Schema 2 → 3
+
+| Schema 2 | Schema 3 |
+| --- | --- |
+| kein `corpus` | leere, **deaktivierte** Korpusminiatur |
+| kein `steps.korpusminiatur` | `false` – kein zusätzlicher Unterrichtsschritt |
+| `stepOrder` ohne `korpusminiatur` | Schritt wird hinter `fokus` eingefügt |
+
+Bestehende Sequenzen erhalten den neuen Schritt also **nicht ungefragt**: Er ist
+abgeschaltet, bis die Lehrkraft ihn für eine Sequenz oder – üblicher – für eine
+einzelne Einheit einschaltet (`stepOverrides.korpusminiatur`).
+
+Freitexte, Medienverweise, Schrittauswahl, Schrittreihenfolge, Beobachtungen,
+Sitzungsstand und Reaktivierungsplan bleiben unverändert erhalten. Sequenzen
+ohne gespeicherte Reihenfolge erhalten die an den Phasen ausgerichtete
+Standardreihenfolge; fehlende Schritte werden an ihrer Standardposition
+ergänzt, nicht am Ende angehängt.
 
 ## 7. Änderungen am Schema
 

@@ -6,6 +6,7 @@
  * enthalten – die App lädt keine Dateien aus dem Netz.
  */
 import type { Lexeme, Sequence } from './model';
+import { createCorpusExample, createCorpusMiniature } from './corpus';
 import { createLexeme, createSequence } from './schema';
 
 type LexemeSeed = Partial<Lexeme> & Pick<Lexeme, 'expression' | 'coreMeaning'>;
@@ -197,6 +198,88 @@ const SEEDS: LexemeSeed[] = [
     simplifiedExplanation: 'Man sagt höflich ab und nennt einen Grund.',
     extraHint: 'Immer mit Begründung anbieten – sonst wirkt die Absage unhöflich.',
     communicativeTask: 'Sagt zu einem Vorschlag höflich ab und nennt einen Grund.',
+  },
+  {
+    expression: 'jouer à / jouer de',
+    learningGoal: 'productive',
+    imageability: 'mittel',
+    inferenceSuitability: 'geeignet',
+    transferRisk: 'hoch',
+    coreMeaning: 'etwas spielen – Sport und Spiel mit „à“, Instrumente mit „de“',
+    communicativeFunction: 'sagen, was man spielt',
+    modelUtterance: 'Le mercredi, je joue au badminton et le soir, je joue de la guitare.',
+    lexicalType: 'kollokation',
+    semantisationMethod: 'Belege vergleichen und sortieren lassen',
+    repertoire: 'kern',
+    situation: 'In der Klasse wird gesammelt, was alle in ihrer Freizeit spielen – Sport und Musik gemischt.',
+    pronunciationHint: '„jouer“ mit stimmhaftem [ʒ]; „aux“ vor Vokal gebunden: aux_échecs.',
+    ipa: '[ʒwe]',
+    morphology: 'jouer à + le → au, à + les → aux; jouer de + le → du, de + la → de la',
+    valency: 'jouer à + Sport oder Spiel; jouer de + Instrument',
+    sentenceFrame: 'jouer ______ (au / aux / du / de la) + ______',
+    collocations: 'jouer au foot, jouer aux cartes, jouer du violon, jouer de la batterie',
+    wordFamily: 'un jeu – un joueur – une joueuse',
+    register: 'neutral',
+    example: 'Ma sœur joue du piano depuis trois ans.',
+    nonExample: 'jouer le tennis – die Verschmelzung mit „à“ fehlt.',
+    contrastExample: 'faire du skate – bei vielen Sportarten ohne Ball steht „faire de“.',
+    confusionRisk: 'Im Deutschen steht in beiden Fällen nur „spielen“; „à“ und „de“ werden deshalb häufig vertauscht.',
+    checkTemplateId: 'welcher-ausdruck-fehlt',
+    translation: 'spielen',
+    extraHint: 'Zuerst die beiden Gruppen sichern, dann erst weitere Aktivitäten sammeln.',
+    communicativeTask: 'Erzählt zu zweit, was ihr spielt – mindestens einmal mit „à“ und einmal mit „de“.',
+    // Die Korpusminiatur ist bewusst nur für diese eine Einheit eingeschaltet.
+    stepOverrides: { korpusminiatur: true },
+    corpus: createCorpusMiniature({
+      enabled: true,
+      title: 'jouer à oder jouer de?',
+      guidingQuestion: 'Was steht nach jouer, wenn von einem Sport oder einem Instrument gesprochen wird?',
+      focus: 'pattern',
+      examples: [
+        createCorpusExample({
+          text: 'Le samedi, nous jouons au tennis avec mon frère.',
+          highlight: 'au tennis',
+          category: 'Sport/Spiel',
+          teacherNote: 'Erster klarer Fall: Sportart mit Artikel „le“ → au.',
+        }),
+        createCorpusExample({
+          text: 'À la récréation, ils jouent aux échecs dans la bibliothèque.',
+          highlight: 'aux échecs',
+          category: 'Sport/Spiel',
+          teacherNote: 'Plural: à + les → aux; hier zusätzlich die Bindung aux_échecs hörbar machen.',
+        }),
+        createCorpusExample({
+          text: 'Ma cousine joue du piano tous les jours.',
+          highlight: 'du piano',
+          category: 'Instrument',
+          teacherNote: 'Gegenbeispiel zur ersten Gruppe – bewusst direkt nach den Sportbelegen zeigen.',
+        }),
+        createCorpusExample({
+          text: 'Depuis septembre, je joue de la guitare dans un groupe.',
+          highlight: 'de la guitare',
+          category: 'Instrument',
+          teacherNote: 'Feminines Instrument: de la, keine Verschmelzung.',
+        }),
+        createCorpusExample({
+          text: 'Le mercredi après-midi, elles jouent au badminton au gymnase.',
+          highlight: 'au badminton',
+          category: 'Sport/Spiel',
+          teacherNote: 'Zweiter Sportbeleg zur Absicherung, bevor sortiert wird.',
+        }),
+        createCorpusExample({
+          text: 'Mon voisin joue de la batterie le week-end.',
+          highlight: 'de la batterie',
+          category: 'Instrument',
+          teacherNote: 'Letzter Beleg – erst danach die Regel gemeinsam formulieren lassen.',
+        }),
+      ],
+      discoveryPrompt: 'Sortiert die Belege in zwei Gruppen: Was gehört zusammen? Woran erkennt ihr die Gruppen?',
+      ruleOrFinding: 'jouer à + Sport/Spiel · jouer de + Instrument',
+      transferPrompt: 'Bildet je einen eigenen Satz mit beiden Mustern – einmal mit „à“, einmal mit „de“.',
+      provenance: 'teacher-created',
+      sourceNote:
+        'Selbst formulierte Beispielsätze für den Unterricht – keine authentischen Korpusbelege.',
+    }),
   },
   {
     expression: 'On se retrouve à…',

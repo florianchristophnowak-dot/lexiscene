@@ -1,13 +1,14 @@
 /**
  * Dramaturgie einer Semantisierung.
  *
- * Über den elf Mikro-Schritten liegen sechs didaktische Phasen:
+ * Über den zwölf Mikro-Schritten liegen sechs didaktische Phasen:
  * Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung.
  * Die Phasen geben die Grundstruktur; welche Schritte darin vorkommen und in
  * welcher Reihenfolge, entscheidet die Lehrkraft je Sequenz und Einheit.
  */
 import type { Lexeme, ObservationDimension, PhaseId, Sequence, StepId } from './model';
 import { checkTemplate } from './checks';
+import { corpusMiniatureReady } from './corpus';
 
 export interface PhaseDefinition {
   id: PhaseId;
@@ -124,40 +125,55 @@ export const STEPS: readonly StepDefinition[] = [
     purpose: 'Lautung, Betonung und Musteranker gezielt fokussieren.',
   },
   {
-    id: 'kontrolle',
+    id: 'korpusminiatur',
     position: 8,
+    phase: 'muster',
+    label: 'Korpusminiatur',
+    purpose:
+      'An wenigen kuratierten Belegen ein Muster gelenkt entdecken. Optionaler Schritt – die Regel wird anschließend ausdrücklich bestätigt.',
+  },
+  {
+    id: 'kontrolle',
+    position: 9,
     phase: 'abruf',
     label: 'Verständniskontrolle',
     purpose: 'Formative Rückmeldung einholen, ohne zu bewerten.',
   },
   {
     id: 'hilfen-ausblenden',
-    position: 9,
+    position: 10,
     phase: 'abruf',
     label: 'Hilfen ausblenden',
     purpose: 'Stützen entfernen und sehen, was ohne Vorlage abrufbar ist.',
   },
   {
     id: 'abruf',
-    position: 10,
+    position: 11,
     phase: 'abruf',
     label: 'Freier Abruf',
     purpose: 'Abruf ohne Vorlage anregen – erst Denkzeit, dann Lösung.',
   },
   {
     id: 'aufgabe',
-    position: 11,
+    position: 12,
     phase: 'gebrauch',
     label: 'Kommunikative Mini-Aufgabe',
     purpose: 'Erstes eigenes Sprachhandeln mit der neuen Einheit ermöglichen.',
   },
 ];
 
+/**
+ * Schritte, die bei neuen Sequenzen zunächst abgeschaltet bleiben.
+ * Die Korpusminiatur ist ein Angebot: Sie erscheint erst, wenn die Lehrkraft
+ * sie für eine Sequenz oder eine einzelne Einheit einschaltet.
+ */
+export const OPT_IN_STEPS: readonly StepId[] = ['korpusminiatur'];
+
 export const STEP_IDS: readonly StepId[] = STEPS.map((step) => step.id);
 
 export function defaultStepConfig(): Record<StepId, boolean> {
   const config = {} as Record<StepId, boolean>;
-  for (const step of STEPS) config[step.id] = true;
+  for (const step of STEPS) config[step.id] = !OPT_IN_STEPS.includes(step.id);
   return config;
 }
 
@@ -177,7 +193,8 @@ export function stepsOfPhase(phase: PhaseId): StepDefinition[] {
 
 /**
  * Macht aus beliebigen Eingaben eine gültige Reihenfolge: unbekannte und
- * doppelte Einträge fallen weg, fehlende Schritte werden hinten ergänzt.
+ * doppelte Einträge fallen weg, fehlende Schritte werden an ihrer
+ * Standardposition ergänzt.
  */
 export function normalizeStepOrder(raw: unknown): StepId[] {
   const known = new Set<StepId>(STEP_IDS);
@@ -191,7 +208,25 @@ export function normalizeStepOrder(raw: unknown): StepId[] {
     }
   }
 
-  for (const stepId of STEP_IDS) if (!order.includes(stepId)) order.push(stepId);
+  /*
+   * Fehlende Schritte – etwa ein in einer neueren Version ergänzter – werden
+   * an ihrer Standardposition eingefügt: hinter dem nächstgelegenen Vorgänger
+   * aus der Standardreihenfolge. Eine selbst gewählte Reihenfolge bleibt so
+   * unverändert erhalten, und neue Schritte landen nicht am Ende.
+   */
+  for (const [defaultIndex, stepId] of STEP_IDS.entries()) {
+    if (order.includes(stepId)) continue;
+    let insertAt = order.length;
+    for (let previous = defaultIndex - 1; previous >= 0; previous -= 1) {
+      const position = order.indexOf(STEP_IDS[previous]);
+      if (position >= 0) {
+        insertAt = position + 1;
+        break;
+      }
+    }
+    order.splice(insertAt, 0, stepId);
+  }
+
   return order;
 }
 
@@ -253,6 +288,8 @@ export function stepHasContent(id: StepId, lexeme: Lexeme, sequence?: Sequence):
         lexeme.valency,
         lexeme.collocations,
       );
+    case 'korpusminiatur':
+      return corpusMiniatureReady(lexeme.corpus);
     case 'kontrolle':
       return hasText(lexeme.checkTemplateId, lexeme.checkPrompt);
     case 'hilfen-ausblenden':
@@ -309,6 +346,7 @@ export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension
     case 'abruf':
       return 'form';
     case 'fokus':
+    case 'korpusminiatur':
       return 'pattern';
     case 'aufgabe':
       return 'use';
@@ -352,6 +390,9 @@ const STEP_VISIBILITY_EXCEPTIONS: Partial<Record<StepId, Partial<StepVisibility>
   audio: { form: false },
   // Im Fokusschritt stehen Musteranker und Lautung im Vordergrund.
   fokus: { meaning: false, support: true },
+  // In der Korpusminiatur tragen die Belege. Bedeutung und Schriftbild sind
+  // bereits gesichert und würden die Bühne nur füllen.
+  korpusminiatur: { meaning: false, form: false, support: false },
 };
 
 export function defaultVisibility(id: StepId): StepVisibility {
