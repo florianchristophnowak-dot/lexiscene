@@ -1,5 +1,5 @@
 /**
- * Datenmodell von LexiScène (Schemaversion 2).
+ * Datenmodell von LexiScène (Schemaversion 3).
  *
  * Verwaltet werden nicht einzelne Vokabeln, sondern kommunikativ nutzbare
  * lexiko-grammatische Einheiten ("Lexikeinheiten"). Das Schema ist versioniert
@@ -8,10 +8,14 @@
  * Version 2 ordnet die Mikro-Schritte sechs didaktischen Phasen zu
  * (Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung) und ersetzt
  * den linearen Klassenstatus durch mehrdimensionale Beobachtungsereignisse.
+ *
+ * Version 3 ergänzt je Lexikeinheit eine optionale Korpusminiatur: eine kleine,
+ * von der Lehrkraft kuratierte Belegsammlung. Sie wird ausschließlich lokal
+ * eingetragen – es gibt keine Verbindung zu Onlinekorpora.
  */
 
-export const SCHEMA_VERSION = 2;
-export const APP_VERSION = '0.2.0';
+export const SCHEMA_VERSION = 3;
+export const APP_VERSION = '0.3.0';
 export const APP_NAME = 'LexiScène';
 
 /* ------------------------------------------------------------- Zielsprachen */
@@ -207,6 +211,7 @@ export type StepId =
   | 'klaeren'
   | 'form'
   | 'fokus'
+  | 'korpusminiatur'
   | 'kontrolle'
   | 'hilfen-ausblenden'
   | 'abruf'
@@ -214,6 +219,71 @@ export type StepId =
 
 /** Die sechs didaktischen Phasen als übergeordnete Ebene über den Schritten. */
 export type PhaseId = 'kontext' | 'klarheit' | 'muster' | 'abruf' | 'gebrauch' | 'wiederbegegnung';
+
+/* ------------------------------------------------------- Korpusminiaturen */
+
+/** Didaktischer Schwerpunkt einer Korpusminiatur. */
+export type CorpusFocus = 'pattern' | 'collocation' | 'meaning' | 'register';
+
+export const CORPUS_FOCUSES: readonly LabeledOption<CorpusFocus>[] = [
+  { id: 'pattern', label: 'Muster oder Valenz', description: 'Was folgt regelmäßig auf den Ausdruck?' },
+  { id: 'collocation', label: 'Kollokation', description: 'Welche Wörter treten regelmäßig gemeinsam auf?' },
+  { id: 'meaning', label: 'Bedeutungsunterschied', description: 'Wo trennen sich mehrere Lesarten?' },
+  { id: 'register', label: 'Register', description: 'Wo wird so gesprochen oder geschrieben – und wo nicht?' },
+];
+
+export function corpusFocusLabel(focus: CorpusFocus): string {
+  return CORPUS_FOCUSES.find((entry) => entry.id === focus)?.label ?? focus;
+}
+
+/** Herkunft der Belege – für die Klasse und für die Lehrkraft transparent. */
+export type CorpusProvenance = 'corpus' | 'teacher-created' | 'mixed';
+
+export const CORPUS_PROVENANCES: readonly LabeledOption<CorpusProvenance>[] = [
+  { id: 'teacher-created', label: 'didaktisch erstellt', description: 'Selbst formulierte Beispielsätze.' },
+  { id: 'corpus', label: 'authentische Belege', description: 'Aus einer Quelle übernommen und selbst eingetragen.' },
+  { id: 'mixed', label: 'gemischt', description: 'Übernommene und selbst formulierte Belege nebeneinander.' },
+];
+
+export function corpusProvenanceLabel(provenance: CorpusProvenance): string {
+  return CORPUS_PROVENANCES.find((entry) => entry.id === provenance)?.label ?? provenance;
+}
+
+/** Ein einzelner Sprachbeleg innerhalb einer Miniatur. */
+export interface CorpusExample {
+  id: string;
+  /** Vollständiger Beleg, unverändert so, wie ihn die Lehrkraft einträgt. */
+  text: string;
+  /** Textteil, der im Unterricht hervorgehoben wird; leer = keine Markierung. */
+  highlight: string;
+  /** Optionale Lösungsgruppe, z. B. „Sport/Spiel“ oder „Instrument“. */
+  category: string;
+  /** Nur für die Lehrkraft sichtbar – erscheint nie in der Projektion. */
+  teacherNote: string;
+}
+
+/**
+ * Eine Korpusminiatur: wenige kuratierte Belege, an denen ein wiederkehrendes
+ * Muster gelenkt entdeckt werden kann. Immer optional; alle Felder außer
+ * `enabled` und den Kennungen dürfen leer bleiben.
+ */
+export interface CorpusMiniature {
+  enabled: boolean;
+  title: string;
+  /** Beobachtungsauftrag für die Lernenden. */
+  guidingQuestion: string;
+  focus: CorpusFocus;
+  examples: CorpusExample[];
+  /** Auftrag zum Vergleichen, Sortieren oder Ableiten. */
+  discoveryPrompt: string;
+  /** Gesicherter Musteranker oder die gemeinsam formulierte Regel. */
+  ruleOrFinding: string;
+  /** Kurze anschließende Anwendungsaufgabe. */
+  transferPrompt: string;
+  provenance: CorpusProvenance;
+  /** Quellenangabe – wird ausschließlich als lokaler Text gespeichert. */
+  sourceNote: string;
+}
 
 /* --------------------------------------------------------------- Medien */
 
@@ -270,6 +340,9 @@ export interface Lexeme {
   prosodyNote: string;
   ipa: string;
   morphology: string;
+
+  /** Optionale Korpusminiatur – standardmäßig deaktiviert und leer. */
+  corpus: CorpusMiniature;
 
   // Sprachliches Muster
   valency: string;

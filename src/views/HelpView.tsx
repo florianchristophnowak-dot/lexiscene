@@ -82,7 +82,7 @@ export function HelpView() {
 
       <section className="panel">
         <div className="panel__header">
-          <span className="panel__title">Die elf Schritte im Einzelnen</span>
+          <span className="panel__title">Die zwölf Schritte im Einzelnen</span>
         </div>
         <div className="panel__body stack">
           <ol className="help-list">
@@ -104,6 +104,49 @@ export function HelpView() {
             <strong>Bedeutung erschließen</strong> ist kein Pflichtschritt. In den Sequenzeinstellungen wählen Sie, ob
             erschlossen wird: gar nicht, wo der Kontext es hergibt, oder bewusst als Strategietraining. Die Klärung
             folgt in jedem Fall.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <span className="panel__title">Korpusminiaturen</span>
+        </div>
+        <div className="panel__body stack">
+          <p className="muted text-sm">
+            Eine Korpusminiatur ist eine kleine, selbst kuratierte Sammlung von etwa fünf bis zehn Belegen. Sie zeigt
+            bewusst <strong>wenige ausgewählte Belege statt einer ungefilterten Trefferliste</strong>. Alle Belege
+            tragen Sie selbst ein oder fügen sie zeilenweise ein; {APP_NAME} ruft nichts ab und verbindet sich mit
+            keinem Onlinekorpus.
+          </p>
+          <p className="muted text-sm">
+            Besonders geeignet sind Miniaturen für <strong>Kollokationen, Valenz, Präpositionen, Polysemie und
+            Register</strong> – überall dort, wo sich ein Muster an mehreren Belegen zeigt. Die Leitfrage sollte sich
+            auf ein erkennbares Merkmal beschränken; für Anfängerinnen und Anfänger brauchen die Belege kurze,
+            verständliche Sätze und eine strenge Auswahl.
+          </p>
+          <p className="muted text-sm">
+            Im Unterricht wird die Miniatur <strong>gestuft</strong> aufgedeckt: erst Leitfrage und unmarkierte Belege,
+            dann „Fokus markieren“, „Gruppen zeigen“, „Regel zeigen“ und „Transfer zeigen“. Angeboten werden nur
+            Schaltflächen, für die Sie tatsächlich etwas hinterlegt haben. Die beobachtete Regel wird anschließend
+            ausdrücklich bestätigt – das Entdecken bleibt sonst Vermutung.
+          </p>
+          <p className="muted text-sm">
+            Die Funktion ersetzt weder eine eindeutige Bedeutungsklärung noch den aktiven Abruf und die spätere
+            Verwendung; sie ergänzt die Phase „Muster“. Ob Sie ein Muster entdecken lassen oder es erklären, bleibt
+            eine Regieentscheidung – beides ist je nach Einheit und Lerngruppe sinnvoll.
+          </p>
+          <p className="muted text-sm">
+            <strong>Vorbereiten:</strong> In der Detailspalte unter „Korpusminiatur – Muster entdecken (optional)“
+            schalten Sie die Funktion für eine Einheit ein, tragen Belege ein, markieren je Beleg eine Textstelle und
+            vergeben optional eine Lösungsgruppe. Kommt eine Markierung im Beleg nicht vor, wird das dort gemeldet;
+            verglichen wird Zeichen für Zeichen, also auch Akzent, Apostroph und Groß-/Kleinschreibung.
+            Lehrkraftnotizen und Quellenhinweis erscheinen nur auf Ihrem Bildschirm, nie in der Projektion.
+          </p>
+          <p className="muted text-sm">
+            <strong>Der Schritt ist ein Angebot:</strong> Er ist in neuen und bestehenden Sequenzen abgeschaltet.
+            Schalten Sie ihn gezielt für die Einheit ein, für die Sie eine Miniatur vorbereitet haben. Angeboten wird
+            er ab drei Belegen.
           </p>
         </div>
       </section>

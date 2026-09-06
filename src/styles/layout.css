@@ -950,3 +950,106 @@
   align-items: baseline;
   gap: var(--space-2);
 }
+
+/* ------------------------------------------ Korpusminiatur vorbereiten */
+
+.corpus-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.corpus-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.corpus-edit__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.corpus-edit__item--dragging {
+  opacity: 0.4;
+}
+
+.corpus-edit__item--drop-target {
+  box-shadow: 0 -2px 0 var(--petrol);
+}
+
+.corpus-edit__position {
+  min-width: 1.5rem;
+  padding-top: 0.15rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.corpus-edit__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.corpus-edit__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.corpus-edit__preview {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  padding: var(--space-2);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+
+/* Vorschau: die Unterrichtsbühne im Kleinen. */
+.corpus-preview {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+}
+
+.corpus-preview .corpus__list {
+  max-height: none;
+}
+
+/* In der Vorschau bleibt die Typografie auf Bildschirmgröße der Vorbereitung. */
+.corpus-preview .corpus__title,
+.corpus-preview .corpus__category,
+.corpus-preview .corpus__groups {
+  font-size: var(--text-sm);
+}
+
+.corpus-preview .corpus__text,
+.corpus-preview .teach__prompt {
+  font-size: var(--text-md);
+}
+
+.corpus-preview .corpus__rule {
+  font-size: var(--text-lg);
+  padding: var(--space-2) var(--space-3);
+}
+
+@media (max-width: 720px) {
+  .corpus-edit__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

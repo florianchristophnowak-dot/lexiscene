@@ -1,8 +1,10 @@
 import { useMediaUrl } from '../../app/media';
 import { buildCheckPrompt } from '../../domain/checks';
-import { languageLabel, type Lexeme, type Sequence } from '../../domain/model';
+import { CLOSED_CORPUS_REVEAL, usableExamples, type CorpusReveal } from '../../domain/corpus';
+import { corpusProvenanceLabel, languageLabel, type Lexeme, type Sequence } from '../../domain/model';
 import type { StepDefinition, StepVisibility } from '../../domain/steps';
 import { firstFilled, splitPatternAnchor } from '../../domain/text';
+import { CorpusStage } from './CorpusStage';
 
 /** Bild oder Video der aktuellen Einheit. */
 function StageMedia({ lexeme }: { lexeme: Lexeme }) {
@@ -58,6 +60,8 @@ export interface TeachStageProps {
   showSolution?: boolean;
   /** Zusätzliche Aufgabe in der Gegenrichtung. */
   counterpartPrompt?: string;
+  /** Aufgedeckte Stufen der Korpusminiatur. */
+  corpusReveal?: CorpusReveal;
   /**
    * Lehrkraftansicht: zeigt zusätzlich Hinweise, die nicht an die Klasse
    * gehen. Im Projektionsfenster ist das immer aus.
@@ -73,6 +77,7 @@ export function TeachStage({
   showTranslation,
   showSolution = false,
   counterpartPrompt = '',
+  corpusReveal = CLOSED_CORPUS_REVEAL,
   teacherView,
 }: TeachStageProps) {
   const audio = useMediaUrl(lexeme.audioId);
@@ -101,6 +106,8 @@ export function TeachStage({
         // Phase „Muster“: Der Musteranker steht vorn; die Modelläußerung folgt
         // weiter unten aus dem Schriftbild-Block, damit nichts doppelt erscheint.
         return lexeme.sentenceFrame ? <PatternAnchor text={lexeme.sentenceFrame} /> : null;
+      case 'korpusminiatur':
+        return <CorpusStage miniature={lexeme.corpus} reveal={corpusReveal} teacherView={teacherView} />;
       case 'kontrolle':
         return (
           <>
@@ -166,12 +173,29 @@ export function TeachStage({
 
 /** Zusätzliche Angaben, die nur die Lehrkraft sieht, wenn projiziert wird. */
 export function TeacherPanel({ lexeme, step }: { lexeme: Lexeme; step: StepDefinition }) {
+  /*
+   * Während der Projektion blendet die Bühne alle Lehrkrafthinweise aus.
+   * Notizen und Quellenhinweis der Korpusminiatur stehen deshalb hier – auf
+   * dem Gerät der Lehrkraft, nie im Projektionsfenster.
+   */
+  const corpusLines =
+    step.id === 'korpusminiatur'
+      ? [
+          `Herkunft: ${corpusProvenanceLabel(lexeme.corpus.provenance)}`,
+          lexeme.corpus.sourceNote.trim() ? `Quelle: ${lexeme.corpus.sourceNote.trim()}` : '',
+          ...usableExamples(lexeme.corpus)
+            .filter((example) => example.teacherNote.trim())
+            .map((example) => `${example.text}: ${example.teacherNote.trim()}`),
+        ]
+      : [];
+
   const lines = [
     lexeme.modelUtterance ? `Modelläußerung: ${lexeme.modelUtterance}` : '',
     lexeme.coreMeaning ? `Bedeutung: ${lexeme.coreMeaning}` : '',
     lexeme.semantisationMethod ? `Methode: ${lexeme.semantisationMethod}` : '',
     lexeme.confusionRisk ? `Achtung: ${lexeme.confusionRisk}` : '',
     lexeme.liveNote ? `Notiz: ${lexeme.liveNote}` : '',
+    ...corpusLines,
   ].filter(Boolean);
 
   return (

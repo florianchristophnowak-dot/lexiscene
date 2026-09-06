@@ -9,6 +9,8 @@
  */
 import type { Lexeme, Sequence } from './model';
 import { buildCheckPrompt, coversBothDirections } from './checks';
+import { CORPUS_MIN_EXAMPLES, corpusMiniatureReady, usableExamples } from './corpus';
+import { isStepEnabled } from './steps';
 import { firstFilled, truncate } from './text';
 
 export type ReadinessSeverity = 'ergaenzen' | 'vertiefen';
@@ -128,6 +130,32 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
       'Nur eine Abrufrichtung vorbereitet',
       `Für produktive Kerneinheiten lohnen beide Richtungen – Form → Bedeutung und Bedeutung oder Situation → Form: ${listOf(singleDirection)}.`,
       singleDirection,
+    );
+  }
+
+  // Korpusminiaturen: rein formale Hinweise, keine Bewertung der Belege.
+  const corpusEnabled = active.filter((lexeme) => lexeme.corpus.enabled);
+  const corpusTooShort = corpusEnabled.filter((lexeme) => usableExamples(lexeme.corpus).length < CORPUS_MIN_EXAMPLES);
+  if (corpusTooShort.length > 0) {
+    add(
+      'corpus-incomplete',
+      'ergaenzen',
+      'Korpusminiatur mit zu wenigen Belegen',
+      `Der Schritt wird erst ab ${CORPUS_MIN_EXAMPLES} Belegen angeboten: ${listOf(corpusTooShort)}.`,
+      corpusTooShort,
+    );
+  }
+
+  const corpusHidden = corpusEnabled.filter(
+    (lexeme) => corpusMiniatureReady(lexeme.corpus) && !isStepEnabled(sequence, lexeme, 'korpusminiatur'),
+  );
+  if (corpusHidden.length > 0) {
+    add(
+      'corpus-step-off',
+      'vertiefen',
+      'Korpusminiatur vorbereitet, aber nicht eingeschaltet',
+      `Der Schritt „Korpusminiatur“ ist für diese Einheiten abgeschaltet und wird im Unterricht übersprungen: ${listOf(corpusHidden)}.`,
+      corpusHidden,
     );
   }
 

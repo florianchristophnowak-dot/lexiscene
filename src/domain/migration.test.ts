@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from './model';
 import { normalizeSequence } from './schema';
+import { corpusMiniatureReady } from './corpus';
 import { summarizeObservations } from './observations';
+import { resolveSteps } from './steps';
 
 /** Eine vollständige Sequenz im Format der Version 0.1.x (Schema 1). */
 const SCHEMA_1_SEQUENCE = {
@@ -90,18 +92,19 @@ const SCHEMA_1_SEQUENCE = {
   updatedAt: 1_700_000_000_000,
 };
 
-describe('Migration Schema 1 → 2', () => {
+describe('Migration Schema 1 → 3', () => {
   const migrated = normalizeSequence(SCHEMA_1_SEQUENCE);
 
   it('hebt die Schemaversion an', () => {
     expect(migrated.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(2);
+    expect(SCHEMA_VERSION).toBe(3);
   });
 
   it('behält alle Freitexte, Medien und Schrittfolgen', () => {
     expect(migrated.title).toBe('Freizeit verabreden');
     expect(migrated.teacherNote).toBe('Chunks zuerst hörend anbieten.');
-    expect(migrated.stepOrder).toEqual(SCHEMA_1_SEQUENCE.stepOrder);
+    // Die alte Reihenfolge bleibt erhalten; nur der neue Schritt kommt hinzu.
+    expect(migrated.stepOrder.filter((stepId) => stepId !== 'korpusminiatur')).toEqual(SCHEMA_1_SEQUENCE.stepOrder);
     expect(migrated.steps.fokus).toBe(false);
     expect(migrated.session).toEqual(SCHEMA_1_SEQUENCE.session);
 
@@ -139,6 +142,34 @@ describe('Migration Schema 1 → 2', () => {
     // „reaktiviert“ bleibt ein Ereignis – daraus wird keine Kompetenz abgeleitet.
     expect(third.observations[0]).toMatchObject({ dimension: null, result: null, source: 'reactivation' });
     expect(summarizeObservations(third.observations).every((entry) => entry.result === null)).toBe(true);
+  });
+
+  it('legt den neuen Schritt „Korpusminiatur“ nicht ungefragt in bestehende Sequenzen', () => {
+    expect(migrated.steps.korpusminiatur).toBe(false);
+    expect(migrated.stepOrder).toContain('korpusminiatur');
+    expect(migrated.stepOrder[migrated.stepOrder.indexOf('korpusminiatur') - 1]).toBe('fokus');
+    for (const lexeme of migrated.lexemes) {
+      expect(lexeme.stepOverrides.korpusminiatur).toBeUndefined();
+      expect(resolveSteps(migrated, lexeme).map((step) => step.id)).not.toContain('korpusminiatur');
+    }
+  });
+
+  it('legt für ältere Einheiten eine leere, deaktivierte Korpusminiatur an', () => {
+    for (const lexeme of migrated.lexemes) {
+      expect(lexeme.corpus).toEqual({
+        enabled: false,
+        title: '',
+        guidingQuestion: '',
+        focus: 'pattern',
+        examples: [],
+        discoveryPrompt: '',
+        ruleOrFinding: '',
+        transferPrompt: '',
+        provenance: 'teacher-created',
+        sourceNote: '',
+      });
+      expect(corpusMiniatureReady(lexeme.corpus)).toBe(false);
+    }
   });
 
   it('ergänzt Reaktivierungsverlauf und Priorisierung ohne Datenverlust', () => {

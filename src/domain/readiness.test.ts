@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLexeme, createReactivationPlan, createSequence } from './schema';
+import { createCorpusExample, createCorpusMiniature } from './corpus';
 import { checkReadiness, summarizeReadiness } from './readiness';
 
 const complete = () =>
@@ -93,5 +94,36 @@ describe('Bereitschaftscheck', () => {
     expect(summary.toComplete).toBeGreaterThan(0);
     expect(summary.optional).toBeGreaterThan(0);
     expect(summary.findings.every((finding) => ['ergaenzen', 'vertiefen'].includes(finding.severity))).toBe(true);
+  });
+});
+
+describe('Bereitschaftscheck und Korpusminiaturen', () => {
+  const miniature = (count: number) =>
+    createCorpusMiniature({
+      enabled: true,
+      examples: Array.from({ length: count }, (_, index) => createCorpusExample({ text: `Beleg ${index + 1}` })),
+    });
+
+  it('schweigt, solange keine Miniatur eingeschaltet ist', () => {
+    const sequence = createSequence({ lexemes: [complete()] });
+    expect(ids(sequence)).not.toEqual(expect.arrayContaining(['corpus-incomplete', 'corpus-step-off']));
+  });
+
+  it('meldet eine Miniatur mit zu wenigen Belegen', () => {
+    const sequence = createSequence({ lexemes: [createLexeme({ ...complete(), corpus: miniature(2) })] });
+    expect(ids(sequence)).toContain('corpus-incomplete');
+  });
+
+  it('weist darauf hin, dass eine fertige Miniatur nicht eingeschaltet ist', () => {
+    const sequence = createSequence({ lexemes: [createLexeme({ ...complete(), corpus: miniature(3) })] });
+    const finding = checkReadiness(sequence).find((entry) => entry.id === 'corpus-step-off');
+    expect(finding?.severity).toBe('vertiefen');
+  });
+
+  it('schweigt, sobald der Schritt für die Einheit eingeschaltet ist', () => {
+    const sequence = createSequence({
+      lexemes: [createLexeme({ ...complete(), corpus: miniature(3), stepOverrides: { korpusminiatur: true } })],
+    });
+    expect(ids(sequence)).not.toContain('corpus-step-off');
   });
 });

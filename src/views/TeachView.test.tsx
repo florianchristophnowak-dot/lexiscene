@@ -140,3 +140,118 @@ describe('Korrektur einer Rückmeldung', () => {
     expect(actions.recordObservation).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('Korpusminiatur im Unterrichtsmodus', () => {
+  function setupCorpus() {
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes.find((entry) => entry.corpus.enabled);
+    if (!lexeme) throw new Error('Die Demo enthält keine Korpusminiatur.');
+    const sequence = { ...demo, lexemes: [lexeme] };
+    const view = renderWithStore(<TeachView sequenceId={sequence.id} />, [sequence]);
+    return { sequence, lexeme, ...view };
+  }
+
+  async function goToCorpus(user: ReturnType<typeof userEvent.setup>) {
+    for (let index = 0; index < 20; index += 1) {
+      if (screen.queryByRole('button', { name: 'Fokus markieren' })) return;
+      await user.keyboard('{ArrowRight}');
+    }
+    throw new Error('Der Schritt „Korpusminiatur“ wurde nicht erreicht.');
+  }
+
+  it('erscheint als Schritt der Phase „Muster“ nach „Aussprache und Muster“', async () => {
+    const user = userEvent.setup();
+    setupCorpus();
+    await goToCorpus(user);
+
+    expect(screen.getByText('Phase 3: Muster')).toBeInTheDocument();
+    expect(screen.getByText(/Korpusminiatur/)).toBeInTheDocument();
+    await user.keyboard('{ArrowLeft}');
+    expect(screen.getByText(/Aussprache und Muster/)).toBeInTheDocument();
+  });
+
+  it('zeigt beim Betreten nur Leitfrage und Belege', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupCorpus();
+    await goToCorpus(user);
+
+    expect(screen.getByText(lexeme.corpus.guidingQuestion)).toBeInTheDocument();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+    expect(screen.queryByText(lexeme.corpus.ruleOrFinding)).not.toBeInTheDocument();
+    expect(screen.queryByText(lexeme.corpus.transferPrompt)).not.toBeInTheDocument();
+  });
+
+  it('deckt Fokus, Gruppen, Regel und Transfer getrennt auf', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupCorpus();
+    await goToCorpus(user);
+
+    await user.click(screen.getByRole('button', { name: 'Fokus markieren' }));
+    expect(document.querySelectorAll('mark').length).toBe(lexeme.corpus.examples.length);
+    expect(screen.queryByText(/^Gruppen:/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Gruppen zeigen' }));
+    expect(screen.getByText('Gruppen: Sport/Spiel · Instrument')).toBeInTheDocument();
+    expect(screen.queryByText(lexeme.corpus.ruleOrFinding)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Regel zeigen' }));
+    expect(screen.getByText(lexeme.corpus.ruleOrFinding)).toBeInTheDocument();
+    expect(screen.queryByText(lexeme.corpus.transferPrompt)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Transfer zeigen' }));
+    expect(screen.getByText(lexeme.corpus.transferPrompt)).toBeInTheDocument();
+  });
+
+  it('lässt sich wieder zuklappen', async () => {
+    const user = userEvent.setup();
+    setupCorpus();
+    await goToCorpus(user);
+
+    await user.click(screen.getByRole('button', { name: 'Fokus markieren' }));
+    expect(document.querySelectorAll('mark').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Fokus markieren' }));
+    expect(screen.getByRole('button', { name: 'Fokus markieren' })).toHaveAttribute('aria-pressed', 'false');
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+  });
+
+  it('beginnt bei der nächsten Einheit wieder verdeckt', async () => {
+    const user = userEvent.setup();
+    const demo = createDemoSequence();
+    const first = demo.lexemes.find((entry) => entry.corpus.enabled);
+    if (!first) throw new Error('Die Demo enthält keine Korpusminiatur.');
+    const second = { ...first, id: 'lex_zweite' };
+    const sequence = { ...demo, lexemes: [first, second] };
+    renderWithStore(<TeachView sequenceId={sequence.id} />, [sequence]);
+
+    await goToCorpus(user);
+    await user.click(screen.getByRole('button', { name: 'Fokus markieren' }));
+    expect(document.querySelectorAll('mark').length).toBeGreaterThan(0);
+
+    // bis zur Korpusminiatur der zweiten Einheit weiterblättern
+    for (let index = 0; index < 30; index += 1) {
+      if (screen.queryByText(/Einheit 2 von 2/) && screen.queryByRole('button', { name: 'Fokus markieren' })) break;
+      await user.keyboard('{ArrowRight}');
+    }
+
+    expect(screen.getByRole('button', { name: 'Fokus markieren' })).toHaveAttribute('aria-pressed', 'false');
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+  });
+
+  it('bietet Lehrkraftnotizen auf dem eigenen Bildschirm an', async () => {
+    const user = userEvent.setup();
+    setupCorpus();
+    await goToCorpus(user);
+    expect(screen.getAllByText(/^Für die Lehrkraft:/).length).toBeGreaterThan(0);
+  });
+
+  it('taucht ohne Korpusminiatur gar nicht auf', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    for (let index = 0; index < 20; index += 1) {
+      expect(screen.queryByRole('button', { name: 'Fokus markieren' })).not.toBeInTheDocument();
+      await user.keyboard('{ArrowRight}');
+    }
+  });
+});

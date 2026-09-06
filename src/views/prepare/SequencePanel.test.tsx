@@ -44,7 +44,7 @@ describe('Sequenzspalte', () => {
     await user.click(screen.getAllByRole('button', { name: 'Nach unten verschieben' })[0]);
     expect(actions.moveLexeme).toHaveBeenCalledWith(sequence.id, 0, 1);
     expect(screen.getByRole('status', { name: 'Reihenfolge der Einheiten' })).toHaveTextContent(
-      'ist jetzt an Position 2 von 7',
+      'ist jetzt an Position 2 von 8',
     );
   });
 
@@ -90,6 +90,7 @@ describe('Sequenzspalte', () => {
         'audio',
         'form',
         'fokus',
+        'korpusminiatur',
         'kontrolle',
         'hilfen-ausblenden',
         'abruf',
@@ -97,7 +98,7 @@ describe('Sequenzspalte', () => {
       ],
     });
     expect(screen.getByRole('status', { name: 'Reihenfolge der Schritte' })).toHaveTextContent(
-      '„Impuls zeigen“ ist jetzt an Position 1 von 11',
+      '„Impuls zeigen“ ist jetzt an Position 1 von 12',
     );
   });
 });

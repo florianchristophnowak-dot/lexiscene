@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useStageSubscription } from '../app/presentation';
 import { useStore } from '../app/storeContext';
+import { CLOSED_CORPUS_REVEAL } from '../domain/corpus';
 import { stepDefinition } from '../domain/steps';
 import { Button } from '../ui/Button';
 import { TeachStage } from './teach/TeachStage';
@@ -52,6 +53,7 @@ export function ProjectionView({ sequenceId }: { sequenceId: string }) {
         step={step}
         visibility={stage.visibility}
         showTranslation={stage.showTranslation}
+        corpusReveal={stage.corpusReveal ?? CLOSED_CORPUS_REVEAL}
         teacherView={false}
       />
       <p className="projection__hint">Projektion · Steuerung im Fenster der Lehrkraft</p>
