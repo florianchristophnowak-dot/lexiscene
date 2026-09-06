@@ -17,10 +17,6 @@ import { createId } from './ids';
 /** Ab dieser Anzahl brauchbarer Belege wird der Unterrichtsschritt angeboten. */
 export const CORPUS_MIN_EXAMPLES = 3;
 
-/** Unverbindliche Empfehlung für den Umfang einer Miniatur. */
-export const CORPUS_SIZE_HINT =
-  'Für eine übersichtliche Korpusminiatur sind meist fünf bis zehn kurze, verständliche Belege sinnvoll.';
-
 /* ------------------------------------------------------------- Factories */
 
 export function createCorpusExample(partial: Partial<CorpusExample> = {}): CorpusExample {
@@ -89,12 +85,12 @@ export function normalizeCorpusMiniature(raw: unknown): CorpusMiniature {
     enabled: source.enabled === true,
     title: asString(source.title),
     guidingQuestion: asString(source.guidingQuestion),
-    focus: CORPUS_FOCUSES.some((entry) => entry.id === source.focus) ? (source.focus as CorpusFocus) : 'pattern',
+    focus: CORPUS_FOCUSES.includes(source.focus as CorpusFocus) ? (source.focus as CorpusFocus) : 'pattern',
     examples,
     discoveryPrompt: asString(source.discoveryPrompt),
     ruleOrFinding: asString(source.ruleOrFinding),
     transferPrompt: asString(source.transferPrompt),
-    provenance: CORPUS_PROVENANCES.some((entry) => entry.id === source.provenance)
+    provenance: CORPUS_PROVENANCES.includes(source.provenance as CorpusProvenance)
       ? (source.provenance as CorpusProvenance)
       : 'teacher-created',
     sourceNote: asString(source.sourceNote),
@@ -238,7 +234,9 @@ export const CLOSED_CORPUS_REVEAL: CorpusReveal = {
 
 export interface CorpusWarning {
   id: string;
-  message: string;
+  /** Übersetzungsschlüssel; der Text steht im Sprachkatalog. */
+  key: string;
+  params?: Record<string, string>;
   exampleId?: string;
 }
 
@@ -254,7 +252,8 @@ export function corpusWarnings(miniature: CorpusMiniature): CorpusWarning[] {
   if (usable.length < CORPUS_MIN_EXAMPLES) {
     warnings.push({
       id: 'zu-wenige-belege',
-      message: `Der Unterrichtsschritt wird erst ab ${CORPUS_MIN_EXAMPLES} Belegen angeboten – derzeit ${usable.length}.`,
+      key: 'corpus.warning.tooFew',
+      params: { min: String(CORPUS_MIN_EXAMPLES), count: String(usable.length) },
     });
   }
 
@@ -264,7 +263,8 @@ export function corpusWarnings(miniature: CorpusMiniature): CorpusWarning[] {
     warnings.push({
       id: `markierung-${example.id}`,
       exampleId: example.id,
-      message: `Die Markierung „${example.highlight.trim()}“ kommt in diesem Beleg nicht vor. Verglichen wird Zeichen für Zeichen – prüfen Sie Schreibweise, Akzente, Apostroph und Groß-/Kleinschreibung.`,
+      key: 'corpus.warning.highlightMissing',
+      params: { highlight: example.highlight.trim() },
     });
   }
 

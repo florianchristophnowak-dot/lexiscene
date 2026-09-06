@@ -3,6 +3,7 @@ import { navigate } from '../app/router';
 import { useStore } from '../app/storeContext';
 import { OBSERVATION_RESULTS, type ObservationResult } from '../domain/model';
 import { buildImpulses, summariseOutcomes, type ImpulseOutcome } from '../domain/reactivation';
+import { usePhrase, useT, useTid } from '../i18n/context';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
@@ -19,12 +20,15 @@ interface Reveal {
  * Die Runde zählt erst als durchgeführt, wenn sie hier abgeschlossen wird.
  */
 export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
+  const t = useT();
+  const tid = useTid();
   const { state, actions } = useStore();
   const toast = useToast();
   const sequence = state.sequences.find((entry) => entry.id === sequenceId);
   const isFullscreen = useFullscreenState();
 
-  const impulses = useMemo(() => (sequence ? buildImpulses(sequence) : []), [sequence]);
+  const phrase = usePhrase(sequence?.targetLanguage ?? 'fr');
+  const impulses = useMemo(() => (sequence ? buildImpulses(sequence, phrase) : []), [phrase, sequence]);
   const [index, setIndex] = useState(0);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [results, setResults] = useState<Record<string, ObservationResult>>({});
@@ -84,8 +88,8 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
   if (!sequence) {
     return (
       <div className="page">
-        <EmptyState title="Sequenz nicht gefunden">
-          <Button onClick={() => navigate({ name: 'home' })}>Zur Startseite</Button>
+        <EmptyState title={t('teach.notFound')}>
+          <Button onClick={() => navigate({ name: 'home' })}>{t('teach.toStart')}</Button>
         </EmptyState>
       </div>
     );
@@ -94,10 +98,10 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
   if (impulses.length === 0) {
     return (
       <div className="page">
-        <EmptyState title="Keine Impulse verfügbar">
-          <p>Diese Sequenz enthält noch keine Einheiten mit Ausdruck.</p>
+        <EmptyState title={t('reactivate.noImpulses')}>
+          <p>{t('reactivate.noLexemes')}</p>
           <Button variant="primary" onClick={() => navigate({ name: 'reactivate', sequenceId })}>
-            Zur Reaktivierungsplanung
+            {t('reactivate.toPlanning')}
           </Button>
         </EmptyState>
       </div>
@@ -117,35 +121,42 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
       <div className="teach">
         <div className="teach__top">
           <span className="teach__step">
-            <span className="teach__step-number">Phase 6: Wiederbegegnung</span> · Runde {round}
+            <span className="teach__step-number">
+              {t('teach.phase', { position: 6, label: tid('phase', 'wiederbegegnung') })}
+            </span>{' '}
+            · {t('reactivate.round', { round })}
           </span>
           <span className="spacer" />
-          <Button onClick={leave}>Beenden</Button>
+          <Button onClick={leave}>{t('reactivate.end')}</Button>
         </div>
 
         <div className="teach__stage">
-          <p className="teach__step">Alle Impulse gezeigt</p>
+          <p className="teach__step">{t('reactivate.allShown')}</p>
           <h1 className="teach__utterance">{sequence.title}</h1>
           <p className="teach__support">
             {outcomes.length === 0
-              ? 'Es wurden keine Rückmeldungen erfasst. Die Runde lässt sich trotzdem abschließen.'
-              : `Rückmeldungen: ${summary.secure}× sicher, ${summary.supported}× mit Hilfe, ${summary.notYet}× noch nicht.`}
+              ? t('reactivate.noFeedback')
+              : t('reactivate.summary', {
+                  secure: summary.secure,
+                  supported: summary.supported,
+                  notYet: summary.notYet,
+                })}
           </p>
         </div>
 
         <div className="teach__bottom">
-          <Button onClick={goBack}>Zurück</Button>
+          <Button onClick={goBack}>{t('common.back')}</Button>
           <span className="spacer" />
           <Button
             variant="primary"
             large
             onClick={() => {
               actions.completeReactivationRound(sequence.id, outcomes);
-              toast.show(`Runde ${round} abgeschlossen.`, 'success');
+              toast.show(t('reactivate.finished', { round }), 'success');
               leave();
             }}
           >
-            Runde abschließen
+            {t('reactivate.finish')}
           </Button>
         </div>
       </div>
@@ -159,34 +170,42 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
     <div className="teach">
       <div className="teach__top">
         <span className="teach__step">
-          <span className="teach__step-number">Phase 6: Wiederbegegnung</span> · {current.label}
+          <span className="teach__step-number">
+            {t('teach.phase', { position: 6, label: tid('phase', 'wiederbegegnung') })}
+          </span>{' '}
+          · {tid('impulse', current.kind)}
         </span>
         <span className="teach__counter">
-          Impuls {safeIndex + 1} von {impulses.length} · {sequence.title}
+          {t('reactivate.counter', { index: safeIndex + 1, total: impulses.length, title: sequence.title })}
         </span>
         <span className="spacer" />
-        <IconButton label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild einschalten'} onClick={toggleFullscreen}>
+        <IconButton
+          label={isFullscreen ? t('teach.fullscreen.off') : t('teach.fullscreen.on')}
+          onClick={toggleFullscreen}
+        >
           {isFullscreen ? '⤡' : '⤢'}
         </IconButton>
-        <Button onClick={leave}>Beenden</Button>
+        <Button onClick={leave}>{t('reactivate.end')}</Button>
       </div>
 
       <div className="teach__progress">
-        <ProgressBar value={safeIndex + 1} max={impulses.length} label="Fortschritt der Reaktivierung" />
+        <ProgressBar value={safeIndex + 1} max={impulses.length} label={t('reactivate.progress')} />
       </div>
 
       <div className="teach__stage">
         <p className="teach__prompt">{current.prompt}</p>
-        {showSupport && current.support ? <p className="teach__support">Hilfe: {current.support}</p> : null}
+        {showSupport && current.support ? (
+          <p className="teach__support">{t('reactivate.support', { value: current.support })}</p>
+        ) : null}
         {showSolution && current.solution ? <p className="teach__utterance">{current.solution}</p> : null}
       </div>
 
       <div className="teach__bottom">
         <Button large onClick={goBack} disabled={safeIndex === 0}>
-          ← Zurück
+          {t('teach.back')}
         </Button>
         <Button variant="primary" large onClick={goNext}>
-          Weiter →
+          {t('teach.next')}
         </Button>
 
         <div className="teach__toggles">
@@ -197,7 +216,7 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={showSupport}
               onClick={() => setReveal({ index: safeIndex, support: !showSupport, solution: showSolution })}
             >
-              Hilfe
+              {t('reactivate.toggleSupport')}
             </button>
           ) : null}
           {current.solution ? (
@@ -207,24 +226,24 @@ export function ReactivateTeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={showSolution}
               onClick={() => setReveal({ index: safeIndex, support: showSupport, solution: !showSolution })}
             >
-              Lösung
+              {t('reactivate.toggleSolution')}
             </button>
           ) : null}
         </div>
 
         <span className="spacer" />
 
-        <div className="teach__feedback" role="group" aria-label="Rückmeldung der Klasse zu diesem Impuls">
-          <span className="teach__feedback-label">Klasse:</span>
+        <div className="teach__feedback" role="group" aria-label={t('reactivate.feedbackGroup')}>
+          <span className="teach__feedback-label">{t('teach.feedback')}</span>
           {OBSERVATION_RESULTS.map((option) => (
             <button
-              key={option.id}
+              key={option}
               type="button"
-              className={chosen === option.id ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
-              aria-pressed={chosen === option.id}
-              onClick={() => setResults((entries) => ({ ...entries, [current.id]: option.id }))}
+              className={chosen === option ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={chosen === option}
+              onClick={() => setResults((entries) => ({ ...entries, [current.id]: option }))}
             >
-              {option.label}
+              {tid('result', option)}
             </button>
           ))}
         </div>

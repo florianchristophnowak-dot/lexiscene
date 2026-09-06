@@ -14,15 +14,16 @@ Regie von der ersten Begegnung bis zum eigenen Sprachhandeln.
 | Phase | Worum es geht |
 | --- | --- |
 | 1 Kontext | Situation und kommunikativen Bedarf aufbauen, bevor Sprache angeboten wird. |
-| 2 Klarheit | Die Bedeutung eindeutig sichern – erschlossen oder direkt geklärt. |
+| 2 Klarheit | Die Bedeutung eindeutig sichern – erschlossen oder direkt geklärt – und anschließend mit Bedeutungsfragen (CCQs) prüfen. |
 | 3 Muster | Klangbild, Schriftbild, Musteranker – auf Wunsch mit einer Korpusminiatur. |
 | 4 Abruf | Prüfen und üben, was ohne Hilfen abrufbar ist. |
 | 5 Gebrauch | Die Einheit in eigenem Sprachhandeln verwenden. |
 | 6 Wiederbegegnung | Später erneut aktivieren – im Bereich „Reaktivieren“. |
 
-Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen zwölf
-Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten und frei
-umsortieren lassen. Schritte ohne hinterlegtes Material entfallen automatisch.
+Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen
+dreizehn Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten
+und frei umsortieren lassen. Schritte ohne hinterlegtes Material entfallen
+automatisch.
 
 Jede Phase bringt ein Sichtbarkeitsprofil mit: Es bestimmt, was die Klasse beim
 Betreten eines Schritts zuerst sieht — in „Kontext“ nichts, in „Klarheit“ die
@@ -39,7 +40,11 @@ der Lerngruppe abhängen:
 * **Klangbild vor Schriftbild** und der Zeitpunkt des Schriftbilds sind
   Regieentscheidungen, keine allgemeinen Regeln.
 * **Eine knappe Übersetzung** ist eine legitime Klärungshilfe und jederzeit
-  einblendbar.
+  einblendbar. Wie leicht sie erreichbar ist, entscheidet der Sprachmodus des
+  Unterrichts (siehe *Zielsprachlich unterrichten*).
+* **Bedeutung prüfen und Abruf prüfen** sind zwei verschiedene Dinge. Die
+  Bedeutungsfragen (CCQs) prüfen das Konzept, die Abrufkontrolle prüft Wieder­
+  erkennen, Erinnern und Bilden der Form.
 
 Die App läuft vollständig lokal: kein Backend, keine Cloud, kein Konto, keine
 Analyse- oder Trackingdienste, keine KI-Funktionen und keine Abfragen im Netz.
@@ -150,8 +155,12 @@ mindestens 44 × 44 Pixel):
   zweiter Klick ersetzt die Rückmeldung dieses Schritts, statt eine weitere
   anzulegen. In der Vorbereitung zeigt jede Einheit ihren vollständigen Verlauf,
   aus dem sich einzelne Einträge entfernen lassen.
-* **Gegenrichtung** blendet in der Verständniskontrolle die zweite Aufgabe ein –
+* **Gegenrichtung** blendet in der Abrufkontrolle die zweite Aufgabe ein –
   entweder die ausdrücklich gewählte oder den Vorschlag der App.
+* **Vorherige / Nächste Frage, Antwort zeigen, Alternative Klärung zeigen,
+  Zurück zur Klärung** führen durch die Bedeutungsfragen (siehe unten).
+* **Erstsprache** blendet die Übersetzung ein. Die Schaltfläche erscheint nur,
+  wenn der Sprachmodus des Unterrichts sie zulässt.
 * **Fokus markieren / Gruppen zeigen / Regel zeigen / Transfer zeigen** decken
   im Schritt „Korpusminiatur“ eine Stufe nach der anderen auf.
 * **Lösung** hält im Abruf die Antwort zurück, bis die Denkzeit vorbei ist.
@@ -160,9 +169,10 @@ mindestens 44 × 44 Pixel):
 * **Vorbereiten** verlässt den Unterricht; die Stelle bleibt erhalten und die
   Startseite bietet danach „Unterricht fortsetzen“ an.
 
-Die Standarddramaturgie umfasst zwölf Schritte (Situation, Impuls, Hören,
-Vermuten, Klären, Form zeigen, Aussprache und Muster, Korpusminiatur,
-Verständniskontrolle, Hilfen ausblenden, freier Abruf, Mini-Aufgabe). Sie lässt
+Die Standarddramaturgie umfasst dreizehn Schritte (Situation, Impuls, Hören,
+Vermuten, Bedeutung klären, **Bedeutung prüfen (CCQs)**, Form zeigen, Aussprache
+und Muster, Korpusminiatur, Abrufkontrolle, Hilfen ausblenden, freier Abruf,
+Mini-Aufgabe). Sie lässt
 sich pro Sequenz und pro Einheit abschalten **und frei umsortieren**; Schritte
 ohne hinterlegtes Material entfallen automatisch. Die Korpusminiatur ist ein
 Angebot und bleibt abgeschaltet, bis Sie sie einschalten.
@@ -177,6 +187,46 @@ ein Feld mit Modelläußerung, Bedeutung, Methode, Stolperstellen und Ihrer Noti
 das die Klasse nicht sieht. Beide Fenster laufen lokal im selben Browserprofil
 und tauschen nur die aktuelle Position aus; der Browser muss Pop-ups für die
 Seite erlauben.
+
+### Bedeutungsfragen (CCQs)
+
+Eine **Concept Checking Question** prüft, ob das Konzept angekommen ist – nicht,
+ob jemand die Form schon abrufen kann. Sie steht deshalb in der Phase
+**Klarheit** unmittelbar hinter „Bedeutung klären“ und ist von der
+**Abrufkontrolle** in der Phase „Abruf“ getrennt.
+
+**Vorbereiten** (Detailspalte, Bereich *Bedeutungssicherung*):
+
+* **Frage hinzufügen** legt eine leere Frage an. **Aus Vorlage** und
+  **Fragestamm** setzen ein Gerüst beziehungsweise einen zielsprachlichen
+  Fragestamm ein. Beides ist bearbeitbar; LexiScène formuliert nie selbst eine
+  inhaltliche Frage über Ihre Einheit.
+* Je Frage: erwartete Kurzantwort, Antwortformat (Ja/Nein, A oder B,
+  Kurzantwort, Beispiel/Nichtbeispiel, Bildauswahl, Zeigen, Sortieren),
+  geprüftes Bedeutungsmerkmal, Antwortoptionen, gezielt angesprochene
+  Fehlvorstellung, alternative Klärung, Sprache und Ziel (Bedeutung oder
+  Gebrauch).
+* Fragen lassen sich duplizieren, entfernen und per Ziehen oder über die
+  Pfeilschaltflächen umsortieren; **Vorschau** zeigt genau das, was die Klasse
+  sehen wird.
+* **Abrufaufgabe als CCQ übernehmen** holt eine früher im Abruffeld hinterlegte
+  Bedeutungsfrage nachträglich herüber, wenn die Migration den Fall nicht
+  eindeutig entscheiden konnte.
+* Dezente Hinweise melden typische Schwächen – „Habt ihr das verstanden?“,
+  fehlende erwartete Antwort, sehr lange Frage, durchweg gleiche Ja-Antwort,
+  Prüfung der Form statt der Bedeutung. Sie blockieren nichts.
+
+**Im Unterricht** zeigt die Projektion nur Frage beziehungsweise Impuls,
+Antwortoptionen, hinterlegte Bilder und eine kurze zielsprachliche
+Arbeitsanweisung. Erwartete Antwort, geprüftes Merkmal, mögliche Fehlvorstellung
+und Lehrkraftnotiz bleiben auf dem Gerät der Lehrkraft. Mehrere Fragen laufen
+nacheinander; **Zurück zur Klärung** springt zum Klärungsschritt, danach lässt
+sich die Frage erneut stellen. Die Rückmeldung „sicher / mit Hilfe / noch nicht“
+geht in die Dimension **Bedeutung**, bei Fragen zum Gebrauch in **Gebrauch** –
+ohne Punkte, Noten oder Einzeldaten.
+
+Der Schritt ist eingeschaltet, entfällt aber automatisch, solange keine
+brauchbare Frage vorliegt.
 
 ### Korpusminiaturen
 
@@ -233,6 +283,35 @@ im Verlauf. Auf Wunsch stehen Einheiten, die zuletzt unsicher waren, in der
 nächsten Runde vorn – eine transparente didaktische Heuristik, kein
 Lernalgorithmus. Für die Abstände gibt es kein einzig richtiges Intervall.
 
+## Zielsprachlich unterrichten
+
+Unter *Daten → Einstellungen* stehen zwei getrennte Entscheidungen:
+
+* **Bediensprache** – *Deutsch*, *Français* oder *Der Sprache der aktuellen
+  Sequenz folgen*. Angeboten werden nur Sprachen mit vollständiger Übersetzung;
+  eine gemischtsprachige Oberfläche kann so nicht entstehen. Die Zielsprache der
+  Sequenz bleibt davon unberührt.
+* **Sprachmodus des Unterrichts** – bestimmt, wie viel Erstsprache die Klasse zu
+  sehen bekommt:
+
+| Modus | Wirkung |
+| --- | --- |
+| Zielsprachlich mit Reserve *(Standard)* | Projektion zielsprachlich; die erstsprachliche Hilfe liegt bereit und wird bewusst freigegeben. |
+| Streng zielsprachlich | Erstsprachliche Inhalte erscheinen nie in der Projektion; Übersetzungen bleiben interne Lehrkraftinformation. |
+| Flexibel mehrsprachig | Die Lehrkraft entscheidet Schritt für Schritt, was projiziert wird – auch die interne Bedeutung. |
+
+Die Felder einer Einheit sind dafür sprachlich getrennt: **interne Bedeutung**
+(nur Lehrkraft), **zielsprachliche Erklärung** für die Lernenden,
+**Übersetzung** in die Erstsprache, **zielsprachlicher Unterrichtsimpuls**,
+**zielsprachliche Bedeutungsfragen** und **Lehrkraftnotiz**. Was in der
+Projektion landet, entscheidet nicht die einzelne Ansicht, sondern ein zentrales
+Bühnenmodell (`src/domain/stage.ts`); Lehrkraftinformationen können dadurch
+nicht versehentlich in die Klasse gelangen.
+
+Die zielsprachlichen Arbeitsanweisungen für die Lernenden liegen für
+Französisch, Englisch, Spanisch, Italienisch, Russisch und Latein vor und folgen
+der Zielsprache der Sequenz, nicht der Bediensprache.
+
 ## Einheiten anlegen
 
 * **Schnelleingabe:** Ausdruck und optional die Kernbedeutung eintippen, mit
@@ -264,8 +343,11 @@ Lernalgorithmus. Für die Abstände gibt es kein einzig richtiges Intervall.
 ```
 src/
 ├── domain/     Modell, Schema und Migration, Phasen und Schritte, Berater,
+│               Bedeutungsfragen (ccq.ts), Bühnenmodell (stage.ts),
 │               Abrufvorlagen, Beobachtungen, Korpusminiaturen, Reaktivierung,
 │               Bereitschaft, Import, Demo
+├── i18n/       Sprachkataloge (de, fr, Teilkataloge), Lernendenimpulse,
+│               Auflösung der Oberflächensprache, React-Anbindung
 ├── storage/    IndexedDB, Repository, ZIP-Codec, Sicherung
 ├── app/        Zustand, Router, Medien-URLs, Aufnahme, Projektionskopplung
 ├── ui/         Basiskomponenten (Schaltflächen, Felder, Dialoge, Hinweise)
@@ -278,6 +360,10 @@ src/
 * Keine Schülerkonten, keine Cloud-Synchronisierung, keine Live-Quizfunktionen.
 * Keine KI-Funktionen, keine Spracherkennung, keine Online-Bildersuche – Medien
   werden aus eigenen Dateien hinterlegt oder selbst aufgenommen.
+* Keine maschinelle Übersetzung. Die Oberfläche liegt in Deutsch und Französisch
+  vor; eigene Inhalte werden nie automatisch übersetzt oder überschrieben.
+* Bedeutungsfragen entstehen nicht automatisch. Die Vorlagen liefern Gerüste und
+  Fragestämme, die Formulierung bleibt bei der Lehrkraft.
 * Korpusminiaturen sind selbst kuratierte Belegsammlungen. Es gibt keine
   Anbindung an Onlinekorpora, keine Suche, keine Häufigkeitsangaben und keine
   automatische Auswahl von Belegen; LexiScène wird dadurch keine

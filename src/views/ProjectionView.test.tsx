@@ -27,8 +27,12 @@ function project(patch: Partial<StageState> = {}) {
     lexemeId: lexeme.id,
     stepId: 'korpusminiatur',
     visibility: { meaning: false, form: false, support: false },
-    showTranslation: false,
+    releaseL1: false,
     corpusReveal: { highlight: true, groups: true, rule: true, transfer: true },
+    ccqIndex: 0,
+    showCcqAnswer: false,
+    showCcqAlternative: false,
+    mode: 'reserve',
     finished: false,
     ...patch,
   };
@@ -68,5 +72,71 @@ describe('Projektionsfenster mit Korpusminiatur', () => {
     expect(screen.queryByText(/^Gruppen:/)).not.toBeInTheDocument();
     expect(screen.queryByText(lexeme.corpus.ruleOrFinding)).not.toBeInTheDocument();
     expect(screen.queryByText(lexeme.corpus.transferPrompt)).not.toBeInTheDocument();
+  });
+});
+
+describe('Projektion und Sprache', () => {
+  function projectStep(patch: Partial<StageState> = {}) {
+    const sequence = createDemoSequence();
+    const lexeme = sequence.lexemes[0];
+    stage.current = {
+      sequenceId: sequence.id,
+      lexemeId: lexeme.id,
+      stepId: 'ccq',
+      visibility: { meaning: true, form: true, support: true },
+      releaseL1: false,
+      corpusReveal: { highlight: false, groups: false, rule: false, transfer: false },
+      ccqIndex: 0,
+      showCcqAnswer: false,
+      showCcqAlternative: false,
+      mode: 'reserve',
+      finished: false,
+      ...patch,
+    };
+    return { sequence, lexeme, ...renderWithStore(<ProjectionView sequenceId={sequence.id} />, [sequence]) };
+  }
+
+  it('zeigt die CCQ in der Zielsprache, ohne Antwort und ohne Lehrkraftangaben', () => {
+    const { lexeme } = projectStep();
+
+    expect(screen.getByText(lexeme.ccqs[0].question)).toBeInTheDocument();
+    expect(screen.getByText('Choisissez.')).toBeInTheDocument();
+    expect(screen.queryByText(/Erwartet:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Prüft:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Missverständnis:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Alternative Klärung:/)).not.toBeInTheDocument();
+  });
+
+  it('projiziert die zielsprachliche Erklärung, nicht die interne Bedeutung', () => {
+    const { lexeme } = projectStep({ stepId: 'klaeren' });
+
+    expect(screen.getByText(lexeme.targetExplanation)).toBeInTheDocument();
+    expect(screen.queryByText(lexeme.coreMeaning)).not.toBeInTheDocument();
+    expect(screen.queryByText(lexeme.translation)).not.toBeInTheDocument();
+    expect(screen.queryByText(lexeme.teacherNote)).not.toBeInTheDocument();
+  });
+
+  it('hält im strengen Modus jede erstsprachliche Hilfe zurück – auch nach Freigabe', () => {
+    const { lexeme } = projectStep({ stepId: 'klaeren', mode: 'strict', releaseL1: true });
+
+    expect(screen.queryByText(lexeme.translation)).not.toBeInTheDocument();
+    expect(screen.queryByText(lexeme.simplifiedExplanation)).not.toBeInTheDocument();
+    expect(screen.queryByText(lexeme.coreMeaning)).not.toBeInTheDocument();
+  });
+
+  it('lässt die Reserve nur nach ausdrücklicher Freigabe durch', () => {
+    const { lexeme } = projectStep({ stepId: 'klaeren', mode: 'reserve', releaseL1: true });
+    expect(screen.getByText(lexeme.translation)).toBeInTheDocument();
+  });
+
+  it('deckt die erwartete Antwort nur auf Wunsch auf', () => {
+    const { lexeme } = projectStep({ showCcqAnswer: true });
+    expect(screen.getByText(`Erwartet: ${lexeme.ccqs[0].expectedAnswer}`)).toBeInTheDocument();
+  });
+
+  it('zeigt niemals das Lehrkraftfeld des Zweitbildschirms', () => {
+    projectStep();
+    expect(document.querySelector('.teacher-panel')).toBeNull();
+    expect(document.querySelectorAll('.teach__teacher-note')).toHaveLength(0);
   });
 });

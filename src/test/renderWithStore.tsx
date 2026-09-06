@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { vi } from 'vitest';
 import { DEFAULT_SETTINGS, type Sequence } from '../domain/model';
 import { StoreContext, type AppState, type StoreActions, type StoreValue } from '../app/storeContext';
+import { I18nProvider } from '../i18n/I18nProvider';
 import { ToastContext } from '../ui/toastContext';
 
 /** Aktionen als Attrappen – die Tests prüfen die Oberfläche, nicht die Datenbank. */
@@ -62,7 +63,9 @@ export function renderWithStore(
 
   const result = render(
     <StoreContext.Provider value={value}>
-      <ToastContext.Provider value={{ show: vi.fn() }}>{ui}</ToastContext.Provider>
+      <I18nProvider>
+        <ToastContext.Provider value={{ show: vi.fn() }}>{ui}</ToastContext.Provider>
+      </I18nProvider>
     </StoreContext.Provider>,
   );
 

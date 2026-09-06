@@ -17,6 +17,7 @@ import {
   OBSERVATION_RESULTS,
   REPERTOIRES,
   SCHEMA_VERSION,
+  TEACHING_LANGUAGE_MODES,
   TRANSFER_RISKS,
   type AppSettings,
   type Imageability,
@@ -28,17 +29,21 @@ import {
   type LexemeObservation,
   type LexicalType,
   type MediaMeta,
+  type ConceptCheck,
   type ObservationDimension,
   type ObservationResult,
   type ReactivationRound,
   type Repertoire,
   type Sequence,
   type StepId,
+  type TeachingLanguageMode,
   type TransferRisk,
+  type UiLanguageSetting,
 } from './model';
 import { STEP_IDS, defaultStepConfig, normalizeStepOrder } from './steps';
 import { migrateLegacyStatus } from './observations';
 import { createCorpusMiniature, normalizeCorpusMiniature } from './corpus';
+import { ccqTemplate, createConceptCheck, isCcqTemplateId, normalizeConceptChecks } from './ccq';
 import { createId } from './ids';
 
 export { createId };
@@ -57,8 +62,8 @@ const asNumber = (value: unknown, fallback: number): number =>
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
-function asOption<T extends string>(value: unknown, options: readonly { id: T }[], fallback: T): T {
-  return options.some((option) => option.id === value) ? (value as T) : fallback;
+function asOption<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
+  return options.includes(value as T) ? (value as T) : fallback;
 }
 
 /* ------------------------------------------------- Didaktische Vorbelegung */
@@ -111,6 +116,10 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     learningGoal: defaultLearningGoal(repertoire),
     semantisationMethod: '',
     repertoire,
+    targetExplanation: '',
+    targetPrompt: '',
+    teacherNote: '',
+    ccqs: [],
     imageability: defaultImageability(lexicalType),
     inferenceSuitability: defaultInferenceSuitability(lexicalType),
     transferRisk: defaultTransferRisk(lexicalType),
@@ -197,10 +206,10 @@ function normalizeObservations(raw: unknown): LexemeObservation[] {
       const source = asRecord(entry);
       const at = asNumber(source.at, 0);
       if (!at) return null;
-      const dimension = OBSERVATION_DIMENSIONS.some((option) => option.id === source.dimension)
+      const dimension = OBSERVATION_DIMENSIONS.includes(source.dimension as ObservationDimension)
         ? (source.dimension as ObservationDimension)
         : null;
-      const result = OBSERVATION_RESULTS.some((option) => option.id === source.result)
+      const result = OBSERVATION_RESULTS.includes(source.result as ObservationResult)
         ? (source.result as ObservationResult)
         : null;
       const observation: LexemeObservation = {
@@ -218,7 +227,7 @@ function normalizeObservations(raw: unknown): LexemeObservation[] {
     .sort((a, b) => a.at - b.at);
 }
 
-export function normalizeLexeme(raw: unknown): Lexeme {
+export function normalizeLexeme(raw: unknown, targetLanguage = ''): Lexeme {
   const source = asRecord(raw);
   const base = createLexeme({ id: asString(source.id) || createId('lex') });
 
@@ -232,6 +241,38 @@ export function normalizeLexeme(raw: unknown): Lexeme {
   const lexicalType = asOption<LexicalType>(source.lexicalType, LEXICAL_TYPES, base.lexicalType);
   const repertoire = asOption<Repertoire>(source.repertoire, REPERTOIRES, base.repertoire);
   const confusionRisk = asString(source.confusionRisk);
+
+  /*
+   * Migration Schema 3 → 4: Fünf frühere Kontrollvorlagen prüfen das Konzept,
+   * nicht die Form. Sie werden in den CCQ-Bereich überführt, damit die
+   * Abrufkontrolle wirklich nur noch den Abruf prüft. Eine eigene Formulierung
+   * wandert als Frage mit; nichts geht verloren, und ein zweiter Durchlauf
+   * ändert nichts mehr, weil die Felder danach leer sind.
+   */
+  const rawCheckTemplateId = asString(source.checkTemplateId);
+  const rawSecondaryId = asString(source.checkTemplateIdSecondary);
+  const rawCheckPrompt = asString(source.checkPrompt);
+  const migratedChecks: ConceptCheck[] = [];
+
+  const adopt = (templateId: string, question: string): void => {
+    const template = ccqTemplate(templateId);
+    if (!template) return;
+    migratedChecks.push(
+      createConceptCheck({
+        templateId,
+        question,
+        feature: template.feature,
+        format: template.format,
+        target: template.target,
+        language: targetLanguage,
+      }),
+    );
+  };
+
+  const primaryIsCcq = isCcqTemplateId(rawCheckTemplateId);
+  const secondaryIsCcq = isCcqTemplateId(rawSecondaryId);
+  if (primaryIsCcq) adopt(rawCheckTemplateId, rawCheckPrompt);
+  if (secondaryIsCcq) adopt(rawSecondaryId, '');
 
   // Schema 1 kannte nur einen linearen Status; er wird zu einem Ereignis.
   const observations =
@@ -258,6 +299,9 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     ),
     transferRisk: asOption<TransferRisk>(source.transferRisk, TRANSFER_RISKS, defaultTransferRisk(lexicalType, confusionRisk)),
     confusionGroup: asString(source.confusionGroup),
+    targetExplanation: asString(source.targetExplanation),
+    targetPrompt: asString(source.targetPrompt),
+    teacherNote: asString(source.teacherNote),
     imageId: typeof source.imageId === 'string' ? source.imageId : undefined,
     audioId: typeof source.audioId === 'string' ? source.audioId : undefined,
     videoId: typeof source.videoId === 'string' ? source.videoId : undefined,
@@ -274,9 +318,10 @@ export function normalizeLexeme(raw: unknown): Lexeme {
     nonExample: asString(source.nonExample),
     contrastExample: asString(source.contrastExample),
     confusionRisk,
-    checkTemplateId: asString(source.checkTemplateId),
-    checkTemplateIdSecondary: asString(source.checkTemplateIdSecondary),
-    checkPrompt: asString(source.checkPrompt),
+    checkTemplateId: primaryIsCcq ? '' : rawCheckTemplateId,
+    checkTemplateIdSecondary: secondaryIsCcq ? '' : rawSecondaryId,
+    checkPrompt: primaryIsCcq ? '' : rawCheckPrompt,
+    ccqs: [...normalizeConceptChecks(source.ccqs), ...migratedChecks],
     extraHint: asString(source.extraHint),
     simplifiedExplanation: asString(source.simplifiedExplanation),
     translation: asString(source.translation),
@@ -362,11 +407,12 @@ export function normalizeSequence(raw: unknown): Sequence {
         : 'optional';
 
   const base = createSequence({ id: asString(source.id) || createId('seq') });
+  const targetLanguage = asString(source.targetLanguage, base.targetLanguage);
   return {
     ...base,
     schemaVersion: SCHEMA_VERSION,
     title: asString(source.title, base.title).trim() || base.title,
-    targetLanguage: asString(source.targetLanguage, base.targetLanguage),
+    targetLanguage,
     learningGroup: asString(source.learningGroup),
     learnerLevel: asOption<LearnerLevel>(source.learnerLevel, LEARNER_LEVELS, base.learnerLevel),
     topic: asString(source.topic),
@@ -376,7 +422,7 @@ export function normalizeSequence(raw: unknown): Sequence {
     steps,
     stepOrder: normalizeStepOrder(source.stepOrder),
     inferenceMode,
-    lexemes: rawLexemes.map(normalizeLexeme),
+    lexemes: rawLexemes.map((lexeme) => normalizeLexeme(lexeme, targetLanguage)),
     reactivation: createReactivationPlan({
       enabled: asBoolean(rawReactivation.enabled),
       offsetsDays: offsets.length > 0 ? offsets : [...DEFAULT_SETTINGS.reactivationOffsets],
@@ -415,6 +461,10 @@ export function normalizeMediaMeta(raw: unknown): MediaMeta | null {
 export function normalizeSettings(raw: unknown): AppSettings {
   const source = asRecord(raw);
   const theme = source.theme === 'light' || source.theme === 'dark' ? source.theme : 'system';
+  const uiLanguage: UiLanguageSetting =
+    source.uiLanguage === 'fr' || source.uiLanguage === 'sequence' || source.uiLanguage === 'de'
+      ? source.uiLanguage
+      : DEFAULT_SETTINGS.uiLanguage;
   const offsets = Array.isArray(source.reactivationOffsets)
     ? source.reactivationOffsets.filter((value): value is number => typeof value === 'number' && value > 0)
     : [...DEFAULT_SETTINGS.reactivationOffsets];
@@ -424,6 +474,12 @@ export function normalizeSettings(raw: unknown): AppSettings {
     lastSequenceId: typeof source.lastSequenceId === 'string' ? source.lastSequenceId : null,
     reactivationOffsets: offsets.length > 0 ? offsets : [...DEFAULT_SETTINGS.reactivationOffsets],
     demoSeeded: asBoolean(source.demoSeeded),
+    uiLanguage,
+    teachingLanguageMode: asOption<TeachingLanguageMode>(
+      source.teachingLanguageMode,
+      TEACHING_LANGUAGE_MODES,
+      DEFAULT_SETTINGS.teachingLanguageMode,
+    ),
   };
 }
 

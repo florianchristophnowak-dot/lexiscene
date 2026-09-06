@@ -3,7 +3,6 @@ import { useStore } from '../../app/storeContext';
 import {
   CLOSED_CORPUS_REVEAL,
   CORPUS_MIN_EXAMPLES,
-  CORPUS_SIZE_HINT,
   appendExampleLines,
   corpusCategories,
   corpusStages,
@@ -24,6 +23,8 @@ import {
   type Sequence,
 } from '../../domain/model';
 import { isStepEnabled } from '../../domain/steps';
+import { useT, useTid } from '../../i18n/context';
+import type { TranslationKey } from '../../i18n';
 import { Button, IconButton } from '../../ui/Button';
 import { Modal } from '../../ui/Dialog';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
@@ -45,12 +46,17 @@ function HighlightPreview({ example }: { example: CorpusExample }) {
 
 /** Vorschau der gestuften Präsentation – dieselbe Bühne wie im Unterricht. */
 function CorpusPreview({ miniature, onClose }: { miniature: CorpusMiniature; onClose: () => void }) {
+  const t = useT();
   const [reveal, setReveal] = useState<CorpusReveal>(CLOSED_CORPUS_REVEAL);
   const stages = corpusStages(miniature);
   const toggle = (patch: Partial<CorpusReveal>) => setReveal((current) => ({ ...current, ...patch }));
 
   return (
-    <Modal title="Vorschau – so sieht es die Klasse" onClose={onClose} actions={<Button onClick={onClose}>Schließen</Button>}>
+    <Modal
+      title={t('corpus.previewTitle')}
+      onClose={onClose}
+      actions={<Button onClick={onClose}>{t('common.close')}</Button>}
+    >
       <div className="stack-tight">
         <div className="row">
           {stages.highlight ? (
@@ -59,7 +65,7 @@ function CorpusPreview({ miniature, onClose }: { miniature: CorpusMiniature; onC
               aria-pressed={reveal.highlight}
               onClick={() => toggle({ highlight: !reveal.highlight })}
             >
-              Fokus markieren
+              {t('corpus.reveal.highlight')}
             </Button>
           ) : null}
           {stages.groups ? (
@@ -68,7 +74,7 @@ function CorpusPreview({ miniature, onClose }: { miniature: CorpusMiniature; onC
               aria-pressed={reveal.groups}
               onClick={() => toggle({ groups: !reveal.groups })}
             >
-              Gruppen zeigen
+              {t('corpus.reveal.groups')}
             </Button>
           ) : null}
           {stages.rule ? (
@@ -77,7 +83,7 @@ function CorpusPreview({ miniature, onClose }: { miniature: CorpusMiniature; onC
               aria-pressed={reveal.rule}
               onClick={() => toggle({ rule: !reveal.rule })}
             >
-              Regel zeigen
+              {t('corpus.reveal.rule')}
             </Button>
           ) : null}
           {stages.transfer ? (
@@ -86,16 +92,14 @@ function CorpusPreview({ miniature, onClose }: { miniature: CorpusMiniature; onC
               aria-pressed={reveal.transfer}
               onClick={() => toggle({ transfer: !reveal.transfer })}
             >
-              Transfer zeigen
+              {t('corpus.reveal.transfer')}
             </Button>
           ) : null}
         </div>
         <div className="corpus-preview">
           <CorpusStage miniature={miniature} reveal={reveal} teacherView={false} />
         </div>
-        <p className="field__hint">
-          Lehrkraftnotizen und Quellenhinweis erscheinen weder hier noch im Projektionsfenster.
-        </p>
+        <p className="field__hint">{t('corpus.previewNote')}</p>
       </div>
     </Modal>
   );
@@ -115,6 +119,8 @@ interface Props {
 export function CorpusPanel({ sequence, lexeme }: Props) {
   const { actions } = useStore();
   const toast = useToast();
+  const t = useT();
+  const tid = useTid();
   const categoryListId = useId();
   const [pasted, setPasted] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -139,7 +145,9 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
   const move = (from: number, to: number) => {
     if (to < 0 || to >= miniature.examples.length) return;
     setExamples(moveCorpusExample(miniature.examples, from, to));
-    setAnnouncement(`Beleg ${from + 1} steht jetzt an Position ${to + 1} von ${miniature.examples.length}.`);
+    setAnnouncement(
+      t('corpus.example.moved', { from: from + 1, to: to + 1, total: miniature.examples.length }),
+    );
   };
 
   const takeOverLines = () => {
@@ -148,55 +156,57 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
     // Angehängt, nie ersetzt: vorhandene Belege bleiben unangetastet.
     setExamples(appendExampleLines(miniature.examples, pasted));
     setPasted('');
-    toast.show(`${lines.length} ${lines.length === 1 ? 'Beleg' : 'Belege'} übernommen.`);
+    toast.show(t('corpus.paste.taken', { count: lines.length }));
   };
 
   return (
     <>
       <CheckboxRow
-        label="Korpusminiatur für diese Einheit verwenden"
-        hint="Wenige selbst kuratierte Belege, an denen ein Muster entdeckt werden kann. Immer optional."
+        label={t('corpus.enable')}
+        hint={t('corpus.enable.hint')}
         checked={miniature.enabled}
         onChange={(enabled) => patch({ enabled })}
       />
 
       {miniature.enabled ? (
         <div className="stack">
-          <p className="field__hint">{CORPUS_SIZE_HINT}</p>
+          <p className="field__hint">{t('corpus.sizeHint')}</p>
 
-          <TextField label="Titel" value={miniature.title} onChange={(title) => patch({ title })} placeholder="z. B. jouer à oder jouer de?" />
+          <TextField
+            label={t('corpus.field.title')}
+            value={miniature.title}
+            onChange={(title) => patch({ title })}
+            placeholder={t('corpus.field.title.placeholder')}
+          />
           <TextArea
-            label="Leitfrage"
+            label={t('corpus.field.question')}
             value={miniature.guidingQuestion}
             onChange={(guidingQuestion) => patch({ guidingQuestion })}
             rows={2}
-            hint="Beobachtungsauftrag für die Lernenden – auf ein erkennbares Merkmal beschränken."
+            hint={t('corpus.field.question.hint')}
           />
           <SelectField
-            label="Schwerpunkt"
+            label={t('corpus.field.focus')}
             value={miniature.focus}
             onChange={(focus) => patch({ focus: focus as CorpusMiniature['focus'] })}
-            options={CORPUS_FOCUSES.map((entry) => ({ value: entry.id, label: entry.label }))}
-            hint={CORPUS_FOCUSES.find((entry) => entry.id === miniature.focus)?.description}
+            options={CORPUS_FOCUSES.map((focus) => ({ value: focus, label: tid('corpus.focus', focus) }))}
+            hint={tid('corpus.focus', `${miniature.focus}.hint`)}
           />
 
           {warnings.length > 0 ? (
             <ul className="corpus-warnings">
               {warnings.map((warning) => (
                 <li className="notice" key={warning.id}>
-                  {warning.message}
+                  {t(warning.key as TranslationKey, warning.params)}
                 </li>
               ))}
             </ul>
           ) : null}
 
           <div className="stack-tight">
-            <span className="field__label">Belege ({usable.length})</span>
-            <p className="field__hint">
-              Die Markierung muss genau so im Beleg stehen. Notizen sind nur für die Lehrkraft und erscheinen nie in
-              der Projektion.
-            </p>
-            <p className="visually-hidden" role="status" aria-live="polite" aria-label="Reihenfolge der Belege">
+            <span className="field__label">{t('corpus.examplesCount', { count: usable.length })}</span>
+            <p className="field__hint">{t('corpus.examples.hint')}</p>
+            <p className="visually-hidden" role="status" aria-live="polite" aria-label={t('corpus.example.order')}>
               {announcement}
             </p>
 
@@ -241,28 +251,28 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
 
                   <div className="corpus-edit__fields">
                     <TextArea
-                      label={`Beleg ${index + 1}`}
+                      label={t('corpus.example.text', { index: index + 1 })}
                       value={example.text}
                       onChange={(text) => updateExample(example.id, { text })}
                       rows={2}
                       target
                     />
                     <TextField
-                      label={`Markierung in Beleg ${index + 1}`}
+                      label={t('corpus.example.highlight', { index: index + 1 })}
                       value={example.highlight}
                       onChange={(highlight) => updateExample(example.id, { highlight })}
                       target
-                      placeholder="Textteil aus dem Beleg"
+                      placeholder={t('corpus.example.highlight.placeholder')}
                     />
                     <TextField
-                      label={`Kategorie von Beleg ${index + 1}`}
+                      label={t('corpus.example.category', { index: index + 1 })}
                       value={example.category}
                       onChange={(category) => updateExample(example.id, { category })}
                       list={categoryListId}
-                      placeholder="optional, z. B. Sport/Spiel"
+                      placeholder={t('corpus.example.category.placeholder')}
                     />
                     <TextField
-                      label={`Notiz zu Beleg ${index + 1}`}
+                      label={t('corpus.example.note', { index: index + 1 })}
                       value={example.teacherNote}
                       onChange={(teacherNote) => updateExample(example.id, { teacherNote })}
                     />
@@ -270,18 +280,22 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
                   </div>
 
                   <span className="corpus-edit__actions">
-                    <IconButton label={`Beleg ${index + 1} nach oben`} disabled={index === 0} onClick={() => move(index, index - 1)}>
+                    <IconButton
+                      label={t('corpus.example.up', { index: index + 1 })}
+                      disabled={index === 0}
+                      onClick={() => move(index, index - 1)}
+                    >
                       ↑
                     </IconButton>
                     <IconButton
-                      label={`Beleg ${index + 1} nach unten`}
+                      label={t('corpus.example.down', { index: index + 1 })}
                       disabled={index === miniature.examples.length - 1}
                       onClick={() => move(index, index + 1)}
                     >
                       ↓
                     </IconButton>
                     <IconButton
-                      label={`Beleg ${index + 1} duplizieren`}
+                      label={t('corpus.example.duplicate', { index: index + 1 })}
                       onClick={() => {
                         const copy = createCorpusExample({
                           text: example.text,
@@ -297,7 +311,7 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
                       ⧉
                     </IconButton>
                     <IconButton
-                      label={`Beleg ${index + 1} entfernen`}
+                      label={t('corpus.example.remove', { index: index + 1 })}
                       onClick={() => setExamples(miniature.examples.filter((entry) => entry.id !== example.id))}
                     >
                       ✕
@@ -314,75 +328,77 @@ export function CorpusPanel({ sequence, lexeme }: Props) {
             </datalist>
 
             <div className="row">
-              <Button onClick={() => setExamples([...miniature.examples, createCorpusExample()])}>Beleg hinzufügen</Button>
+              <Button onClick={() => setExamples([...miniature.examples, createCorpusExample()])}>
+                {t('corpus.addExample')}
+              </Button>
               <Button variant="ghost" disabled={usable.length === 0} onClick={() => setPreviewOpen(true)}>
-                Vorschau
+                {t('common.preview')}
               </Button>
             </div>
           </div>
 
           <div className="stack-tight">
             <TextArea
-              label="Mehrere Belege einfügen"
+              label={t('corpus.paste')}
               value={pasted}
               onChange={setPasted}
               rows={4}
               target
-              placeholder={'Ein Beleg je Zeile'}
-              hint="Eine Zeile wird ein Beleg. Leere Zeilen werden übergangen; vorhandene Belege bleiben erhalten."
+              placeholder={t('corpus.paste.placeholder')}
+              hint={t('corpus.paste.hint')}
             />
             <div className="row">
               <Button variant="primary" disabled={parseExampleLines(pasted).length === 0} onClick={takeOverLines}>
                 {parseExampleLines(pasted).length > 0
-                  ? `${parseExampleLines(pasted).length} Zeilen als Belege übernehmen`
-                  : 'Zeilen als Belege übernehmen'}
+                  ? t('corpus.paste.takeCount', { count: parseExampleLines(pasted).length })
+                  : t('corpus.paste.take')}
               </Button>
             </div>
           </div>
 
           <TextArea
-            label="Auftrag zum Vergleichen oder Sortieren"
+            label={t('corpus.field.discovery')}
             value={miniature.discoveryPrompt}
             onChange={(discoveryPrompt) => patch({ discoveryPrompt })}
             rows={2}
-            hint="Erscheint im Unterricht mit „Gruppen zeigen“."
+            hint={t('corpus.field.discovery.hint')}
           />
           <TextArea
-            label="Regel oder Musteranker"
+            label={t('corpus.field.rule')}
             value={miniature.ruleOrFinding}
             onChange={(ruleOrFinding) => patch({ ruleOrFinding })}
             rows={2}
             target
-            hint="Das beobachtete Muster wird anschließend ausdrücklich bestätigt."
+            hint={t('corpus.field.rule.hint')}
           />
           <TextArea
-            label="Transferaufgabe"
+            label={t('corpus.field.transfer')}
             value={miniature.transferPrompt}
             onChange={(transferPrompt) => patch({ transferPrompt })}
             rows={2}
-            hint="Kurze Anwendung im Anschluss."
+            hint={t('corpus.field.transfer.hint')}
           />
 
           <SelectField
-            label="Herkunft der Belege"
+            label={t('corpus.field.provenance')}
             value={miniature.provenance}
             onChange={(provenance) => patch({ provenance: provenance as CorpusMiniature['provenance'] })}
-            options={CORPUS_PROVENANCES.map((entry) => ({ value: entry.id, label: entry.label }))}
-            hint={CORPUS_PROVENANCES.find((entry) => entry.id === miniature.provenance)?.description}
+            options={CORPUS_PROVENANCES.map((entry) => ({ value: entry, label: tid('corpus.provenance', entry) }))}
+            hint={tid('corpus.provenance', `${miniature.provenance}.hint`)}
           />
           <TextField
-            label="Quellenhinweis (optional)"
+            label={t('corpus.field.source')}
             value={miniature.sourceNote}
             onChange={(sourceNote) => patch({ sourceNote })}
-            hint="Wird ausschließlich als Text auf diesem Gerät gespeichert – es wird nichts abgerufen."
+            hint={t('corpus.field.source.hint')}
           />
 
           <CheckboxRow
-            label="Schritt „Korpusminiatur“ im Unterricht dieser Einheit zeigen"
+            label={t('corpus.stepToggle')}
             hint={
               usable.length < CORPUS_MIN_EXAMPLES
-                ? `Der Schritt erscheint ab ${CORPUS_MIN_EXAMPLES} Belegen.`
-                : 'Andere Einheiten der Sequenz bleiben davon unberührt.'
+                ? t('corpus.stepToggle.min', { min: CORPUS_MIN_EXAMPLES })
+                : t('corpus.stepToggle.hint')
             }
             checked={stepEnabled}
             onChange={(checked) =>

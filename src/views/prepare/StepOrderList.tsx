@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { StepId } from '../../domain/model';
 import { stepDefinition } from '../../domain/steps';
+import { useT, useTid } from '../../i18n/context';
 import { IconButton } from '../../ui/Button';
 
 interface Props {
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, hintFor, phaseFor }: Props) {
+  const t = useT();
+  const tid = useTid();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -23,12 +26,18 @@ export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, 
   const move = (from: number, to: number) => {
     if (!onMove || to < 0 || to >= order.length) return;
     onMove(from, to);
-    setAnnouncement(`„${stepDefinition(order[from])?.label ?? 'Schritt'}“ ist jetzt an Position ${to + 1} von ${order.length}.`);
+    setAnnouncement(
+      t('steps.order.announce', {
+        name: tid('step', order[from]),
+        position: to + 1,
+        total: order.length,
+      }),
+    );
   };
 
   return (
     <div className="stack-tight">
-      <p className="visually-hidden" role="status" aria-live="polite" aria-label="Reihenfolge der Schritte">
+      <p className="visually-hidden" role="status" aria-live="polite" aria-label={t('steps.order.label')}>
         {announcement}
       </p>
 
@@ -84,24 +93,28 @@ export function StepOrderList({ order, isEnabled, onToggle, onMove, lockedHint, 
               <label className="step-item__label">
                 <input type="checkbox" checked={enabled} onChange={(event) => onToggle(stepId, event.target.checked)} />
                 <span>
-                  {phaseChanged ? <span className="step-item__phase">Phase: {phase}</span> : null}
-                  <span className="step-item__name">{step.label}</span>
+                  {phaseChanged ? <span className="step-item__phase">{t('steps.phase', { phase })}</span> : null}
+                  <span className="step-item__name">{tid('step', step.id)}</span>
                   <span className="field__hint" style={{ display: 'block' }}>
-                    {hint ?? step.purpose}
+                    {hint ?? tid('step', `${step.id}.purpose`)}
                   </span>
                 </span>
               </label>
 
               <span className="step-item__actions">
                 <IconButton
-                  label={onMove ? `„${step.label}“ nach oben verschieben` : (lockedHint ?? 'Reihenfolge nicht änderbar')}
+                  label={
+                    onMove ? t('steps.moveUp', { name: tid('step', step.id) }) : (lockedHint ?? t('steps.locked'))
+                  }
                   disabled={!onMove || index === 0}
                   onClick={() => move(index, index - 1)}
                 >
                   ↑
                 </IconButton>
                 <IconButton
-                  label={onMove ? `„${step.label}“ nach unten verschieben` : (lockedHint ?? 'Reihenfolge nicht änderbar')}
+                  label={
+                    onMove ? t('steps.moveDown', { name: tid('step', step.id) }) : (lockedHint ?? t('steps.locked'))
+                  }
                   disabled={!onMove || index === order.length - 1}
                   onClick={() => move(index, index + 1)}
                 >

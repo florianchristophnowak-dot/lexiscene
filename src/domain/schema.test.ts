@@ -66,3 +66,22 @@ describe('normalizeSettings', () => {
     expect(settings.detailPaneVisible).toBe(true); // Detailspalte ist standardmäßig sichtbar
   });
 });
+
+describe('Spracheinstellungen', () => {
+  it('übernimmt Bediensprache und Sprachmodus', () => {
+    const settings = normalizeSettings({ uiLanguage: 'fr', teachingLanguageMode: 'strict' });
+    expect(settings.uiLanguage).toBe('fr');
+    expect(settings.teachingLanguageMode).toBe('strict');
+  });
+
+  it('fällt bei unbekannten Werten auf die Vorgaben zurück', () => {
+    const settings = normalizeSettings({ uiLanguage: 'kl', teachingLanguageMode: 'irgendwas' });
+    expect(settings.uiLanguage).toBe('de');
+    expect(settings.teachingLanguageMode).toBe('reserve');
+  });
+
+  it('ergänzt fehlende Einstellungen älterer Installationen', () => {
+    const settings = normalizeSettings({ theme: 'dark' });
+    expect(settings).toMatchObject({ theme: 'dark', uiLanguage: 'de', teachingLanguageMode: 'reserve' });
+  });
+});

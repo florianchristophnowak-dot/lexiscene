@@ -1,13 +1,20 @@
 /**
- * Vorlagen für Abruf- und Verständniskontrollen.
+ * Vorlagen für den **Abruf** – nicht für die Bedeutungsprüfung.
  *
- * Die Kontrollen dienen der formativen Rückmeldung im Unterrichtsgespräch.
- * Es werden bewusst keine Punkte, Noten oder Lernstände berechnet.
+ * Seit Version 0.4.0 sind echte Concept Checking Questions in `ccq.ts`
+ * getrennt. Hier stehen nur noch Aufgaben, die das Wiedererkennen, Erinnern
+ * oder Produzieren sprachlicher Form verlangen.
+ *
+ * Die Aufgaben dienen der formativen Rückmeldung im Unterrichtsgespräch. Es
+ * werden bewusst keine Punkte, Noten oder Lernstände berechnet.
  *
  * Jede Vorlage ist didaktisch eingeordnet nach
  * - `target`: worauf sie zielt (Bedeutung, Form, Muster, Gebrauch),
  * - `direction`: in welche Richtung abgerufen wird,
  * - `demand`: wie anspruchsvoll der Abruf ist.
+ *
+ * Der Impuls für die Klasse wird zielsprachlich aufgebaut: `prompt` verweist
+ * auf den Sprachkatalog, `slots` liefert die einzusetzenden Textstellen.
  */
 import type { Lexeme, LexicalType, ObservationDimension } from './model';
 import { firstFilled, gapText } from './text';
@@ -32,176 +39,90 @@ export const DEMAND_LADDER: readonly CheckDemand[] = [
   'free-production',
 ];
 
-const TARGET_LABELS: Record<CheckTarget, string> = {
-  meaning: 'Bedeutung',
-  form: 'Form',
-  pattern: 'Muster',
-  use: 'Gebrauch',
-};
-
-const DIRECTION_LABELS: Record<CheckDirection, string> = {
-  'l2-to-meaning': 'Form → Bedeutung',
-  'meaning-to-l2': 'Bedeutung → Form',
-  'context-to-l2': 'Situation → Form',
-  'pattern-completion': 'Muster ergänzen',
-  'l2-to-reaction': 'Äußerung → Reaktion',
-};
-
-const DEMAND_LABELS: Record<CheckDemand, string> = {
-  recognition: 'auswählen oder zuordnen',
-  evaluation: 'Passung beurteilen',
-  recall: 'ohne Auswahl erinnern',
-  'controlled-production': 'kontrolliert produzieren',
-  'free-production': 'frei verwenden',
-};
-
-export const checkTargetLabel = (target: CheckTarget): string => TARGET_LABELS[target];
-export const checkDirectionLabel = (direction: CheckDirection): string => DIRECTION_LABELS[direction];
-export const checkDemandLabel = (demand: CheckDemand): string => DEMAND_LABELS[demand];
+/** Auflösung eines zielsprachlichen Impulses aus dem Sprachkatalog. */
+export type PhraseFn = (key: string, params?: Record<string, string>) => string;
 
 export interface CheckTemplate {
   id: string;
-  label: string;
-  /** Didaktischer Zweck – wird in der Vorbereitung angezeigt. */
-  purpose: string;
   target: CheckTarget;
   direction: CheckDirection;
   demand: CheckDemand;
   /** Empfohlen für diese lexikalischen Typen (nur als Hinweis). */
   recommendedFor?: LexicalType[];
-  build: (lexeme: Lexeme) => string;
+  /** Schlüssel des zielsprachlichen Impulses. */
+  prompt: string;
+  /** Textstellen, die in den Impuls eingesetzt werden. */
+  slots: (lexeme: Lexeme) => Record<string, string>;
 }
 
 export const CHECK_TEMPLATES: readonly CheckTemplate[] = [
   {
-    id: 'welches-bild',
-    label: 'Welches Bild passt?',
-    purpose: 'Prüft die Bedeutungszuordnung ohne Sprachproduktion.',
-    target: 'meaning',
-    direction: 'l2-to-meaning',
-    demand: 'recognition',
-    recommendedFor: ['gegenstand', 'handlung', 'eigenschaft'],
-    build: (lexeme) => `Welches Bild passt zu „${lexeme.expression}“?`,
-  },
-  {
-    id: 'welche-situation',
-    label: 'Welche Situation passt?',
-    purpose: 'Prüft, ob die kommunikative Funktion verstanden wurde.',
-    target: 'use',
-    direction: 'l2-to-meaning',
-    demand: 'recognition',
-    recommendedFor: ['sprechakt', 'abstrakt', 'kollokation'],
-    build: (lexeme) => `In welcher Situation sagt man „${lexeme.expression}“?`,
-  },
-  {
     id: 'ausdruck-auswaehlen',
-    label: 'Welcher Ausdruck passt?',
-    purpose: 'Erste produktive Stufe: aus einem Angebot auswählen statt frei formulieren.',
     target: 'form',
     direction: 'meaning-to-l2',
     demand: 'recognition',
-    build: (lexeme) =>
-      `Welcher Ausdruck passt zu „${firstFilled(lexeme.coreMeaning, lexeme.communicativeFunction)}“? Wählt aus dem Angebot.`,
+    prompt: 'check.prompt.ausdruck-auswaehlen',
+    slots: (lexeme) => ({ meaning: firstFilled(lexeme.targetExplanation, lexeme.communicativeFunction) }),
   },
   {
     id: 'welche-reaktion',
-    label: 'Welche Reaktion passt?',
-    purpose: 'Macht das Paar aus Äußerung und Antwort bewusst.',
     target: 'use',
     direction: 'l2-to-reaction',
     demand: 'recognition',
     recommendedFor: ['sprechakt'],
-    build: (lexeme) => `Jemand sagt: „${firstFilled(lexeme.modelUtterance, lexeme.expression)}“ – welche Reaktion passt?`,
-  },
-  {
-    id: 'beispiel-nichtbeispiel',
-    label: 'Beispiel oder Nichtbeispiel?',
-    purpose: 'Zieht die Begriffsgrenze aktiv nach.',
-    target: 'meaning',
-    direction: 'l2-to-meaning',
-    demand: 'evaluation',
-    recommendedFor: ['abstrakt', 'eigenschaft', 'gefuehl'],
-    build: (lexeme) =>
-      `Passt „${firstFilled(lexeme.example, lexeme.modelUtterance, lexeme.expression)}“ zu „${lexeme.expression}“ – ja oder nein?`,
-  },
-  {
-    id: 'welche-bedeutung',
-    label: 'Welche Bedeutung ist hier gemeint?',
-    purpose: 'Klärt bei mehrdeutigen Einheiten die gemeinte Lesart.',
-    target: 'meaning',
-    direction: 'l2-to-meaning',
-    demand: 'evaluation',
-    recommendedFor: ['polysem', 'falscher-freund'],
-    build: (lexeme) => `Welche Bedeutung von „${lexeme.expression}“ ist hier gemeint?`,
-  },
-  {
-    id: 'sprechhandlung',
-    label: 'Einladung, Information, Zustimmung oder Ablehnung?',
-    purpose: 'Fokussiert die Sprechhandlung statt der Wortbedeutung.',
-    target: 'use',
-    direction: 'l2-to-meaning',
-    demand: 'evaluation',
-    recommendedFor: ['sprechakt'],
-    build: (lexeme) =>
-      `Ist „${firstFilled(lexeme.modelUtterance, lexeme.expression)}“ eine Einladung, eine Information, eine Zustimmung oder eine Ablehnung?`,
+    prompt: 'check.prompt.welche-reaktion',
+    slots: (lexeme) => ({ utterance: firstFilled(lexeme.modelUtterance, lexeme.expression) }),
   },
   {
     id: 'was-ausgeblendet',
-    label: 'Was wurde gerade ausgeblendet?',
-    purpose: 'Prüft den Abruf unmittelbar nach dem Entfernen der Hilfe.',
     target: 'form',
     direction: 'meaning-to-l2',
     demand: 'recall',
-    build: (lexeme) => `Was stand hier gerade? Nennt die Einheit zu: ${firstFilled(lexeme.coreMeaning, lexeme.communicativeFunction)}`,
+    prompt: 'check.prompt.was-ausgeblendet',
+    slots: (lexeme) => ({ meaning: firstFilled(lexeme.targetExplanation, lexeme.communicativeFunction) }),
   },
   {
     id: 'situation-zu-ausdruck',
-    label: 'Wie sagt man das in dieser Situation?',
-    purpose: 'Abruf aus der Situation heraus, ohne Auswahlangebot.',
     target: 'form',
     direction: 'context-to-l2',
     demand: 'recall',
-    build: (lexeme) => `${firstFilled(lexeme.situation, lexeme.example)} – wie sagt man das?`,
+    prompt: 'check.prompt.situation-zu-ausdruck',
+    slots: (lexeme) => ({ situation: firstFilled(lexeme.situation, lexeme.example) }),
   },
   {
     id: 'welcher-ausdruck-fehlt',
-    label: 'Welcher Ausdruck fehlt?',
-    purpose: 'Aktiviert den Chunk als Ganzes.',
     target: 'pattern',
     direction: 'pattern-completion',
     demand: 'controlled-production',
     recommendedFor: ['kollokation', 'sprechakt'],
-    build: (lexeme) => `Ergänzt: ${gapText(firstFilled(lexeme.modelUtterance, lexeme.expression))}`,
+    prompt: 'check.prompt.welcher-ausdruck-fehlt',
+    slots: (lexeme) => ({ gap: gapText(firstFilled(lexeme.modelUtterance, lexeme.expression)) }),
   },
   {
     id: 'slot-variieren',
-    label: 'Baustein austauschen',
-    purpose: 'Kontrollierte Variation im Musteranker, bevor frei formuliert wird.',
     target: 'pattern',
     direction: 'pattern-completion',
     demand: 'controlled-production',
     recommendedFor: ['kollokation', 'handlung'],
-    build: (lexeme) =>
-      `Setzt in „${firstFilled(lexeme.sentenceFrame, lexeme.modelUtterance, lexeme.expression)}“ einen anderen Baustein ein.`,
+    prompt: 'check.prompt.slot-variieren',
+    slots: (lexeme) => ({ frame: firstFilled(lexeme.sentenceFrame, lexeme.modelUtterance, lexeme.expression) }),
   },
   {
     id: 'reaktion-formulieren',
-    label: 'Formuliere eine passende Reaktion.',
-    purpose: 'Produktiver Schritt in einem vorgegebenen Rahmen.',
     target: 'use',
     direction: 'l2-to-reaction',
     demand: 'controlled-production',
     recommendedFor: ['sprechakt', 'kollokation'],
-    build: (lexeme) => `Antwortet auf: „${firstFilled(lexeme.modelUtterance, lexeme.expression)}“`,
+    prompt: 'check.prompt.reaktion-formulieren',
+    slots: (lexeme) => ({ utterance: firstFilled(lexeme.modelUtterance, lexeme.expression) }),
   },
   {
     id: 'einheit-verwenden',
-    label: 'Verwende die Einheit in der dargestellten Situation.',
-    purpose: 'Überführt die Einheit in eigenes Sprachhandeln.',
     target: 'use',
     direction: 'context-to-l2',
     demand: 'free-production',
-    build: (lexeme) => `Verwendet „${lexeme.expression}“ in dieser Situation: ${firstFilled(lexeme.situation, lexeme.example)}`,
+    prompt: 'check.prompt.einheit-verwenden',
+    slots: (lexeme) => ({ expression: lexeme.expression, situation: firstFilled(lexeme.situation, lexeme.example) }),
   },
 ];
 
@@ -209,11 +130,20 @@ export function checkTemplate(id: string): CheckTemplate | undefined {
   return CHECK_TEMPLATES.find((template) => template.id === id);
 }
 
+export function buildTemplatePrompt(template: CheckTemplate, lexeme: Lexeme, phrase: PhraseFn): string {
+  return phrase(template.prompt, template.slots(lexeme));
+}
+
 /** Freitext hat Vorrang vor der Vorlage. */
-export function buildCheckPrompt(lexeme: Lexeme): string {
+export function buildCheckPrompt(lexeme: Lexeme, phrase: PhraseFn): string {
   if (lexeme.checkPrompt.trim()) return lexeme.checkPrompt.trim();
   const template = checkTemplate(lexeme.checkTemplateId);
-  return template ? template.build(lexeme) : '';
+  return template ? buildTemplatePrompt(template, lexeme, phrase) : '';
+}
+
+/** Ist überhaupt ein Abrufimpuls vorbereitet? (ohne Text aufzubauen) */
+export function hasCheckPrompt(lexeme: Lexeme): boolean {
+  return Boolean(lexeme.checkPrompt.trim() || checkTemplate(lexeme.checkTemplateId));
 }
 
 const isReceptiveDirection = (direction: CheckDirection): boolean => direction === 'l2-to-meaning';
@@ -223,12 +153,10 @@ function templateFits(template: CheckTemplate, lexeme: Lexeme): boolean {
   if (template.id === 'situation-zu-ausdruck' || template.id === 'einheit-verwenden') {
     return Boolean(firstFilled(lexeme.situation, lexeme.example));
   }
-  if (template.id === 'welches-bild') return Boolean(lexeme.imageId);
   if (template.id === 'slot-variieren') return Boolean(lexeme.sentenceFrame.trim());
   if (template.id === 'welche-reaktion' || template.id === 'reaktion-formulieren') {
     return Boolean(lexeme.modelUtterance.trim());
   }
-  if (template.id === 'beispiel-nichtbeispiel') return Boolean(firstFilled(lexeme.example, lexeme.modelUtterance));
   return true;
 }
 
@@ -268,16 +196,15 @@ export function recommendedChecks(type: LexicalType): CheckTemplate[] {
 export function counterpartCheck(lexeme: Lexeme): CheckTemplate | undefined {
   const primary = checkTemplate(lexeme.checkTemplateId);
   if (!primary) return undefined;
-  const wantProductive = isReceptiveDirection(primary.direction);
+  const wantContext = primary.direction === 'meaning-to-l2' || primary.direction === 'pattern-completion';
   return CHECK_TEMPLATES.filter((template) => templateFits(template, lexeme))
-    .filter((template) => (wantProductive ? !isReceptiveDirection(template.direction) : isReceptiveDirection(template.direction)))
+    .filter((template) =>
+      wantContext
+        ? template.direction === 'context-to-l2' || template.direction === 'l2-to-reaction'
+        : template.direction === 'meaning-to-l2' || template.direction === 'pattern-completion',
+    )
     .sort((a, b) => DEMAND_LADDER.indexOf(a.demand) - DEMAND_LADDER.indexOf(b.demand))
     .find((template) => template.id !== primary.id);
-}
-
-export function buildCounterpartPrompt(lexeme: Lexeme): string {
-  const template = counterpartCheck(lexeme);
-  return template ? template.build(lexeme) : '';
 }
 
 /**
@@ -288,18 +215,24 @@ export function secondaryCheck(lexeme: Lexeme): CheckTemplate | undefined {
   return checkTemplate(lexeme.checkTemplateIdSecondary) ?? counterpartCheck(lexeme);
 }
 
-export function buildSecondaryPrompt(lexeme: Lexeme): string {
+export function buildSecondaryPrompt(lexeme: Lexeme, phrase: PhraseFn): string {
   const template = secondaryCheck(lexeme);
-  return template ? template.build(lexeme) : '';
+  return template ? buildTemplatePrompt(template, lexeme, phrase) : '';
 }
 
-/** Deckt das Vorbereitete beide Richtungen ab? */
+/** Aus der Bedeutung heraus abrufen – oder aus der Situation heraus? */
+function directionFamily(direction: CheckDirection): 'from-meaning' | 'from-context' {
+  return direction === 'meaning-to-l2' || direction === 'pattern-completion' ? 'from-meaning' : 'from-context';
+}
+
+/**
+ * Deckt das Vorbereitete beide Zugänge ab: einmal von der Bedeutung oder dem
+ * Muster her, einmal aus der Situation oder einer Äußerung heraus?
+ */
 export function coversBothDirections(lexeme: Lexeme): boolean {
-  const prepared = [checkTemplate(lexeme.checkTemplateId), checkTemplate(lexeme.checkTemplateIdSecondary)].filter(
+  const prepared = [checkTemplate(lexeme.checkTemplateId), secondaryCheck(lexeme)].filter(
     (template): template is CheckTemplate => Boolean(template),
   );
-  return (
-    prepared.some((template) => isReceptiveDirection(template.direction)) &&
-    prepared.some((template) => !isReceptiveDirection(template.direction))
-  );
+  if (prepared.length < 2) return false;
+  return new Set(prepared.map((template) => directionFamily(template.direction))).size > 1;
 }

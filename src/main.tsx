@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { StoreProvider } from './app/store';
 import { ToastProvider } from './ui/Toast';
+import { I18nProvider } from './i18n/I18nProvider';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
@@ -15,9 +16,11 @@ if (!container) throw new Error('Wurzelelement #root fehlt.');
 createRoot(container).render(
   <StrictMode>
     <StoreProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+      <I18nProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </I18nProvider>
     </StoreProvider>
   </StrictMode>,
 );

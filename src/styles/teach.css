@@ -378,3 +378,59 @@
     padding-left: var(--space-5);
   }
 }
+
+/* ------------------------------------------------ Bedeutungsprüfung (CCQ) */
+
+.ccq-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: min(100%, 52rem);
+}
+
+.ccq-stage__question {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.6vw, 2.75rem);
+  line-height: 1.2;
+  max-width: 26ch;
+  overflow-wrap: anywhere;
+}
+
+/* Antwortoptionen: als Liste erkennbar, ohne Reihenfolge zu behaupten. */
+.ccq-stage__options {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0;
+}
+
+.ccq-stage__option {
+  font-family: var(--font-serif);
+  font-size: clamp(1.125rem, 2.2vw, 1.75rem);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* Die erwartete Antwort steht bewusst ruhiger als die Frage. */
+.ccq-stage__answer {
+  font-size: clamp(1.125rem, 2.2vw, 1.625rem);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--secured-soft);
+  color: var(--secured);
+}
+
+/* Erstsprachliche Reserve – sichtbar als Ausnahme, nicht als Normalfall. */
+.teach__l1 {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  padding: var(--space-2) var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  max-width: 44ch;
+}

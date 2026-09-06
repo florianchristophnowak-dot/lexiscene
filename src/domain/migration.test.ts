@@ -92,19 +92,21 @@ const SCHEMA_1_SEQUENCE = {
   updatedAt: 1_700_000_000_000,
 };
 
-describe('Migration Schema 1 → 3', () => {
+describe('Migration Schema 1 → 4', () => {
   const migrated = normalizeSequence(SCHEMA_1_SEQUENCE);
 
   it('hebt die Schemaversion an', () => {
     expect(migrated.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(3);
+    expect(SCHEMA_VERSION).toBe(4);
   });
 
   it('behält alle Freitexte, Medien und Schrittfolgen', () => {
     expect(migrated.title).toBe('Freizeit verabreden');
     expect(migrated.teacherNote).toBe('Chunks zuerst hörend anbieten.');
-    // Die alte Reihenfolge bleibt erhalten; nur der neue Schritt kommt hinzu.
-    expect(migrated.stepOrder.filter((stepId) => stepId !== 'korpusminiatur')).toEqual(SCHEMA_1_SEQUENCE.stepOrder);
+    // Die alte Reihenfolge bleibt erhalten; nur die neuen Schritte kommen hinzu.
+    expect(migrated.stepOrder.filter((stepId) => stepId !== 'korpusminiatur' && stepId !== 'ccq')).toEqual(
+      SCHEMA_1_SEQUENCE.stepOrder,
+    );
     expect(migrated.steps.fokus).toBe(false);
     expect(migrated.session).toEqual(SCHEMA_1_SEQUENCE.session);
 
@@ -152,6 +154,57 @@ describe('Migration Schema 1 → 3', () => {
       expect(lexeme.stepOverrides.korpusminiatur).toBeUndefined();
       expect(resolveSteps(migrated, lexeme).map((step) => step.id)).not.toContain('korpusminiatur');
     }
+  });
+
+  it('setzt den CCQ-Schritt unmittelbar hinter „Bedeutung klären“', () => {
+    expect(migrated.stepOrder).toContain('ccq');
+    expect(migrated.stepOrder[migrated.stepOrder.indexOf('ccq') - 1]).toBe('klaeren');
+    // Der Schritt ist aktiviert, entfällt aber ohne Frage automatisch.
+    expect(migrated.steps.ccq).toBe(true);
+
+    // Die erste Einheit bringt eine überführte CCQ mit – sie bekommt den Schritt;
+    // an ihre Stelle tritt er dort, wo vorher die Kontrollvorlage stand.
+    const [first, second] = migrated.lexemes;
+    expect(resolveSteps(migrated, first).map((step) => step.id)).toContain('ccq');
+    expect(resolveSteps(migrated, first).map((step) => step.id)).not.toContain('kontrolle');
+    expect(resolveSteps(migrated, second).map((step) => step.id)).not.toContain('ccq');
+  });
+
+  it('überführt CCQ-nahe Kontrollvorlagen in den CCQ-Bereich', () => {
+    // „sprechhandlung“ prüft das Konzept – die Abrufkontrolle bleibt leer.
+    const first = migrated.lexemes[0];
+    expect(first.checkTemplateId).toBe('');
+    expect(first.ccqs).toHaveLength(1);
+    expect(first.ccqs[0]).toMatchObject({ templateId: 'sprechhandlung', target: 'use', feature: 'absicht' });
+
+    // Eine Abrufvorlage bleibt, wo sie ist.
+    const retrieval = normalizeSequence({
+      ...SCHEMA_1_SEQUENCE,
+      lexemes: [{ id: 'lex_r', expression: 'x', checkTemplateId: 'welcher-ausdruck-fehlt' }],
+    });
+    expect(retrieval.lexemes[0].checkTemplateId).toBe('welcher-ausdruck-fehlt');
+    expect(retrieval.lexemes[0].ccqs).toEqual([]);
+  });
+
+  it('nimmt die eigene Formulierung als CCQ-Frage mit', () => {
+    const migratedPrompt = normalizeSequence({
+      ...SCHEMA_1_SEQUENCE,
+      lexemes: [
+        { id: 'lex_p', expression: 'x', checkTemplateId: 'welches-bild', checkPrompt: 'Welches Bild zeigt das?' },
+      ],
+    });
+    const lexeme = migratedPrompt.lexemes[0];
+    expect(lexeme.checkPrompt).toBe('');
+    expect(lexeme.ccqs[0].question).toBe('Welches Bild zeigt das?');
+  });
+
+  it('legt die sprachlich getrennten Felder leer an, ohne etwas zu übersetzen', () => {
+    const first = migrated.lexemes[0];
+    expect(first.targetExplanation).toBe('');
+    expect(first.targetPrompt).toBe('');
+    expect(first.teacherNote).toBe('');
+    // Die vorhandene Übersetzung bleibt unangetastet.
+    expect(first.translation).toBe('Hast du Lust, …?');
   });
 
   it('legt für ältere Einheiten eine leere, deaktivierte Korpusminiatur an', () => {

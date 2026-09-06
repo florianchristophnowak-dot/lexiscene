@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { APP_NAME, APP_VERSION } from './domain/model';
 import { navigate, useRoute, type Route } from './app/router';
 import { useStore } from './app/storeContext';
+import { useT } from './i18n/context';
+import type { TranslationKey } from './i18n';
 import { LoadingState, Notice } from './ui/Feedback';
 import { Button } from './ui/Button';
 import { HomeView } from './views/HomeView';
@@ -13,12 +15,12 @@ import { ProjectionView } from './views/ProjectionView';
 import { DataView } from './views/DataView';
 import { HelpView } from './views/HelpView';
 
-const NAV_ITEMS: { label: string; route: Route; match: Route['name'][] }[] = [
-  { label: 'Start', route: { name: 'home' }, match: ['home'] },
-  { label: 'Vorbereiten', route: { name: 'prepare' }, match: ['prepare'] },
-  { label: 'Reaktivieren', route: { name: 'reactivate' }, match: ['reactivate', 'reactivateTeach'] },
-  { label: 'Daten', route: { name: 'data' }, match: ['data'] },
-  { label: 'Hilfe', route: { name: 'help' }, match: ['help'] },
+const NAV_ITEMS: { key: TranslationKey; route: Route; match: Route['name'][] }[] = [
+  { key: 'nav.home', route: { name: 'home' }, match: ['home'] },
+  { key: 'nav.prepare', route: { name: 'prepare' }, match: ['prepare'] },
+  { key: 'nav.reactivate', route: { name: 'reactivate' }, match: ['reactivate', 'reactivateTeach'] },
+  { key: 'nav.data', route: { name: 'data' }, match: ['data'] },
+  { key: 'nav.help', route: { name: 'help' }, match: ['help'] },
 ];
 
 function useThemePreference(): void {
@@ -35,13 +37,14 @@ function useThemePreference(): void {
 export default function App() {
   const route = useRoute();
   const { state } = useStore();
+  const t = useT();
   useThemePreference();
 
   if (state.status === 'loading') {
     return (
       <div className="app">
         <main className="app__main">
-          <LoadingState />
+          <LoadingState label={t('app.loading')} />
         </main>
       </div>
     );
@@ -52,15 +55,12 @@ export default function App() {
       <div className="app">
         <main className="app__main">
           <div className="page">
-            <h1 className="page__title">Lokale Daten nicht verfügbar</h1>
-            <Notice tone="error">{state.error ?? 'Unbekannter Fehler.'}</Notice>
-            <p className="muted">
-              LexiScène speichert alle Inhalte im Browser dieses Geräts. Im privaten Modus oder bei blockiertem
-              Speicher steht diese Ablage nicht zur Verfügung.
-            </p>
+            <h1 className="page__title">{t('app.error.title')}</h1>
+            <Notice tone="error">{state.error ?? t('app.error.unknown')}</Notice>
+            <p className="muted">{t('app.error.hint', { name: APP_NAME })}</p>
             <div className="row">
               <Button variant="primary" onClick={() => window.location.reload()}>
-                Erneut versuchen
+                {t('app.error.retry')}
               </Button>
             </div>
           </div>
@@ -86,22 +86,22 @@ export default function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#hauptbereich">
-        Zum Hauptbereich springen
+        {t('app.skipLink')}
       </a>
       <header className="app__header">
         <button type="button" className="app__brand" onClick={() => navigate({ name: 'home' })}>
           {APP_NAME}
         </button>
-        <nav className="app__nav" aria-label="Hauptbereiche">
+        <nav className="app__nav" aria-label={t('app.nav.label')}>
           {NAV_ITEMS.map((item) => (
             <button
-              key={item.label}
+              key={item.key}
               type="button"
               className={item.match.includes(route.name) ? 'nav-link nav-link--active' : 'nav-link'}
               aria-current={item.match.includes(route.name) ? 'page' : undefined}
               onClick={() => navigate(item.route)}
             >
-              {item.label}
+              {t(item.key)}
             </button>
           ))}
         </nav>
@@ -115,9 +115,7 @@ export default function App() {
         {route.name === 'help' ? <HelpView /> : null}
       </main>
 
-      <footer className="app__footer">
-        {APP_NAME} · Version {APP_VERSION} · © Florian Nowak
-      </footer>
+      <footer className="app__footer">{t('app.footer', { name: APP_NAME, version: APP_VERSION })}</footer>
     </div>
   );
 }

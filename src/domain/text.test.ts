@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFilled, formatBytes, formatRelativeDays, gapText, slugify, splitPatternAnchor, truncate } from './text';
-import { buildCheckPrompt, checkTemplate, recommendedChecks } from './checks';
-import { createLexeme } from './schema';
+import { firstFilled, formatBytes, formatRelativeDays, gapText, slugify, truncate } from './text';
 
 describe('gapText', () => {
   it('ersetzt das längste Wort durch eine Lücke', () => {
@@ -47,50 +45,3 @@ describe('Textwerkzeuge', () => {
   });
 });
 
-describe('Verständniskontrollen', () => {
-  it('bevorzugt die eigene Formulierung', () => {
-    const lexeme = createLexeme({ expression: 'x', checkTemplateId: 'welches-bild', checkPrompt: 'Eigene Frage' });
-    expect(buildCheckPrompt(lexeme)).toBe('Eigene Frage');
-  });
-
-  it('füllt die Vorlage mit den Daten der Einheit', () => {
-    const lexeme = createLexeme({ expression: 'faire du skate', checkTemplateId: 'welches-bild' });
-    expect(buildCheckPrompt(lexeme)).toBe('Welches Bild passt zu „faire du skate“?');
-  });
-
-  it('liefert ohne Vorlage nichts', () => {
-    expect(buildCheckPrompt(createLexeme({ expression: 'x' }))).toBe('');
-    expect(checkTemplate('gibt-es-nicht')).toBeUndefined();
-  });
-
-  it('empfiehlt passende Vorlagen je Typ', () => {
-    expect(recommendedChecks('sprechakt').map((entry) => entry.id)).toContain('welche-reaktion');
-    expect(recommendedChecks('polysem').map((entry) => entry.id)).toContain('welche-bedeutung');
-  });
-});
-
-describe('splitPatternAnchor', () => {
-  it('trennt festen Teil und Slot nach dem Pluszeichen', () => {
-    expect(splitPatternAnchor('avoir peur de + nom/infinitif')).toEqual([
-      { text: 'avoir peur de ', slot: false },
-      { text: ' + ', slot: false },
-      { text: 'nom/infinitif', slot: true },
-    ]);
-  });
-
-  it('erkennt Kürzel und Lücken als Slots', () => {
-    expect(splitPatternAnchor('avoir besoin de qc')).toEqual([
-      { text: 'avoir besoin de ', slot: false },
-      { text: 'qc', slot: true },
-    ]);
-    expect(splitPatternAnchor('On se retrouve à ______ ?')).toEqual([
-      { text: 'On se retrouve à ', slot: false },
-      { text: '______', slot: true },
-      { text: ' ?', slot: false },
-    ]);
-  });
-
-  it('lässt einen Anker ohne Slot unverändert', () => {
-    expect(splitPatternAnchor('prendre une décision')).toEqual([{ text: 'prendre une décision', slot: false }]);
-  });
-});

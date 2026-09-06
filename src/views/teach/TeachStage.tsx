@@ -1,10 +1,15 @@
 import { useMediaUrl } from '../../app/media';
 import { buildCheckPrompt } from '../../domain/checks';
-import { CLOSED_CORPUS_REVEAL, usableExamples, type CorpusReveal } from '../../domain/corpus';
-import { corpusProvenanceLabel, languageLabel, type Lexeme, type Sequence } from '../../domain/model';
+import { CLOSED_CORPUS_REVEAL, type CorpusReveal } from '../../domain/corpus';
+import { usableCcqs } from '../../domain/ccq';
+import { buildCcqView, buildStageView, type StageAudience } from '../../domain/stage';
+import { corpusProvenanceLabel } from './corpusLabels';
+import type { Lexeme, Sequence, TeachingLanguageMode } from '../../domain/model';
 import type { StepDefinition, StepVisibility } from '../../domain/steps';
 import { firstFilled, splitPatternAnchor } from '../../domain/text';
+import { usePhrase, useT, useTid } from '../../i18n/context';
 import { CorpusStage } from './CorpusStage';
+import { CcqStage } from './CcqStage';
 
 /** Bild oder Video der aktuellen Einheit. */
 function StageMedia({ lexeme }: { lexeme: Lexeme }) {
@@ -25,11 +30,10 @@ function StageMedia({ lexeme }: { lexeme: Lexeme }) {
       </div>
     );
   }
-  if (image.loading || video.loading) return <p className="teach__support">Medien werden geladen …</p>;
   return null;
 }
 
-const MEDIA_STEPS = ['impuls', 'vermuten', 'hilfen-ausblenden', 'abruf', 'kontrolle'];
+const MEDIA_STEPS = ['impuls', 'vermuten', 'ccq', 'hilfen-ausblenden', 'abruf', 'kontrolle'];
 
 /** Musteranker mit sichtbar unterschiedenen festen Teilen und Slots. */
 export function PatternAnchor({ text }: { text: string }) {
@@ -55,18 +59,26 @@ export interface TeachStageProps {
   lexeme: Lexeme;
   step: StepDefinition;
   visibility: StepVisibility;
-  showTranslation: boolean;
+  /** Erstsprachliche Reserve für die Klasse freigegeben. */
+  releaseL1: boolean;
   /** Lösung im Abruf sichtbar machen (erst nach der Denkzeit). */
   showSolution?: boolean;
   /** Zusätzliche Aufgabe in der Gegenrichtung. */
   counterpartPrompt?: string;
   /** Aufgedeckte Stufen der Korpusminiatur. */
   corpusReveal?: CorpusReveal;
+  /** Aktuelle Frage der Bedeutungsprüfung. */
+  ccqIndex?: number;
+  /** Erwartete Antwort für die Klasse aufgedeckt. */
+  showCcqAnswer?: boolean;
+  /** Alternative Klärung für die Klasse freigegeben. */
+  showCcqAlternative?: boolean;
+  mode: TeachingLanguageMode;
   /**
-   * Lehrkraftansicht: zeigt zusätzlich Hinweise, die nicht an die Klasse
-   * gehen. Im Projektionsfenster ist das immer aus.
+   * Für wen die Bühne gebaut wird. Im Projektionsfenster ist es immer
+   * `class`; Lehrkraftinformationen entstehen dort gar nicht erst.
    */
-  teacherView: boolean;
+  audience: StageAudience;
 }
 
 export function TeachStage({
@@ -74,18 +86,28 @@ export function TeachStage({
   lexeme,
   step,
   visibility,
-  showTranslation,
+  releaseL1,
   showSolution = false,
   counterpartPrompt = '',
   corpusReveal = CLOSED_CORPUS_REVEAL,
-  teacherView,
+  ccqIndex = 0,
+  showCcqAnswer = false,
+  showCcqAlternative = false,
+  mode,
+  audience,
 }: TeachStageProps) {
+  const t = useT();
+  const tid = useTid();
+  const phrase = usePhrase(sequence.targetLanguage);
   const audio = useMediaUrl(lexeme.audioId);
-  const checkPrompt = buildCheckPrompt(lexeme);
+  const teacherView = audience === 'teacher';
+
+  const view = buildStageView({ lexeme, step, visibility, releaseL1, showSolution, mode, audience });
+  const checkPrompt = buildCheckPrompt(lexeme, phrase);
   const showMedia = MEDIA_STEPS.includes(step.id);
-  const supportLines = [lexeme.pronunciationHint, lexeme.prosodyNote, lexeme.ipa, lexeme.morphology].filter(
-    (line) => line && line.trim(),
-  );
+
+  const checks = usableCcqs(lexeme);
+  const currentCheck = checks[Math.min(ccqIndex, Math.max(checks.length - 1, 0))];
 
   const stepContent = (() => {
     switch (step.id) {
@@ -93,15 +115,31 @@ export function TeachStage({
         return <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example, sequence.topic)}</p>;
       case 'impuls':
         return lexeme.imageId || lexeme.videoId ? null : (
-          <p className="teach__placeholder">{firstFilled(lexeme.semantisationMethod, 'Impuls zeigen')}</p>
+          <p className="teach__placeholder">{phrase('step.prompt.impuls')}</p>
         );
       case 'audio':
-        return audio.url ? null : <p className="teach__prompt">Hört genau zu.</p>;
+        return audio.url ? null : <p className="teach__prompt">{phrase('step.prompt.audio')}</p>;
       case 'vermuten':
-        return <p className="teach__prompt">Was könnte das bedeuten?</p>;
+        return <p className="teach__prompt">{phrase('step.prompt.vermuten')}</p>;
       case 'klaeren':
       case 'form':
         return null;
+      case 'ccq':
+        return currentCheck ? (
+          <CcqStage
+            view={buildCcqView({
+              check: currentCheck,
+              lexeme,
+              audience,
+              showAnswer: showCcqAnswer,
+              showAlternative: showCcqAlternative,
+              phrase,
+            })}
+            index={Math.min(ccqIndex, checks.length - 1)}
+            total={checks.length}
+            teacherView={teacherView}
+          />
+        ) : null;
       case 'fokus':
         // Phase „Muster“: Der Musteranker steht vorn; die Modelläußerung folgt
         // weiter unten aus dem Schriftbild-Block, damit nichts doppelt erscheint.
@@ -112,16 +150,16 @@ export function TeachStage({
         return (
           <>
             {checkPrompt ? <p className="teach__prompt">{checkPrompt}</p> : null}
-            {counterpartPrompt ? <p className="teach__support">Gegenrichtung: {counterpartPrompt}</p> : null}
+            {counterpartPrompt ? <p className="teach__support">{counterpartPrompt}</p> : null}
           </>
         );
       case 'hilfen-ausblenden':
-        return <p className="teach__prompt">Die Hilfen sind weg – wer kann die Einheit noch nennen?</p>;
+        return <p className="teach__prompt">{phrase('step.prompt.hilfen-ausblenden')}</p>;
       case 'abruf':
         return (
           <>
             <p className="teach__situation">{firstFilled(lexeme.situation, lexeme.example)}</p>
-            <p className="teach__prompt">Wie sagt man das auf {languageLabel(sequence.targetLanguage)}?</p>
+            <p className="teach__prompt">{phrase('step.prompt.abruf')}</p>
           </>
         );
       case 'aufgabe':
@@ -130,7 +168,7 @@ export function TeachStage({
             {firstFilled(
               lexeme.communicativeTask,
               lexeme.extensionTask,
-              `Verwendet „${lexeme.expression}“ in einer eigenen Situation.`,
+              phrase('step.prompt.aufgabe', { expression: lexeme.expression }),
             )}
           </p>
         );
@@ -144,27 +182,37 @@ export function TeachStage({
       {showMedia ? <StageMedia lexeme={lexeme} /> : null}
       {stepContent}
 
-      {visibility.form || showSolution ? <p className="teach__expression">{lexeme.expression}</p> : null}
-      {visibility.form && lexeme.modelUtterance && step.id !== 'form' ? (
-        <p className="teach__utterance">{lexeme.modelUtterance}</p>
-      ) : null}
-      {visibility.meaning || showSolution ? <p className="teach__meaning">{lexeme.coreMeaning}</p> : null}
-      {showTranslation && lexeme.translation ? <p className="teach__meaning">{lexeme.translation}</p> : null}
+      {view.expression ? <p className="teach__expression">{view.expression}</p> : null}
+      {view.utterance ? <p className="teach__utterance">{view.utterance}</p> : null}
+      {view.explanation ? <p className="teach__meaning">{view.explanation}</p> : null}
+      {step.id !== 'ccq' && view.targetPrompt ? <p className="teach__support">{view.targetPrompt}</p> : null}
 
-      {visibility.support && supportLines.length > 0 ? <p className="teach__support">{supportLines.join(' · ')}</p> : null}
-      {visibility.support && lexeme.sentenceFrame && step.id !== 'fokus' ? (
-        <PatternAnchor text={lexeme.sentenceFrame} />
-      ) : null}
+      {/* Erstsprachliche Reserve – für die Klasse nur nach Freigabe. */}
+      {view.translation ? <p className="teach__l1">{view.translation}</p> : null}
+      {view.simplified ? <p className="teach__l1">{view.simplified}</p> : null}
+
+      {view.supportLines.length > 0 ? <p className="teach__support">{view.supportLines.join(' · ')}</p> : null}
+      {view.patternAnchor ? <PatternAnchor text={view.patternAnchor} /> : null}
 
       {teacherView ? (
         <>
+          {view.internalMeaning ? (
+            <p className="teach__teacher-note">{t('teach.teacher.meaning', { value: view.internalMeaning })}</p>
+          ) : null}
           {step.id === 'audio' && !audio.url && lexeme.modelUtterance ? (
-            <p className="teach__teacher-note">Für die Lehrkraft: „{lexeme.modelUtterance}“ zweimal vorsprechen.</p>
+            <p className="teach__teacher-note">{t('teach.teacher.speak', { value: lexeme.modelUtterance })}</p>
           ) : null}
           {step.id === 'impuls' && (lexeme.imageId || lexeme.videoId) && lexeme.semantisationMethod ? (
-            <p className="teach__teacher-note">Für die Lehrkraft: {lexeme.semantisationMethod}</p>
+            <p className="teach__teacher-note">{t('teach.teacher.prefix', { value: lexeme.semantisationMethod })}</p>
           ) : null}
-          {visibility.support && lexeme.extraHint ? <p className="teach__teacher-note">Hinweis: {lexeme.extraHint}</p> : null}
+          {view.teacherNotes.map((note) => (
+            <p className="teach__teacher-note" key={note}>
+              {t('teach.teacher.hint', { value: note })}
+            </p>
+          ))}
+          {step.id === 'korpusminiatur' ? (
+            <p className="teach__teacher-note">{corpusProvenanceLabel(tid, lexeme.corpus)}</p>
+          ) : null}
         </>
       ) : null}
     </div>
@@ -172,36 +220,47 @@ export function TeachStage({
 }
 
 /** Zusätzliche Angaben, die nur die Lehrkraft sieht, wenn projiziert wird. */
-export function TeacherPanel({ lexeme, step }: { lexeme: Lexeme; step: StepDefinition }) {
+export function TeacherPanel({
+  lexeme,
+  step,
+  ccqIndex = 0,
+}: {
+  lexeme: Lexeme;
+  step: StepDefinition;
+  /** Laufende Bedeutungsfrage – nur im Schritt „Bedeutung prüfen“ von Belang. */
+  ccqIndex?: number;
+}) {
+  const t = useT();
+  const tid = useTid();
+
   /*
-   * Während der Projektion blendet die Bühne alle Lehrkrafthinweise aus.
-   * Notizen und Quellenhinweis der Korpusminiatur stehen deshalb hier – auf
-   * dem Gerät der Lehrkraft, nie im Projektionsfenster.
+   * Während der Projektion zeigt die Bühne nur die Klassenansicht. Die Angaben
+   * zur laufenden Frage stehen deshalb hier – sichtbar allein auf dem Gerät der
+   * Lehrkraft.
    */
-  const corpusLines =
-    step.id === 'korpusminiatur'
-      ? [
-          `Herkunft: ${corpusProvenanceLabel(lexeme.corpus.provenance)}`,
-          lexeme.corpus.sourceNote.trim() ? `Quelle: ${lexeme.corpus.sourceNote.trim()}` : '',
-          ...usableExamples(lexeme.corpus)
-            .filter((example) => example.teacherNote.trim())
-            .map((example) => `${example.text}: ${example.teacherNote.trim()}`),
-        ]
-      : [];
+  const checks = step.id === 'ccq' ? usableCcqs(lexeme) : [];
+  const current = checks[Math.min(ccqIndex, Math.max(checks.length - 1, 0))];
 
   const lines = [
-    lexeme.modelUtterance ? `Modelläußerung: ${lexeme.modelUtterance}` : '',
-    lexeme.coreMeaning ? `Bedeutung: ${lexeme.coreMeaning}` : '',
-    lexeme.semantisationMethod ? `Methode: ${lexeme.semantisationMethod}` : '',
-    lexeme.confusionRisk ? `Achtung: ${lexeme.confusionRisk}` : '',
-    lexeme.liveNote ? `Notiz: ${lexeme.liveNote}` : '',
-    ...corpusLines,
+    current && checks.length > 1 ? t('ccq.counter', { index: Math.min(ccqIndex, checks.length - 1) + 1, total: checks.length }) : '',
+    current?.expectedAnswer ? t('ccq.expected', { value: current.expectedAnswer }) : '',
+    current ? t('ccq.checks', { value: tid('ccq.feature', current.feature) }) : '',
+    current?.misconception ? t('ccq.misconception', { value: current.misconception }) : '',
+    current?.alternativeClarification ? t('ccq.alternative', { value: current.alternativeClarification }) : '',
+    lexeme.modelUtterance ? t('teach.teacher.utterance', { value: lexeme.modelUtterance }) : '',
+    lexeme.coreMeaning ? t('teach.teacher.meaning', { value: lexeme.coreMeaning }) : '',
+    lexeme.translation ? t('teach.teacher.translation', { value: lexeme.translation }) : '',
+    lexeme.semantisationMethod ? t('teach.teacher.method', { value: lexeme.semantisationMethod }) : '',
+    lexeme.confusionRisk ? t('teach.teacher.risk', { value: lexeme.confusionRisk }) : '',
+    lexeme.teacherNote ? t('teach.teacher.hint', { value: lexeme.teacherNote }) : '',
+    lexeme.liveNote ? t('teach.teacher.note', { value: lexeme.liveNote }) : '',
+    step.id === 'korpusminiatur' ? corpusProvenanceLabel(tid, lexeme.corpus) : '',
   ].filter(Boolean);
 
   return (
-    <aside className="teacher-panel" aria-label="Nur auf diesem Bildschirm sichtbar">
-      <p className="teacher-panel__title">Nur auf diesem Bildschirm · {step.label}</p>
-      <p className="teacher-panel__purpose">{step.purpose}</p>
+    <aside className="teacher-panel" aria-label={t('teach.teacherPanel')}>
+      <p className="teacher-panel__title">{t('teach.teacherPanel.title', { step: tid('step', step.id) })}</p>
+      <p className="teacher-panel__purpose">{tid('step', `${step.id}.purpose`)}</p>
       {lines.map((line) => (
         <p className="teacher-panel__line" key={line}>
           {line}
