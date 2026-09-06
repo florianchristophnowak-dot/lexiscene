@@ -8,7 +8,7 @@
  * statt; geprüft wird ausschließlich, was die Lehrkraft eingetragen hat.
  */
 import type { Lexeme, Sequence } from './model';
-import { buildCheckPrompt } from './checks';
+import { buildCheckPrompt, coversBothDirections } from './checks';
 import { firstFilled, truncate } from './text';
 
 export type ReadinessSeverity = 'ergaenzen' | 'vertiefen';
@@ -117,6 +117,17 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
       'Keine eindeutige Lösung vorbereitet',
       `Zum Abruf fehlt die Bestätigung, an der sich die Klasse ausrichten kann: ${listOf(withoutConfirmation)}.`,
       withoutConfirmation,
+    );
+  }
+
+  const singleDirection = productiveCore.filter((lexeme) => !coversBothDirections(lexeme));
+  if (singleDirection.length > 0) {
+    add(
+      'both-directions',
+      'vertiefen',
+      'Nur eine Abrufrichtung vorbereitet',
+      `Für produktive Kerneinheiten lohnen beide Richtungen – Form → Bedeutung und Bedeutung oder Situation → Form: ${listOf(singleDirection)}.`,
+      singleDirection,
     );
   }
 

@@ -4,10 +4,13 @@ import {
   DEMAND_LADDER,
   buildCheckPrompt,
   buildCounterpartPrompt,
+  buildSecondaryPrompt,
   checkDemandLabel,
   checkTemplate,
   counterpartCheck,
+  coversBothDirections,
   recommendedChecks,
+  secondaryCheck,
   suggestRetrievalProgression,
 } from './checks';
 import { createLexeme } from './schema';
@@ -110,5 +113,35 @@ describe('Aufgabentext', () => {
   it('empfiehlt passende Vorlagen je Typ', () => {
     expect(recommendedChecks('sprechakt').map((entry) => entry.id)).toContain('welche-reaktion');
     expect(recommendedChecks('polysem').map((entry) => entry.id)).toContain('welche-bedeutung');
+  });
+});
+
+describe('Zweite Abrufaufgabe', () => {
+  it('nutzt den Vorschlag der App, solange nichts gewählt ist', () => {
+    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'welche-situation' });
+    expect(secondaryCheck(lexeme)).toEqual(counterpartCheck(lexeme));
+    expect(buildSecondaryPrompt(lexeme)).toBe(buildCounterpartPrompt(lexeme));
+  });
+
+  it('bevorzugt die ausdrücklich gewählte Aufgabe', () => {
+    const lexeme = createLexeme({
+      ...productive(),
+      checkTemplateId: 'welche-situation',
+      checkTemplateIdSecondary: 'welcher-ausdruck-fehlt',
+    });
+    expect(secondaryCheck(lexeme)?.id).toBe('welcher-ausdruck-fehlt');
+    expect(buildSecondaryPrompt(lexeme)).toMatch(/Ergänzt/);
+  });
+
+  it('erkennt, ob beide Richtungen vorbereitet sind', () => {
+    const onlyReceptive = createLexeme({ ...productive(), checkTemplateId: 'welche-situation' });
+    expect(coversBothDirections(onlyReceptive)).toBe(false);
+
+    const both = createLexeme({
+      ...productive(),
+      checkTemplateId: 'welche-situation',
+      checkTemplateIdSecondary: 'situation-zu-ausdruck',
+    });
+    expect(coversBothDirections(both)).toBe(true);
   });
 });

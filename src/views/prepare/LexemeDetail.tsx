@@ -4,14 +4,19 @@ import { EVIDENCE_LABELS, SEMANTISATION_METHODS, advisorContextFromLexeme, recom
 import {
   CHECK_TEMPLATES,
   buildCheckPrompt,
+  buildSecondaryPrompt,
   checkDemandLabel,
   checkDirectionLabel,
   checkTargetLabel,
   checkTemplate,
   counterpartCheck,
+  coversBothDirections,
   recommendedChecks,
   suggestRetrievalProgression,
 } from '../../domain/checks';
+import {
+  IMPULSE_KINDS,
+} from '../../domain/reactivation';
 import {
   IMAGEABILITIES,
   INFERENCE_SUITABILITIES,
@@ -19,12 +24,14 @@ import {
   LEXICAL_TYPES,
   REPERTOIRES,
   TRANSFER_RISKS,
+  dimensionLabel,
+  resultLabel,
   type Lexeme,
   type Sequence,
 } from '../../domain/model';
 import { summarizeObservations } from '../../domain/observations';
 import { effectiveStepOrder, isStepEnabled, moveStep, stepHasContent, stepPhase } from '../../domain/steps';
-import { formatDate } from '../../domain/text';
+import { formatDate, formatDateTime } from '../../domain/text';
 import { Button, IconButton } from '../../ui/Button';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible } from '../../ui/Feedback';
@@ -47,7 +54,11 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
   const progression = suggestRetrievalProgression(lexeme);
   const selectedCheck = checkTemplate(lexeme.checkTemplateId);
   const counterpart = counterpartCheck(lexeme);
+  const secondaryTemplate = checkTemplate(lexeme.checkTemplateIdSecondary);
   const checkPreview = buildCheckPrompt(lexeme);
+  const secondaryPreview = buildSecondaryPrompt(lexeme);
+  const bothDirections = coversBothDirections(lexeme);
+  const history = [...lexeme.observations].sort((a, b) => b.at - a.at);
   const summary = summarizeObservations(lexeme.observations);
 
   const stepOrder = effectiveStepOrder(sequence, lexeme);
@@ -198,6 +209,37 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
             Beobachtungen der Klasse, nicht einzelner Lernender. Es werden bewusst keine Punkte oder Noten daraus
             berechnet. Erfasst wird im Unterrichts- und Reaktivierungsmodus.
           </p>
+
+          {history.length > 0 ? (
+            <details className="collapsible">
+              <summary>Verlauf ({history.length})</summary>
+              <ul className="observation-log">
+                {history.map((entry) => (
+                  <li className="observation-log__item" key={entry.id}>
+                    <span className="observation-log__when">{formatDateTime(entry.at)}</span>
+                    <span>
+                      {entry.dimension && entry.result
+                        ? `${dimensionLabel(entry.dimension)}: ${resultLabel(entry.result)}`
+                        : 'Ereignis ohne Kompetenzaussage'}
+                      <span className="field__hint" style={{ display: 'block' }}>
+                        {entry.source === 'reactivation' ? 'Reaktivierung' : 'Einführung'}
+                        {entry.round ? ` · Runde ${entry.round}` : ''}
+                        {entry.impulseKind
+                          ? ` · ${IMPULSE_KINDS.find((kind) => kind.id === entry.impulseKind)?.label ?? entry.impulseKind}`
+                          : ''}
+                      </span>
+                    </span>
+                    <IconButton
+                      label="Diese Beobachtung entfernen"
+                      onClick={() => actions.removeObservation(sequence.id, lexeme.id, entry.id)}
+                    >
+                      ✕
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </div>
       </section>
 
@@ -327,12 +369,6 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
               </li>
             ))}
           </ol>
-          {lexeme.learningGoal === 'productive' && counterpart ? (
-            <p className="field__hint">
-              Gegenrichtung als Ergänzung: „{counterpart.label}“ ({checkDirectionLabel(counterpart.direction)}). Im
-              Unterricht lässt sie sich zusätzlich einblenden.
-            </p>
-          ) : null}
         </div>
 
         <TextArea
@@ -343,6 +379,31 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
           hint="Leer lassen, um die Vorlage zu verwenden."
         />
         {checkPreview ? <p className="notice">Im Unterricht erscheint: {checkPreview}</p> : null}
+
+        <SelectField
+          label="Zweite Aufgabe in der Gegenrichtung"
+          value={lexeme.checkTemplateIdSecondary}
+          onChange={(checkTemplateIdSecondary) => set({ checkTemplateIdSecondary })}
+          options={[
+            { value: '', label: counterpart ? `Vorschlag der App: ${counterpart.label}` : 'keine' },
+            ...CHECK_TEMPLATES.map((template) => ({
+              value: template.id,
+              label: `${template.label} – ${checkDirectionLabel(template.direction)}`,
+            })),
+          ]}
+          hint={
+            lexeme.learningGoal === 'productive' && !bothDirections
+              ? 'Für produktive Einheiten lohnen beide Richtungen: Form → Bedeutung und Bedeutung oder Situation → Form.'
+              : secondaryTemplate?.purpose
+          }
+        />
+        {secondaryPreview ? (
+          <p className="notice">
+            Im Unterricht zusätzlich einblendbar: {secondaryPreview}
+            {secondaryTemplate ? null : ' (Vorschlag der App)'}
+          </p>
+        ) : null}
+
       </Collapsible>
 
       <Collapsible title="Differenzierung">

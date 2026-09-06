@@ -120,7 +120,12 @@ export function HelpView() {
           </p>
           <p className="muted text-sm">
             Daraus entstehen keine Punkte, Noten oder Gesamtlernstände. In der Vorbereitung sehen Sie je Einheit den
-            jüngsten Stand der vier Dimensionen. Eine Reaktivierung überschreibt einen erreichten Stand nicht.
+            jüngsten Stand der vier Dimensionen und darunter den vollständigen Verlauf. Eine Reaktivierung überschreibt
+            einen erreichten Stand nicht.
+          </p>
+          <p className="muted text-sm">
+            Verklickt? Ein zweiter Klick auf eine andere Rückmeldung ersetzt die des laufenden Schritts. Einzelne
+            Einträge lassen sich im Verlauf der Einheit entfernen.
           </p>
         </div>
       </section>

@@ -331,31 +331,40 @@ export interface StepVisibility {
   support: boolean;
 }
 
+/**
+ * Sichtbarkeitsprofil je Phase: Was die Klasse beim Betreten eines Schritts
+ * dieser Phase standardmäßig sieht. Die Lehrkraft kann jederzeit umschalten.
+ */
+export const PHASE_VISIBILITY: Record<PhaseId, StepVisibility> = {
+  kontext: { meaning: false, form: false, support: false },
+  klarheit: { meaning: true, form: false, support: false },
+  muster: { meaning: true, form: true, support: false },
+  abruf: { meaning: false, form: false, support: false },
+  gebrauch: { meaning: false, form: true, support: false },
+  wiederbegegnung: { meaning: false, form: false, support: false },
+};
+
+/** Begründete Abweichungen einzelner Schritte vom Profil ihrer Phase. */
+const STEP_VISIBILITY_EXCEPTIONS: Partial<Record<StepId, Partial<StepVisibility>>> = {
+  // Erst vermuten lassen, dann klären – sonst ist die Frage beantwortet.
+  vermuten: { meaning: false },
+  // Innerhalb der Phase „Muster“ kommt das Klangbild vor dem Schriftbild.
+  audio: { form: false },
+  // Im Fokusschritt stehen Musteranker und Lautung im Vordergrund.
+  fokus: { meaning: false, support: true },
+};
+
 export function defaultVisibility(id: StepId): StepVisibility {
-  switch (id) {
-    case 'situation':
-    case 'impuls':
-    case 'vermuten':
-      return { meaning: false, form: false, support: false };
-    case 'klaeren':
-      return { meaning: true, form: false, support: false };
-    case 'audio':
-      // Die Bedeutung ist geklärt; das Schriftbild folgt im nächsten Schritt.
-      return { meaning: true, form: false, support: false };
-    case 'form':
-      return { meaning: true, form: true, support: false };
-    case 'fokus':
-      // Musteranker und Lautung stehen im Vordergrund.
-      return { meaning: false, form: true, support: true };
-    case 'kontrolle':
-      // Die Kontrollfrage steht allein – Hilfen blendet die Lehrkraft bei Bedarf ein.
-      return { meaning: false, form: false, support: false };
-    case 'hilfen-ausblenden':
-    case 'abruf':
-      return { meaning: false, form: false, support: false };
-    case 'aufgabe':
-      return { meaning: false, form: true, support: false };
-    default:
-      return { meaning: false, form: false, support: false };
-  }
+  const phase = stepDefinition(id)?.phase ?? 'kontext';
+  return { ...PHASE_VISIBILITY[phase], ...(STEP_VISIBILITY_EXCEPTIONS[id] ?? {}) };
+}
+
+/** Kurzbeschreibung des Profils für die Vorbereitung. */
+export function visibilityLabel(visibility: StepVisibility): string {
+  const parts = [
+    visibility.meaning ? 'Bedeutung' : '',
+    visibility.form ? 'Schriftbild' : '',
+    visibility.support ? 'Hilfen' : '',
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : 'nichts';
 }

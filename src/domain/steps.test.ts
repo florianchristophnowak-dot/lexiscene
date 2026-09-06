@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createLexeme, createSequence } from './schema';
 import {
   PHASES,
+  PHASE_VISIBILITY,
   STEPS,
   STEP_IDS,
   defaultVisibility,
@@ -16,6 +17,7 @@ import {
   stepInvitesFeedback,
   stepPhase,
   stepsOfPhase,
+  visibilityLabel,
 } from './steps';
 
 const fullLexeme = () =>
@@ -167,6 +169,29 @@ describe('Rückmeldung und Dimension', () => {
     expect(stepInvitesFeedback('abruf')).toBe(true);
     expect(stepInvitesFeedback('aufgabe')).toBe(true);
     expect(stepInvitesFeedback('situation')).toBe(false);
+  });
+});
+
+describe('Sichtbarkeitsprofile der Phasen', () => {
+  it('leitet die Standardsichtbarkeit aus der Phase ab', () => {
+    expect(defaultVisibility('klaeren')).toEqual(PHASE_VISIBILITY.klarheit);
+    expect(defaultVisibility('form')).toEqual(PHASE_VISIBILITY.muster);
+    expect(defaultVisibility('kontrolle')).toEqual(PHASE_VISIBILITY.abruf);
+    expect(defaultVisibility('aufgabe')).toEqual(PHASE_VISIBILITY.gebrauch);
+  });
+
+  it('lässt begründete Abweichungen einzelner Schritte zu', () => {
+    // Erst vermuten, dann klären.
+    expect(defaultVisibility('vermuten').meaning).toBe(false);
+    // Klangbild vor dem Schriftbild innerhalb der Phase „Muster“.
+    expect(defaultVisibility('audio')).toMatchObject({ meaning: true, form: false });
+    // Musteranker und Lautung im Vordergrund.
+    expect(defaultVisibility('fokus')).toMatchObject({ meaning: false, form: true, support: true });
+  });
+
+  it('beschreibt ein Profil in Worten', () => {
+    expect(visibilityLabel(PHASE_VISIBILITY.kontext)).toBe('nichts');
+    expect(visibilityLabel(PHASE_VISIBILITY.muster)).toBe('Bedeutung, Schriftbild');
   });
 });
 

@@ -121,3 +121,22 @@ describe('Phasen und Rückmeldung', () => {
     expect(screen.getByText(EXPRESSION)).toBeInTheDocument();
   });
 });
+
+describe('Korrektur einer Rückmeldung', () => {
+  it('ersetzt die Rückmeldung eines Schritts, statt eine zweite anzulegen', async () => {
+    const user = userEvent.setup();
+    const { actions, sequence } = setup();
+
+    for (let index = 0; index < 20; index += 1) {
+      if (screen.queryByRole('button', { name: 'mit Hilfe' })) break;
+      await user.keyboard('{ArrowRight}');
+    }
+
+    await user.click(screen.getByRole('button', { name: 'mit Hilfe' }));
+    expect(actions.removeObservation).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'sicher' }));
+    expect(actions.removeObservation).toHaveBeenCalledWith(sequence.id, sequence.lexemes[0].id, 'obs_neu');
+    expect(actions.recordObservation).toHaveBeenCalledTimes(2);
+  });
+});

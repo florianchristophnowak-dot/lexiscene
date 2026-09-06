@@ -284,6 +284,8 @@ export interface Lexeme {
   contrastExample: string;
   confusionRisk: string;
   checkTemplateId: string;
+  /** Zweite Aufgabe in der Gegenrichtung; leer = Vorschlag der App verwenden. */
+  checkTemplateIdSecondary: string;
   checkPrompt: string;
 
   // Differenzierung

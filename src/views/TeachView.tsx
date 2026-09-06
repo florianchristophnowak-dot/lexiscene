@@ -18,7 +18,7 @@ import {
   stepPhase,
   type StepVisibility,
 } from '../domain/steps';
-import { buildCounterpartPrompt } from '../domain/checks';
+import { buildSecondaryPrompt } from '../domain/checks';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
@@ -62,7 +62,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const [reveal, setReveal] = useState<RevealState | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [projectionOpen, setProjectionOpen] = useState(false);
-  const [feedback, setFeedback] = useState<Record<string, ObservationResult>>({});
+  const [feedback, setFeedback] = useState<Record<string, { result: ObservationResult; observationId: string | null }>>({});
 
   const safeLexemeIndex = clamp(lexemeIndex, 0, Math.max(teachable.length - 1, 0));
   const lexeme = teachable[safeLexemeIndex];
@@ -288,8 +288,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const phase = stepPhase(step.id);
   const invitesFeedback = stepInvitesFeedback(step.id);
   const dimension = stepDimension(step.id, lexeme);
-  const counterpartPrompt =
-    lexeme.learningGoal === 'productive' && step.id === 'kontrolle' ? buildCounterpartPrompt(lexeme) : '';
+  const counterpartPrompt = step.id === 'kontrolle' ? buildSecondaryPrompt(lexeme) : '';
   const feedbackKey = `${stepKey}:${dimension}`;
 
   return (
@@ -443,15 +442,21 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
                 <button
                   key={option.id}
                   type="button"
-                  className={feedback[feedbackKey] === option.id ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
-                  aria-pressed={feedback[feedbackKey] === option.id}
+                  className={feedback[feedbackKey]?.result === option.id ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+                  aria-pressed={feedback[feedbackKey]?.result === option.id}
                   onClick={() => {
-                    setFeedback((current) => ({ ...current, [feedbackKey]: option.id }));
-                    actions.recordObservation(sequence.id, lexeme.id, {
+                    // Eine Korrektur ersetzt die Rückmeldung dieses Schritts,
+                    // statt eine zweite Beobachtung anzulegen.
+                    const previous = feedback[feedbackKey];
+                    if (previous?.observationId) {
+                      actions.removeObservation(sequence.id, lexeme.id, previous.observationId);
+                    }
+                    const observationId = actions.recordObservation(sequence.id, lexeme.id, {
                       dimension,
                       result: option.id,
                       source: 'introduction',
                     });
+                    setFeedback((current) => ({ ...current, [feedbackKey]: { result: option.id, observationId } }));
                   }}
                 >
                   {option.label}

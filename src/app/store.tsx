@@ -245,9 +245,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
 
       recordObservation: (sequenceId, lexemeId, input) => {
+        const observation = createObservation(input);
+        const updated = mutateLexeme(sequenceId, lexemeId, (lexeme) => ({
+          ...lexeme,
+          observations: [...lexeme.observations, observation],
+        }));
+        return updated ? observation.id : null;
+      },
+
+      removeObservation: (sequenceId, lexemeId, observationId) => {
         mutateLexeme(sequenceId, lexemeId, (lexeme) => ({
           ...lexeme,
-          observations: [...lexeme.observations, createObservation(input)],
+          observations: lexeme.observations.filter((entry) => entry.id !== observationId),
         }));
       },
 

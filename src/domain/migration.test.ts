@@ -158,6 +158,7 @@ describe('Migration Schema 1 → 2', () => {
     expect(first.inferenceSuitability).toBe('bedingt');
     expect(first.transferRisk).toBe('gering');
     expect(first.confusionGroup).toBe('');
+    expect(first.checkTemplateIdSecondary).toBe('');
   });
 
   it('ist beim erneuten Einlesen stabil', () => {

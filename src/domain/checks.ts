@@ -279,3 +279,27 @@ export function buildCounterpartPrompt(lexeme: Lexeme): string {
   const template = counterpartCheck(lexeme);
   return template ? template.build(lexeme) : '';
 }
+
+/**
+ * Die zweite Aufgabe: ausdrücklich gewählt, sonst der Vorschlag der App in der
+ * jeweils anderen Richtung.
+ */
+export function secondaryCheck(lexeme: Lexeme): CheckTemplate | undefined {
+  return checkTemplate(lexeme.checkTemplateIdSecondary) ?? counterpartCheck(lexeme);
+}
+
+export function buildSecondaryPrompt(lexeme: Lexeme): string {
+  const template = secondaryCheck(lexeme);
+  return template ? template.build(lexeme) : '';
+}
+
+/** Deckt das Vorbereitete beide Richtungen ab? */
+export function coversBothDirections(lexeme: Lexeme): boolean {
+  const prepared = [checkTemplate(lexeme.checkTemplateId), checkTemplate(lexeme.checkTemplateIdSecondary)].filter(
+    (template): template is CheckTemplate => Boolean(template),
+  );
+  return (
+    prepared.some((template) => isReceptiveDirection(template.direction)) &&
+    prepared.some((template) => !isReceptiveDirection(template.direction))
+  );
+}

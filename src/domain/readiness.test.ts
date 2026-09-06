@@ -9,6 +9,7 @@ const complete = () =>
     situation: 'Zwei Jugendliche verabreden sich.',
     sentenceFrame: 'Ça te dit de + Infinitiv ?',
     checkTemplateId: 'welche-situation',
+    checkTemplateIdSecondary: 'situation-zu-ausdruck',
     learningGoal: 'productive',
     repertoire: 'kern',
   });
@@ -74,6 +75,16 @@ describe('Bereitschaftscheck', () => {
     const finding = checkReadiness(sequence).find((entry) => entry.id.startsWith('confusion-'));
     expect(finding?.severity).toBe('vertiefen');
     expect(finding?.lexemeIds).toHaveLength(2);
+  });
+
+  it('regt bei produktiven Kerneinheiten beide Abrufrichtungen an', () => {
+    const oneDirection = createSequence({
+      canDoGoal: 'Ziel',
+      lexemes: [createLexeme({ ...complete(), checkTemplateIdSecondary: '' })],
+    });
+    const finding = checkReadiness(oneDirection).find((entry) => entry.id === 'both-directions');
+    expect(finding?.severity).toBe('vertiefen');
+    expect(ids(createSequence({ canDoGoal: 'Ziel', lexemes: [complete()] }))).not.toContain('both-directions');
   });
 
   it('unterscheidet zwischen Ergänzen und Vertiefen und blockiert nie', () => {

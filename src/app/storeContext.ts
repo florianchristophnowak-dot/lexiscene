@@ -24,8 +24,10 @@ export interface StoreActions {
   addLexeme: (sequenceId: string, partial?: Partial<Lexeme>) => string | null;
   addLexemes: (sequenceId: string, partials: Partial<Lexeme>[]) => number;
   updateLexeme: (sequenceId: string, lexemeId: string, patch: Partial<Lexeme>) => void;
-  /** Hält eine Beobachtung der Lerngruppe fest (keine Einzelpersonen). */
-  recordObservation: (sequenceId: string, lexemeId: string, input: ObservationInput) => void;
+  /** Hält eine Beobachtung der Lerngruppe fest (keine Einzelpersonen) und liefert deren Id. */
+  recordObservation: (sequenceId: string, lexemeId: string, input: ObservationInput) => string | null;
+  /** Entfernt eine einzelne Beobachtung – etwa nach einem Fehlgriff im Unterricht. */
+  removeObservation: (sequenceId: string, lexemeId: string, observationId: string) => void;
   /** Schließt eine Reaktivierungsrunde ab und schreibt die Ergebnisse fort. */
   completeReactivationRound: (sequenceId: string, outcomes: ImpulseOutcome[]) => void;
   duplicateLexeme: (sequenceId: string, lexemeId: string) => string | null;

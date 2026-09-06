@@ -80,7 +80,12 @@ Einzelwörter (`Ça te dit de… ?`, `avoir besoin de qc`).
 
 **Sprachliches Muster:** `valency`, `collocations`, `wordFamily`, `register`, `culturalNote`
 
-**Bedeutungssicherung:** `example`, `nonExample`, `contrastExample`, `confusionRisk`, `checkTemplateId`, `checkPrompt`
+**Bedeutungssicherung:** `example`, `nonExample`, `contrastExample`, `confusionRisk`, `checkTemplateId`, `checkTemplateIdSecondary`, `checkPrompt`
+
+`checkTemplateIdSecondary` hält die Aufgabe in der Gegenrichtung fest. Bleibt das
+Feld leer, schlägt die App selbst eine passende Vorlage vor; gespeichert wird nur
+eine ausdrückliche Wahl. Das Feld ist additiv – Dateien ohne dieses Feld bleiben
+gültig, die Schemaversion ändert sich dadurch nicht.
 
 **Differenzierung:** `extraHint`, `simplifiedExplanation`, `translation`, `multilingualComparison`, `extensionTask`
 
@@ -122,6 +127,12 @@ Die elf Schritte sind sechs Phasen zugeordnet:
 
 Die Zuordnung steht im Code (`src/domain/steps.ts`) und wird nicht in der Datei
 gespeichert; gespeichert werden nur Auswahl und Reihenfolge der Schritte.
+
+Ebenfalls im Code liegt das Sichtbarkeitsprofil je Phase (`PHASE_VISIBILITY`):
+Es legt fest, was die Klasse beim Betreten eines Schritts zuerst sieht. Einzelne
+Schritte weichen begründet ab – „Bedeutung erschließen“ zeigt die Bedeutung
+nicht, „Hören“ hält das Schriftbild zurück, „Aussprache und Muster“ stellt
+Musteranker und Lautung nach vorn. Im Unterricht ist alles umschaltbar.
 
 ## 3. Sicherungsdatei (ZIP)
 

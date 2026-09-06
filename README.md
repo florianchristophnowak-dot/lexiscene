@@ -24,6 +24,11 @@ Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen elf
 Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten und frei
 umsortieren lassen. Schritte ohne hinterlegtes Material entfallen automatisch.
 
+Jede Phase bringt ein Sichtbarkeitsprofil mit: Es bestimmt, was die Klasse beim
+Betreten eines Schritts zuerst sieht — in „Kontext“ nichts, in „Klarheit“ die
+Bedeutung, in „Muster“ zusätzlich das Schriftbild, in „Abruf“ wieder nichts. Die
+Vorbereitung zeigt die Profile; im Unterricht ist alles umschaltbar.
+
 Einige Entscheidungen bleiben bewusst offen, weil sie vom Wort, vom Ziel und von
 der Lerngruppe abhängen:
 
@@ -141,7 +146,12 @@ mindestens 44 × 44 Pixel):
   Sie in Abruf- und Gebrauchsschritten. Sie wird der Wissensdimension zugeordnet
   (Bedeutung, Form, Muster, Gebrauch) und als Ereignis gespeichert. Es entstehen
   keine Punkte, Noten oder Gesamtlernstände, und die Beobachtung gilt der Klasse,
-  nicht einzelnen Lernenden.
+  nicht einzelnen Lernenden. Ein Fehlgriff lässt sich sofort korrigieren: Ein
+  zweiter Klick ersetzt die Rückmeldung dieses Schritts, statt eine weitere
+  anzulegen. In der Vorbereitung zeigt jede Einheit ihren vollständigen Verlauf,
+  aus dem sich einzelne Einträge entfernen lassen.
+* **Gegenrichtung** blendet in der Verständniskontrolle die zweite Aufgabe ein –
+  entweder die ausdrücklich gewählte oder den Vorschlag der App.
 * **Lösung** hält im Abruf die Antwort zurück, bis die Denkzeit vorbei ist.
 * **Notiz** hält eine spontane Beobachtung zur Einheit fest.
 * **Überspringen** nimmt eine Einheit aus dem laufenden Durchgang.
@@ -185,6 +195,9 @@ Lernalgorithmus. Für die Abstände gibt es kein einzig richtiges Intervall.
   Modelläußerung, **Musteranker**, lexikalischer Typ und Lernziel (rezeptiv oder
   produktiv). Alles Weitere ist Vertiefung in aufklappbaren Bereichen – die App
   verlangt keine enzyklopädische Vollständigkeit.
+* **Abrufaufgaben in beiden Richtungen:** Zur Hauptaufgabe lässt sich eine zweite
+  in der Gegenrichtung wählen (Form → Bedeutung und Bedeutung oder Situation →
+  Form). Bleibt sie leer, schlägt die App selbst eine vor.
 * **Musteranker:** der Rahmen, in dem die Einheit steht, etwa
   `avoir peur de + nom/infinitif`, `jouer à + Sportart` oder
   `prendre une décision`. Bei produktiv geplanten Kerneinheiten weist die App auf

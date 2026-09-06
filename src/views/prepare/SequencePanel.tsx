@@ -9,7 +9,7 @@ import {
   repertoireLabel,
   type Sequence,
 } from '../../domain/model';
-import { PHASES, STEP_IDS, effectiveStepOrder, moveStep, stepPhase } from '../../domain/steps';
+import { PHASES, PHASE_VISIBILITY, STEP_IDS, effectiveStepOrder, moveStep, stepPhase, visibilityLabel } from '../../domain/steps';
 import { buildSequenceExport, sequenceExportFileName } from '../../storage/backup';
 import { truncate } from '../../domain/text';
 import { readinessSeverityLabel, summarizeReadiness } from '../../domain/readiness';
@@ -153,6 +153,22 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
           <Button variant="ghost" onClick={() => update({ stepOrder: [...STEP_IDS] })}>
             Standardreihenfolge wiederherstellen
           </Button>
+
+          <div className="stack-tight">
+            <span className="field__label">Was die Klasse je Phase zuerst sieht</span>
+            <ul className="phase-visibility">
+              {PHASES.filter((phase) => phase.id !== 'wiederbegegnung').map((phase) => (
+                <li key={phase.id}>
+                  <span className="tag">{phase.label}</span>
+                  <span className="field__hint">{visibilityLabel(PHASE_VISIBILITY[phase.id])}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="field__hint">
+              Ausgangspunkt beim Betreten eines Schritts. Im Unterricht lässt sich jederzeit umschalten; einzelne
+              Schritte weichen begründet ab (etwa Erschließen und Hören).
+            </p>
+          </div>
         </Collapsible>
       </div>
 
