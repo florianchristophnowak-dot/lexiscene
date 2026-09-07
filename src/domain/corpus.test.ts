@@ -177,11 +177,12 @@ describe('Stufen der Präsentation', () => {
 });
 
 describe('Schritt „Korpusminiatur“', () => {
-  it('gehört zur Phase Muster und folgt auf „Aussprache und Muster“', () => {
+  it('gehört zur Phase Muster und folgt auf die Kollokation', () => {
     expect(stepPhase('korpusminiatur')?.id).toBe('muster');
     expect(stepDimension('korpusminiatur')).toBe('pattern');
     const order = createSequence().stepOrder;
-    expect(order[order.indexOf('korpusminiatur') - 1]).toBe('fokus');
+    expect(order[order.indexOf('korpusminiatur') - 1]).toBe('chunk');
+    expect(order.indexOf('korpusminiatur')).toBeGreaterThan(order.indexOf('fokus'));
   });
 
   it('wird erst ab drei Belegen und nur im aktivierten Zustand angeboten', () => {

@@ -150,12 +150,17 @@ export const de = {
   'step.ccq': 'Bedeutung prüfen (CCQs)',
   'step.ccq.purpose':
     'Mit kurzen Fragen prüfen, ob das Konzept angekommen ist – nicht die Form. Erscheint nur mit hinterlegter Frage.',
+  'step.wort-elizitieren': 'Wort herauslocken',
+  'step.wort-elizitieren.purpose':
+    'Erst warten, dann einen Anlaut geben, zuletzt das Wort nennen – das Konzept steht schon.',
   'step.audio': 'Hören',
   'step.audio.purpose': 'Klangbild anbieten. Ob es vor oder nach dem Schriftbild kommt, ist eine Regieentscheidung.',
   'step.form': 'Form zeigen',
   'step.form.purpose': 'Schriftbild einführen. Der Zeitpunkt ist wählbar – früh stützt, spät fordert das Hören.',
   'step.fokus': 'Aussprache und Muster',
   'step.fokus.purpose': 'Lautung, Betonung und Musteranker gezielt fokussieren.',
+  'step.chunk': 'Kollokation ergänzen',
+  'step.chunk.purpose': 'Eine zentrale Wendung als Ganzes anbieten und zusammenhängend sprechen.',
   'step.korpusminiatur': 'Korpusminiatur',
   'step.korpusminiatur.purpose':
     'An wenigen kuratierten Belegen ein Muster gelenkt entdecken. Optionaler Schritt – die Regel wird anschließend ausdrücklich bestätigt.',
@@ -165,6 +170,9 @@ export const de = {
   'step.hilfen-ausblenden.purpose': 'Stützen entfernen und sehen, was ohne Vorlage abrufbar ist.',
   'step.abruf': 'Freier Abruf',
   'step.abruf.purpose': 'Abruf ohne Vorlage anregen – erst Denkzeit, dann Lösung.',
+  'step.wiederholung': 'Kurze Wiederholung',
+  'step.wiederholung.purpose':
+    'Kumulativ aufgreifen, was schon eingeführt wurde – abrufen statt vorsagen.',
   'step.aufgabe': 'Kommunikative Mini-Aufgabe',
   'step.aufgabe.purpose': 'Erstes eigenes Sprachhandeln mit der neuen Einheit ermöglichen.',
 
@@ -938,6 +946,211 @@ export const de = {
   'detail.steps.useSequence': 'Reihenfolge der Sequenz übernehmen',
   'detail.steps.useOwn': 'Eigene Reihenfolge für diese Einheit',
   'detail.steps.reset': 'Schrittauswahl zurücksetzen',
+
+  /* ------------------------------------------------- Hilfe: Ansatz */
+  'help.task.title': 'Vom Ziel her planen',
+  'help.task.backwards':
+    'Nicht von einer Wortliste ausgehen, sondern von der Frage, was die Lernenden verstehen oder tun sollen. Zuerst steht die Aufgabe fest – ein Gespräch, ein Rollenspiel, eine Diskussion, ein Hörtext oder ein Lied –, dann wird der Wortschatz daraus abgeleitet.',
+  'help.task.choose':
+    'Vorrang hat, was die Lernenden voraussichtlich selbst verwenden. Eine Sammlung thematisch verwandter Einzelwörter reicht dafür nicht: Gebraucht werden verwendbare Verbindungen und Muster.',
+  'help.task.criteria':
+    'Bei der Auswahl zählen Lernstand und Alter, Interessen und Kommunikationsbedürfnisse, der schulische wie außerschulische Verwendungskontext, die Natürlichkeit des Ausdrucks und die sprachliche Stimme, die die Lernenden entwickeln sollen. Das Feld „Warum diese Einheit?“ hält Ihre Entscheidung fest.',
+
+  'help.routine.title': 'Routine für eine Einheit',
+  'help.routine.lede':
+    'Die Dramaturgie bildet eine Routine ab, die sich für jede neue Einheit wiederholen lässt. Jeder Schritt ist abschaltbar, und Schritte ohne Material entfallen von selbst.',
+  'help.routine.steps':
+    'Kontext oder Impuls schaffen · Vorwissen aktivieren · Aufmerksamkeit eingrenzen · sicherstellen, dass das Konzept verstanden ist · das Wort herauslocken oder nennen · es mit den grammatisch nötigen Angaben anschreiben · die Aussprache modellieren und üben · eine zentrale Kollokation ergänzen · die Bedeutung mit CCQs prüfen · das Wort mehrfach aufgreifen · es unmittelbar in einer Aufgabe verwenden.',
+  'help.routine.note':
+    'Die Präsentation bleibt eine vorbereitende Phase. Ihr Ziel ist, dass die Lernenden die Sprache verstehen und selbst verwenden.',
+
+  'help.eliciting.title': 'Bedeutung herauslocken',
+  'help.eliciting.principle':
+    'Das neue Wort wird nicht sofort angeschrieben, erklärt oder übersetzt. Stattdessen entsteht eine Situation, aus der sich die Bedeutung erschließen lässt.',
+  'help.eliciting.techniques':
+    'Zur Wahl stehen Mimik und Gestik, Bild, Zeichnung, Realie, Requisit und Pantomime, Synonym, Antonym, Beispiele und Unterbegriffe, Kontext sowie die kurze Definition. Mehrere lassen sich verbinden – eine Geste zusammen mit einem knappen Kontext ist oft eindeutiger als eine lange Erklärung.',
+  'help.eliciting.short':
+    'Eliciting soll kein Ratespiel werden: schnell, eindeutig, dem Lernstand angemessen und sprachlich sparsam. Ein Bild eines Pfirsichs trägt weiter als eine Beschreibung von Form, Farbe und Kern.',
+  'help.eliciting.concept':
+    'Herausgelockt wird zuerst der Begriff, nicht das Wort: Niemand kann ein Wort nennen, das er nie gehört hat. Steht das Konzept, warten Sie kurz, geben dann einen Anlaut und nennen das Wort, wenn es nicht zügig kommt. Der Schritt „Wort herauslocken“ führt genau diese drei Stufen.',
+
+  'help.drill.title': 'Anschreiben und Aussprache',
+  'help.drill.board':
+    'Nach der Klärung wird das Wort sichtbar und sprachlich korrekt notiert – mit Artikel und Genus, Plural, Infinitiv, Präpositionen, Wortart, Betonung und den typischen Kollokationen. Die Felder dafür stehen unter „Aussprache und Form“ und „Sprachliches Muster“.',
+  'help.drill.stages':
+    'Danach modellieren Sie die natürliche Aussprache: vorsprechen, chorisch nachsprechen, Teilgruppen, einzelne Lernende – und dazwischen gezielt hinhören. Der Schritt „Aussprache und Muster“ führt diese Stufen; Drilling ist kein Ritual, sondern Hinhören auf Laute, Silben, Betonung und Bindungen.',
+  'help.drill.chunk':
+    'Gesprochen wird die Wendung als Ganzes, nicht eine Folge einzelner Wörter. Der Schritt „Kollokation ergänzen“ hält dafür die zentrale Wendung bereit; Beiträge der Lerngruppe lassen sich im Unterricht aufnehmen und erscheinen anschließend im Wortfeld.',
+
+  /* ------------------------------------------------------- Zielaufgabe */
+  'sequence.task.title': 'Zielaufgabe',
+  'sequence.task.hint':
+    'Zuerst die Aufgabe, dann der Wortschatz: Was tun die Lernenden am Ende mit der Sprache? Daraus ergibt sich, welche Einheiten wirklich gebraucht werden.',
+  'sequence.field.taskType': 'Art der Aufgabe',
+  'sequence.field.targetTask': 'Das tun die Lernenden damit',
+  'sequence.field.targetTask.hint':
+    'Konkret und beobachtbar, z. B. „zu zweit eine gemeinsame Unternehmung vereinbaren“.',
+  'sequence.field.targetTask.placeholder': 'z. B. zu zweit einen Samstagnachmittag verabreden',
+  'sequence.task.missing': 'Noch keine Aufgabe festgelegt – der Wortschatz hat dann keinen Bezugspunkt.',
+  'taskType.gespraech': 'Gespräch',
+  'taskType.rollenspiel': 'Rollenspiel',
+  'taskType.diskussion': 'Diskussion',
+  'taskType.hoertext': 'Hörtext',
+  'taskType.lesetext': 'Lesetext',
+  'taskType.lied': 'Lied',
+  'taskType.sonstige': 'Anderes',
+
+  /* ------------------------------------------------------- Wortprofil */
+  'profile.title': 'Wortprofil',
+  'profile.hint':
+    'Sieben Dimensionen, die vor dem Unterricht geklärt sein sollten. Geprüft wird nur, ob etwas eingetragen ist – nichts wird bewertet.',
+  'profile.complete': 'Alle sieben Dimensionen sind belegt.',
+  'profile.open': 'Noch offen: {list}',
+  'profile.dimension.bedeutung': 'Bedeutung',
+  'profile.question.bedeutung': 'Was bezeichnet der Ausdruck genau? Wo droht ein Missverständnis?',
+  'profile.dimension.konnotation': 'Konnotation',
+  'profile.question.konnotation': 'Wirkt er neutral, wertend, formell, umgangssprachlich oder emotional?',
+  'profile.dimension.form': 'Form',
+  'profile.question.form': 'Wortart, Genus, Plural, Infinitiv – was gehört ins Tafelbild?',
+  'profile.dimension.wortbildung': 'Wortbildung',
+  'profile.question.wortbildung': 'Welche verwandten Formen sind hier relevant?',
+  'profile.dimension.aussprache': 'Aussprache',
+  'profile.question.aussprache': 'Welche Laute, Silben, Betonungen oder Bindungen sind schwierig?',
+  'profile.dimension.kollokation': 'Kollokation',
+  'profile.question.kollokation': 'Mit welchen Wörtern steht der Ausdruck typischerweise zusammen?',
+  'profile.dimension.verwendung': 'Verwendung',
+  'profile.question.verwendung': 'In welchen Situationen wird er tatsächlich gebraucht?',
+
+  /* --------------------------------------------------- Bedeutung herauslocken */
+  'eliciting.title': 'Bedeutung herauslocken',
+  'eliciting.hint':
+    'Die Bedeutung wird nach Möglichkeit gezeigt, nicht erklärt. Mehrere Techniken lassen sich verbinden – eine Geste zusammen mit einem knappen Kontext ist oft eindeutiger als eine lange Erklärung.',
+  'eliciting.techniques': 'Geplante Techniken',
+  'eliciting.recommended': 'Zum Profil dieser Einheit passen: {list}',
+  'eliciting.count': 'Gewählt: {count}',
+  'eliciting.recommendedTag': 'empfohlen',
+  'eliciting.field.context': 'Vorbereiteter Kontext oder Impuls',
+  'eliciting.field.context.hint':
+    'Knapp halten. Eliciting soll schnell und eindeutig sein, kein Ratespiel.',
+  'eliciting.field.context.placeholder': 'z. B. zwei Freunde am Freitagnachmittag, Bild von einem Kino',
+  'eliciting.warning.none': 'Noch keine Technik gewählt – ohne sie bleibt nur das Erklären.',
+  'eliciting.warning.long': 'Der Kontext ist lang. Kürzer heißt hier meist eindeutiger.',
+  'eliciting.warning.visualFirst':
+    'Diese Einheit lässt sich gut zeigen. Eine Definition kostet mehr Lehrersprache als ein Bild.',
+  'eliciting.warning.contextMissing': 'Für das Erschließen aus dem Kontext fehlt noch ein Kontext.',
+  'eliciting.technique.mimik': 'Mimik und Gestik',
+  'eliciting.technique.mimik.fits': 'Handlungen und sichtbare Eigenschaften',
+  'eliciting.technique.bild': 'Bild',
+  'eliciting.technique.bild.fits': 'konkrete Gegenstände, Handlungen und Situationen',
+  'eliciting.technique.zeichnung': 'Zeichnung',
+  'eliciting.technique.zeichnung.fits': 'schnell darstellbare Konzepte',
+  'eliciting.technique.realie': 'Realie',
+  'eliciting.technique.realie.fits': 'Gegenstände, die sich mitbringen lassen',
+  'eliciting.technique.pantomime': 'Requisit und Pantomime',
+  'eliciting.technique.pantomime.fits': 'Gegenstände, die nicht verfügbar sind',
+  'eliciting.technique.synonym': 'Synonym',
+  'eliciting.technique.synonym.fits': 'wenn ein verwandtes Wort schon bekannt ist',
+  'eliciting.technique.antonym': 'Antonym',
+  'eliciting.technique.antonym.fits': 'eindeutig kontrastierbare Begriffe',
+  'eliciting.technique.beispiele': 'Beispiele und Unterbegriffe',
+  'eliciting.technique.beispiele.fits': 'Oberbegriffe und Kategorien',
+  'eliciting.technique.kontext': 'Kontext',
+  'eliciting.technique.kontext.fits': 'abstrakte oder nuancierte Bedeutungen',
+  'eliciting.technique.definition': 'Kurze Definition',
+  'eliciting.technique.definition.fits': 'was sich nicht sinnvoll zeigen lässt',
+
+  /* --------------------------------------------------------- Wort und Chunk */
+  'detail.field.selectionReason': 'Warum diese Einheit?',
+  'detail.field.selectionReason.hint':
+    'Bezug zur Zielaufgabe, zur Lerngruppe und zum erwarteten eigenen Gebrauch. Nur für Sie sichtbar.',
+  'detail.field.connotation': 'Konnotation',
+  'detail.field.wordClass': 'Wortart',
+  'detail.field.wordCue': 'Anlauthilfe',
+  'detail.field.wordCue.hint':
+    'Erste Laute oder Buchstaben, mit denen Sie das Wort herauslocken, wenn es niemand nennt. Leer lassen: Die App kürzt den Ausdruck.',
+  'detail.field.keyCollocation': 'Zentrale Kollokation',
+  'detail.field.keyCollocation.hint':
+    'Die eine Wendung, die bei der Einführung ergänzt und als Ganzes gesprochen wird.',
+  'detail.field.keyCollocation.fromCollocations': 'Erste Kollokation übernehmen',
+  'connotation.unbestimmt': 'noch offen',
+  'connotation.neutral': 'neutral',
+  'connotation.positiv': 'positiv',
+  'connotation.negativ': 'negativ',
+  'connotation.formell': 'formell',
+  'connotation.umgangssprachlich': 'umgangssprachlich',
+  'connotation.emotional': 'emotional',
+  'wordClass.unbestimmt': 'noch offen',
+  'wordClass.nomen': 'Nomen',
+  'wordClass.verb': 'Verb',
+  'wordClass.adjektiv': 'Adjektiv',
+  'wordClass.adverb': 'Adverb',
+  'wordClass.wendung': 'feste Wendung',
+  'wordClass.sonstige': 'anderes',
+
+  /* ------------------------------------------------------ Aussprachearbeit */
+  'drill.title': 'Aussprache üben',
+  'drill.hint': 'Wirklich hinhören: Laute, Silben, Wortbetonung und Bindungen.',
+  'drill.stage.model': 'Vorsprechen',
+  'drill.stage.chorus': 'Chorisch',
+  'drill.stage.groups': 'Teilgruppen',
+  'drill.stage.individual': 'Einzeln',
+  'drill.stage.listen': 'Gezielt hören',
+  'drill.stage.model.teacher': 'Natürlich vorsprechen – die Wendung als Ganzes, nicht Wort für Wort.',
+  'drill.stage.chorus.teacher': 'Alle zusammen nachsprechen lassen.',
+  'drill.stage.groups.teacher': 'Reihen oder Tischgruppen einzeln nachsprechen lassen.',
+  'drill.stage.individual.teacher': 'Einzelne Lernende nachsprechen lassen – ohne Bloßstellen.',
+  'drill.stage.listen.teacher': 'Schwierigkeit benennen, erneut vorsprechen, noch einmal üben.',
+  'drill.position': 'Stufe {position} von {total}',
+  'drill.start': 'Aussprache üben',
+  'drill.stop': 'Aussprachearbeit beenden',
+  'drill.next': 'Nächste Stufe',
+  'drill.previous': 'Vorige Stufe',
+
+  /* ------------------------------------------ Wort herauslocken im Unterricht */
+  'teach.word.wait': 'Warten',
+  'teach.word.cue': 'Anlaut geben',
+  'teach.word.full': 'Wort nennen',
+  'teach.word.teacher':
+    'Erst kurz warten. Kennt es jemand? Sonst den Anlaut geben – und wenn es nicht zügig kommt, das Wort selbst nennen.',
+  'teach.word.hidden': 'Das Konzept steht. Wer kennt das Wort?',
+  'teach.teacher.word': 'Wort: {value}',
+
+  /* --------------------------------------------------- Kumulative Wiederholung */
+  'teach.recap.title': 'Bisher eingeführt',
+  'teach.recap.reveal': 'Nächsten Ausdruck aufdecken',
+  'teach.recap.hide': 'Wieder verdecken',
+  'teach.recap.counter': '{revealed} von {total} aufgedeckt',
+  'teach.recap.masked': 'verdeckt',
+  'teach.recap.teacher': 'Verschiedene Lernende beteiligen, auch schwierige Aussprache noch einmal aufgreifen.',
+
+  /* ------------------------------------------------- Beiträge der Lerngruppe */
+  'teach.contribution': 'Beitrag aufnehmen',
+  'teach.contribution.title': 'Beitrag der Lerngruppe',
+  'teach.contribution.field': 'Ausdruck oder Wendung aus der Klasse',
+  'teach.contribution.hint':
+    'Wird zur Einheit gespeichert und erscheint im Wortfeld – zielsprachlich formulieren.',
+  'teach.contribution.add': 'Übernehmen',
+  'teach.contribution.close': 'Schließen',
+  'teach.contribution.saved': 'Beitrag übernommen.',
+  'detail.contributions': 'Beiträge der Lerngruppe',
+  'detail.contributions.hint': 'Im Unterricht aufgenommen. Sie können sie hier bearbeiten oder entfernen.',
+  'detail.contributions.remove': 'Beitrag {index} entfernen',
+  'detail.contributions.empty': 'Noch nichts aufgenommen.',
+
+  /* ---------------------------------------------------- Hinweise zur Planung */
+  'readiness.targetTask.title': 'Zielaufgabe festlegen',
+  'readiness.targetTask.detail':
+    'Der Wortschatz wird aus der Aufgabe abgeleitet. Ohne sie bleibt die Liste ohne Bezugspunkt.',
+  'readiness.eliciting.title': 'Bedeutung herauslocken planen',
+  'readiness.eliciting.detail': 'Ohne gewählte Technik bleibt für {list} nur das Erklären.',
+  'readiness.ccqCount.title': 'Wenige Bedeutungsfragen',
+  'readiness.ccqCount.detail':
+    'Etwa drei kurze Fragen je Einheit prüfen das Konzept zuverlässiger als eine. Betrifft {list}.',
+  'readiness.profile.title': 'Wortprofil unvollständig',
+  'readiness.profile.detail': 'Bedeutung, Aussprache und Verwendung sind noch offen bei {list}.',
+  'readiness.chunk.title': 'Keine zentrale Kollokation',
+  'readiness.chunk.detail':
+    'Einzelwörter tragen selten. Eine typische Wendung macht die Einheit verwendbar. Betrifft {list}.',
 } as const;
 
 export type TranslationKey = keyof typeof de;

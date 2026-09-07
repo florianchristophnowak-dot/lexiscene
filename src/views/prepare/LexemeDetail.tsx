@@ -12,23 +12,28 @@ import {
   suggestRetrievalProgression,
 } from '../../domain/checks';
 import {
+  CONNOTATIONS,
   IMAGEABILITIES,
   INFERENCE_SUITABILITIES,
   LEARNING_GOALS,
   LEXICAL_TYPES,
   REPERTOIRES,
   TRANSFER_RISKS,
+  WORD_CLASSES,
   type Lexeme,
   type Sequence,
 } from '../../domain/model';
 import { summarizeObservations } from '../../domain/observations';
 import { effectiveStepOrder, isStepEnabled, moveStep, stepHasContent, stepPhase } from '../../domain/steps';
-import { formatDate, formatDateTime } from '../../domain/text';
+import { firstFilled, formatDate, formatDateTime } from '../../domain/text';
 import { usePhrase, useT, useTid } from '../../i18n/context';
 import { Button, IconButton } from '../../ui/Button';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible } from '../../ui/Feedback';
+import { wordCue } from '../../domain/stage';
 import { CcqPanel } from './CcqPanel';
+import { ElicitingPanel } from './ElicitingPanel';
+import { ProfilePanel } from './ProfilePanel';
 import { CorpusPanel } from './CorpusPanel';
 import { MediaSlot } from './MediaSlot';
 import { StepOrderList } from './StepOrderList';
@@ -37,6 +42,11 @@ interface Props {
   sequence: Sequence;
   lexeme: Lexeme;
   onClose?: () => void;
+}
+
+/** Erste nicht leere Zeile der Kollokationen – als Vorschlag für den Chunk. */
+function firstCollocation(collocations: string): string {
+  return firstFilled(...collocations.split(/\r?\n/).map((line) => line.trim()));
 }
 
 export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
@@ -196,6 +206,40 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
         </p>
       </div>
 
+      <Collapsible title={t('detail.contributions')} defaultOpen={lexeme.classContributions.length > 0}>
+        <p className="field__hint">{t('detail.contributions.hint')}</p>
+        {lexeme.classContributions.length === 0 ? (
+          <p className="field__hint">{t('detail.contributions.empty')}</p>
+        ) : (
+          <ul className="stack-tight">
+            {lexeme.classContributions.map((entry, index) => (
+              <li className="row" key={`${entry}-${index}`}>
+                <TextField
+                  label={t('teach.contribution.field')}
+                  value={entry}
+                  onChange={(value) =>
+                    set({
+                      classContributions: lexeme.classContributions.map((item, position) =>
+                        position === index ? value : item,
+                      ),
+                    })
+                  }
+                  target
+                />
+                <IconButton
+                  label={t('detail.contributions.remove', { index: index + 1 })}
+                  onClick={() =>
+                    set({ classContributions: lexeme.classContributions.filter((_, position) => position !== index) })
+                  }
+                >
+                  ✕
+                </IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Collapsible>
+
       <section className="panel">
         <div className="panel__header">
           <span className="panel__title">{t('detail.observations')}</span>
@@ -244,6 +288,22 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
           ) : null}
         </div>
       </section>
+
+      <TextArea
+        label={t('detail.field.selectionReason')}
+        value={lexeme.selectionReason}
+        onChange={(selectionReason) => set({ selectionReason })}
+        hint={t('detail.field.selectionReason.hint')}
+        rows={2}
+      />
+
+      <Collapsible title={t('profile.title')} defaultOpen>
+        <ProfilePanel lexeme={lexeme} />
+      </Collapsible>
+
+      <Collapsible title={t('eliciting.title')} defaultOpen>
+        <ElicitingPanel sequence={sequence} lexeme={lexeme} />
+      </Collapsible>
 
       <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="image" label={t('detail.media.image')} />
       <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="audio" label={t('detail.media.audio')} />
@@ -297,6 +357,20 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
           value={lexeme.morphology}
           onChange={(morphology) => set({ morphology })}
         />
+        <SelectField
+          label={t('detail.field.wordClass')}
+          value={lexeme.wordClass}
+          onChange={(value) => set({ wordClass: value as Lexeme['wordClass'] })}
+          options={WORD_CLASSES.map((entry) => ({ value: entry, label: tid('wordClass', entry) }))}
+        />
+        <TextField
+          label={t('detail.field.wordCue')}
+          value={lexeme.wordCue}
+          onChange={(wordCue) => set({ wordCue })}
+          target
+          placeholder={wordCue(lexeme)}
+          hint={t('detail.field.wordCue.hint')}
+        />
         <p className="field__hint">{t('detail.pronunciation.hint')}</p>
       </Collapsible>
 
@@ -307,6 +381,24 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
           value={lexeme.collocations}
           onChange={(collocations) => set({ collocations })}
           rows={2}
+        />
+        <TextField
+          label={t('detail.field.keyCollocation')}
+          value={lexeme.keyCollocation}
+          onChange={(keyCollocation) => set({ keyCollocation })}
+          target
+          hint={t('detail.field.keyCollocation.hint')}
+        />
+        {!lexeme.keyCollocation.trim() && firstCollocation(lexeme.collocations) ? (
+          <Button onClick={() => set({ keyCollocation: firstCollocation(lexeme.collocations) })}>
+            {t('detail.field.keyCollocation.fromCollocations')}
+          </Button>
+        ) : null}
+        <SelectField
+          label={t('detail.field.connotation')}
+          value={lexeme.connotation}
+          onChange={(value) => set({ connotation: value as Lexeme['connotation'] })}
+          options={CONNOTATIONS.map((entry) => ({ value: entry, label: tid('connotation', entry) }))}
         />
         <TextField
           label={t('detail.field.wordFamily')}

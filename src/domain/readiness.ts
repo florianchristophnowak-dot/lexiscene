@@ -10,7 +10,9 @@
 import type { Lexeme, Sequence } from './model';
 import { coversBothDirections, hasCheckPrompt } from './checks';
 import { CORPUS_MIN_EXAMPLES, corpusMiniatureReady, usableExamples } from './corpus';
-import { ccqWarnings, hasUsableCcq } from './ccq';
+import { ccqWarnings, hasUsableCcq, usableCcqs } from './ccq';
+import { normalizeTechniques } from './eliciting';
+import { CORE_ANALYSIS_DIMENSIONS, analysisGaps } from './profile';
 import { isStepEnabled } from './steps';
 import { firstFilled, truncate } from './text';
 
@@ -67,6 +69,11 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
     add('can-do', 'ergaenzen', 'canDo');
   }
 
+  // Vom Ziel her planen: Ohne Aufgabe fehlt der Wortliste ihr Bezugspunkt.
+  if (!sequence.targetTask.trim()) {
+    add('target-task', 'ergaenzen', 'targetTask');
+  }
+
   const withoutMeaning = active.filter((lexeme) => !lexeme.coreMeaning.trim());
   if (withoutMeaning.length > 0) {
     add('core-meaning', 'ergaenzen', 'coreMeaning', { list: listOf(withoutMeaning) }, withoutMeaning);
@@ -107,6 +114,37 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
   const ccqIssues = active.filter((lexeme) => ccqWarnings(lexeme.ccqs).length > 0);
   if (ccqIssues.length > 0) {
     add('ccq-quality', 'vertiefen', 'ccqQuality', { list: listOf(ccqIssues) }, ccqIssues);
+  }
+
+  // Etwa drei kurze Fragen je Einheit – ein Richtwert, keine Vorschrift.
+  const fewCcqs = active.filter((lexeme) => {
+    const count = usableCcqs(lexeme).length;
+    return count > 0 && count < 3;
+  });
+  if (fewCcqs.length > 0) {
+    add('ccq-count', 'vertiefen', 'ccqCount', { list: listOf(fewCcqs) }, fewCcqs);
+  }
+
+  // Bedeutung herauslocken: ohne Technik bleibt nur das Erklären.
+  const withoutTechnique = active.filter((lexeme) => normalizeTechniques(lexeme.elicitingTechniques).length === 0);
+  if (withoutTechnique.length > 0) {
+    add('eliciting', 'vertiefen', 'eliciting', { list: listOf(withoutTechnique) }, withoutTechnique);
+  }
+
+  // Wortprofil: Bedeutung, Aussprache und Verwendung tragen den Erstkontakt.
+  const incompleteProfile = active.filter((lexeme) =>
+    analysisGaps(lexeme).some((gap) => CORE_ANALYSIS_DIMENSIONS.includes(gap)),
+  );
+  if (incompleteProfile.length > 0) {
+    add('profile', 'vertiefen', 'profile', { list: listOf(incompleteProfile) }, incompleteProfile);
+  }
+
+  // Einzelwörter tragen selten – eine typische Wendung macht sie verwendbar.
+  const withoutChunk = active.filter(
+    (lexeme) => lexeme.learningGoal === 'productive' && !firstFilled(lexeme.keyCollocation, lexeme.collocations),
+  );
+  if (withoutChunk.length > 0) {
+    add('chunk', 'vertiefen', 'chunk', { list: listOf(withoutChunk) }, withoutChunk);
   }
 
   // Korpusminiaturen: rein formale Hinweise, keine Bewertung der Belege.

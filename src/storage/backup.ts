@@ -181,6 +181,10 @@ export interface SequenceExportDocument {
   phase: {
     title: string;
     canDo: string;
+    /** Art der Aufgabe, für die der Wortschatz gebraucht wird. */
+    taskType: string;
+    /** Die Aufgabe selbst – Ausgangspunkt der Planung. */
+    task: string;
     targetLanguage: string;
     learningGroup: string;
     lexemeCount: number;
@@ -213,6 +217,9 @@ export function buildSequenceExport(
     phase: {
       title: sequence.title,
       canDo: sequence.canDoGoal,
+      // Die Aufgabe, für die der Wortschatz gebraucht wird – Schema 5.
+      taskType: sequence.taskType,
+      task: sequence.targetTask,
       targetLanguage: sequence.targetLanguage,
       learningGroup: sequence.learningGroup,
       lexemeCount: sequence.lexemes.length,

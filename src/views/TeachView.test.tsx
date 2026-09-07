@@ -165,7 +165,7 @@ describe('Korpusminiatur im Unterrichtsmodus', () => {
     throw new Error('Der Schritt „Korpusminiatur“ wurde nicht erreicht.');
   }
 
-  it('erscheint als Schritt der Phase „Muster“ nach „Aussprache und Muster“', async () => {
+  it('erscheint als Schritt der Phase „Muster“ hinter der Kollokation', async () => {
     const user = userEvent.setup();
     setupCorpus();
     await goToCorpus(user);
@@ -173,7 +173,7 @@ describe('Korpusminiatur im Unterrichtsmodus', () => {
     expect(screen.getByText('Phase 3: Muster')).toBeInTheDocument();
     expect(screen.getByText(/Korpusminiatur/)).toBeInTheDocument();
     await user.keyboard('{ArrowLeft}');
-    expect(screen.getByText(/Aussprache und Muster/)).toBeInTheDocument();
+    expect(screen.getByText(/Kollokation ergänzen|Aussprache und Muster/)).toBeInTheDocument();
   });
 
   it('zeigt beim Betreten nur Leitfrage und Belege', async () => {
@@ -387,5 +387,93 @@ describe('Lehrkraftfeld während der Projektion', () => {
     renderWithStore(<TeacherPanel lexeme={lexeme} step={step} ccqIndex={1} />, [demo]);
     expect(screen.getByText('Frage 2 von 2')).toBeInTheDocument();
     expect(screen.getByText(new RegExp(`Erwartet: ${lexeme.ccqs[1].expectedAnswer}`))).toBeInTheDocument();
+  });
+});
+
+describe('Wort herauslocken im Unterricht', () => {
+  function setupElicit() {
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes[0];
+    const sequence = { ...demo, lexemes: [lexeme] };
+    const view = renderWithStore(<TeachView sequenceId={sequence.id} />, [sequence]);
+    return { sequence, lexeme, ...view };
+  }
+
+  async function goTo(user: ReturnType<typeof userEvent.setup>, label: RegExp) {
+    for (let index = 0; index < 16; index += 1) {
+      if (screen.queryByText(label)) return;
+      await user.keyboard('{ArrowRight}');
+    }
+    throw new Error(`Der Schritt ${label} wurde nicht erreicht.`);
+  }
+
+  it('folgt auf die Bedeutungsprüfung und hält das Wort zurück', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupElicit();
+    await goTo(user, /Wort herauslocken/);
+
+    expect(screen.queryByText(lexeme.expression)).not.toBeInTheDocument();
+    await user.keyboard('{ArrowLeft}');
+    expect(screen.getByText(/Bedeutung prüfen/)).toBeInTheDocument();
+  });
+
+  it('gibt erst den Anlaut und dann das Wort', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupElicit();
+    await goTo(user, /Wort herauslocken/);
+
+    await user.click(screen.getByRole('button', { name: 'Anlaut geben' }));
+    expect(screen.getByText(lexeme.wordCue)).toBeInTheDocument();
+    expect(screen.queryByText(lexeme.expression)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Wort nennen' }));
+    expect(screen.getByText(lexeme.expression)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Warten' }));
+    expect(screen.queryByText(lexeme.expression)).not.toBeInTheDocument();
+  });
+});
+
+describe('Aussprache im Unterricht', () => {
+  it('führt die fünf Stufen und zeigt die ganze Wendung', async () => {
+    const user = userEvent.setup();
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes[0];
+    renderWithStore(<TeachView sequenceId={demo.id} />, [{ ...demo, lexemes: [lexeme] }]);
+
+    for (let index = 0; index < 16; index += 1) {
+      if (screen.queryByText(/Aussprache und Muster/)) break;
+      await user.keyboard('{ArrowRight}');
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Aussprache üben' }));
+    expect(screen.getByText(lexeme.keyCollocation)).toBeInTheDocument();
+    expect(screen.getByText('Stufe 1 von 5 · Vorsprechen')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Nächste Stufe' }));
+    expect(screen.getByText('Stufe 2 von 5 · Chorisch')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Einzeln' }));
+    expect(screen.getByText('Stufe 4 von 5 · Einzeln')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Aussprachearbeit beenden' }));
+    expect(screen.queryByText(/Stufe 4 von 5/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Beitrag der Lerngruppe', () => {
+  it('nimmt eine Wendung auf und speichert sie zur Einheit', async () => {
+    const user = userEvent.setup();
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes[0];
+    const { actions } = renderWithStore(<TeachView sequenceId={demo.id} />, [{ ...demo, lexemes: [lexeme] }]);
+
+    await user.click(screen.getByRole('button', { name: 'Beitrag aufnehmen' }));
+    await user.type(screen.getByLabelText('Ausdruck oder Wendung aus der Klasse'), 'On y va !');
+    await user.click(screen.getByRole('button', { name: 'Übernehmen' }));
+
+    expect(actions.updateLexeme).toHaveBeenCalledWith(demo.id, lexeme.id, {
+      classContributions: [...lexeme.classContributions, 'On y va !'],
+    });
   });
 });

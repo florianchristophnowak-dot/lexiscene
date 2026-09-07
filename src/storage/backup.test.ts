@@ -138,7 +138,7 @@ describe('Alte Sicherungen', () => {
     const sequence = restored.sequences[0];
 
     expect(restored.warnings).toEqual([]);
-    expect(sequence.schemaVersion).toBe(4);
+    expect(sequence.schemaVersion).toBe(5);
     expect(sequence.inferenceMode).toBe('off');
     expect(sequence.reactivation).toMatchObject({ offsetsDays: [2, 5], completedRounds: 1, history: [] });
     expect(sequence.lexemes[0]).toMatchObject({
@@ -154,7 +154,7 @@ describe('Alte Sicherungen', () => {
   it('schreibt eine neue Sicherung, die wieder eingelesen werden kann', async () => {
     const demo = createDemoSequence();
     const roundtrip = await parseBackup(await (await buildBackup([demo], [])).arrayBuffer());
-    expect(roundtrip.sequences[0].schemaVersion).toBe(4);
+    expect(roundtrip.sequences[0].schemaVersion).toBe(5);
     expect(roundtrip.sequences[0]).toEqual(demo);
   });
 });
@@ -204,7 +204,7 @@ describe('Korpusminiaturen in Sicherung und Export', () => {
     const document = buildSequenceExport(sequence, describe_);
     const [reimported] = parseSequenceDocument(JSON.stringify(document));
 
-    expect(document.schemaVersion).toBe(4);
+    expect(document.schemaVersion).toBe(5);
     expect(document.phase.steps.map((step) => step.id)).toContain('korpusminiatur');
     expect(reimported.lexemes[0].corpus).toEqual(sequence.lexemes[0].corpus);
   });
@@ -224,7 +224,7 @@ describe('Korpusminiaturen in Sicherung und Export', () => {
       }),
     );
 
-    expect(sequence.schemaVersion).toBe(4);
+    expect(sequence.schemaVersion).toBe(5);
     expect(sequence.lexemes[0].expression).toBe('Ça te dit de… ?');
     expect(sequence.lexemes[0].corpus).toEqual(createCorpusMiniature());
     expect(sequence.steps.korpusminiatur).toBe(false);
@@ -332,7 +332,7 @@ describe('Bedeutungsfragen in Sicherung und Export', () => {
     const document = buildSequenceExport(sequence, describe_);
     const [reimported] = parseSequenceDocument(JSON.stringify(document));
 
-    expect(document.schemaVersion).toBe(4);
+    expect(document.schemaVersion).toBe(5);
     expect(document.locale).toBe('de');
     expect(document.phase.steps.map((step) => step.id)).toContain('ccq');
     expect(reimported.lexemes[0].ccqs).toEqual(sequence.lexemes[0].ccqs);
@@ -371,5 +371,76 @@ describe('Bedeutungsfragen in Sicherung und Export', () => {
     expect(lexeme.checkTemplateId).toBe('');
     expect(lexeme.checkPrompt).toBe('');
     expect(lexeme.ccqs[0].language).toBe('fr');
+  });
+});
+
+describe('Planung vom Ziel her in Sicherung und Export', () => {
+  const withTask = () =>
+    createSequence({
+      title: 'Freizeit verabreden',
+      taskType: 'rollenspiel',
+      targetTask: 'Zu zweit einen Samstagnachmittag verabreden.',
+      lexemes: [
+        createLexeme({
+          expression: 'Ça te dit de… ?',
+          coreMeaning: 'Hast du Lust?',
+          selectionReason: 'Eröffnet den Vorschlag im Rollenspiel.',
+          connotation: 'umgangssprachlich',
+          wordClass: 'wendung',
+          elicitingTechniques: ['mimik', 'kontext'],
+          elicitingContext: 'Zwei Freunde am Freitagnachmittag.',
+          wordCue: 'Ça te…',
+          keyCollocation: 'Ça te dit d’aller au cinéma ?',
+          classContributions: ['On y va !'],
+        }),
+      ],
+    });
+
+  it('überträgt Aufgabe, Technikwahl und Beiträge durch die Sicherung', async () => {
+    const sequence = withTask();
+    const restored = await parseBackup(await (await buildBackup([sequence], [])).arrayBuffer());
+    expect(restored.sequences[0]).toEqual(sequence);
+  });
+
+  it('nennt die Aufgabe im Einzelexport', () => {
+    const document = buildSequenceExport(withTask(), describe_);
+    const [reimported] = parseSequenceDocument(JSON.stringify(document));
+
+    expect(document.schemaVersion).toBe(5);
+    expect(document.phase.task).toBe('Zu zweit einen Samstagnachmittag verabreden.');
+    expect(document.phase.taskType).toBe('rollenspiel');
+    expect(reimported.lexemes[0].elicitingTechniques).toEqual(['mimik', 'kontext']);
+    expect(reimported.lexemes[0].classContributions).toEqual(['On y va !']);
+  });
+
+  it('holt eine ältere Datei ohne die neuen Felder verlustfrei nach', () => {
+    const [sequence] = parseSequenceDocument(
+      JSON.stringify({
+        schemaVersion: 4,
+        title: 'Ältere Sequenz',
+        targetLanguage: 'fr',
+        canDoGoal: 'Die Lernenden können …',
+        lexemes: [{ id: 'lex_1', expression: 'Ça te dit de… ?', coreMeaning: 'Hast du Lust?' }],
+      }),
+    );
+
+    expect(sequence.schemaVersion).toBe(5);
+    expect(sequence.canDoGoal).toBe('Die Lernenden können …');
+    // Nichts wird erfunden: Die Aufgabe bleibt leer, bis sie ergänzt wird.
+    expect(sequence.taskType).toBe('sonstige');
+    expect(sequence.targetTask).toBe('');
+
+    const lexeme = sequence.lexemes[0];
+    expect(lexeme.expression).toBe('Ça te dit de… ?');
+    expect(lexeme.elicitingTechniques).toEqual([]);
+    expect(lexeme.connotation).toBe('unbestimmt');
+    expect(lexeme.wordClass).toBe('unbestimmt');
+    expect(lexeme.classContributions).toEqual([]);
+
+    // Die drei neuen Schritte stehen an ihrer Standardposition.
+    expect(sequence.stepOrder[sequence.stepOrder.indexOf('wort-elizitieren') - 1]).toBe('ccq');
+    expect(sequence.stepOrder[sequence.stepOrder.indexOf('chunk') - 1]).toBe('fokus');
+    expect(sequence.stepOrder[sequence.stepOrder.indexOf('wiederholung') - 1]).toBe('abruf');
+    expect(sequence.steps['wort-elizitieren']).toBe(true);
   });
 });

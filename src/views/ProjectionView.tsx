@@ -56,6 +56,9 @@ export function ProjectionView({ sequenceId }: { sequenceId: string }) {
         ccqIndex={stage.ccqIndex ?? 0}
         showCcqAnswer={stage.showCcqAnswer ?? false}
         showCcqAlternative={stage.showCcqAlternative ?? false}
+        wordReveal={stage.wordReveal ?? 'hidden'}
+        drillStage={stage.drillStage ?? null}
+        recapRevealed={stage.recapRevealed ?? 0}
         mode={stage.mode ?? 'reserve'}
         audience="class"
       />

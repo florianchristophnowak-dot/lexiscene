@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react';
 import type { StepId, TeachingLanguageMode } from '../domain/model';
 import type { CorpusReveal } from '../domain/corpus';
+import type { DrillStage } from '../domain/drill';
+import type { WordReveal } from '../domain/stage';
 import type { StepVisibility } from '../domain/steps';
 
 export const PRESENTATION_CHANNEL = 'lexiscene-praesentation';
@@ -29,6 +31,12 @@ export interface StageState {
   showCcqAnswer: boolean;
   /** Alternative Klärung für die Klasse freigegeben. */
   showCcqAlternative: boolean;
+  /** Stufe beim Herauslocken des Wortes. */
+  wordReveal: WordReveal;
+  /** Laufende Stufe der Aussprachearbeit, sonst `null`. */
+  drillStage: DrillStage | null;
+  /** Aufgedeckte Einträge der kumulativen Wiederholung. */
+  recapRevealed: number;
   /** Sprachmodus des Unterrichts – bestimmt, was projiziert werden darf. */
   mode: TeachingLanguageMode;
   finished: boolean;

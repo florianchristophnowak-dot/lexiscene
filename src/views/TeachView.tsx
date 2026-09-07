@@ -20,6 +20,9 @@ import {
 } from '../domain/steps';
 import { buildSecondaryPrompt } from '../domain/checks';
 import { usableCcqs } from '../domain/ccq';
+import { DRILL_STAGES, nextDrillStage, previousDrillStage, type DrillStage as DrillStageId } from '../domain/drill';
+import { recapItems } from '../domain/recap';
+import type { WordReveal } from '../domain/stage';
 import { CLOSED_CORPUS_REVEAL, corpusStages, type CorpusReveal } from '../domain/corpus';
 import { firstFilled } from '../domain/text';
 import { usePhrase, useT, useTid } from '../i18n/context';
@@ -28,6 +31,13 @@ import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
 import { useToast } from '../ui/toastContext';
 import { TeachStage, TeacherPanel } from './teach/TeachStage';
+
+/** Beschriftung der drei Stufen beim Herauslocken des Wortes. */
+const WORD_REVEAL_LABELS = {
+  hidden: 'teach.word.wait',
+  cue: 'teach.word.cue',
+  full: 'teach.word.full',
+} as const;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -51,6 +61,12 @@ interface RevealState {
   ccqAnswer: boolean;
   /** Alternative Klärung auf dem Lehrkraftbildschirm. */
   alternative: boolean;
+  /** Stufe beim Herauslocken des Wortes. */
+  wordReveal: WordReveal;
+  /** Laufende Stufe der Aussprachearbeit, sonst `null`. */
+  drillStage: DrillStageId | null;
+  /** Aufgedeckte Einträge der kumulativen Wiederholung. */
+  recapRevealed: number;
 }
 
 export function TeachView({ sequenceId }: { sequenceId: string }) {
@@ -78,6 +94,8 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const [finished, setFinished] = useState(false);
   const [reveal, setReveal] = useState<RevealState | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [contributionOpen, setContributionOpen] = useState(false);
+  const [contribution, setContribution] = useState('');
   const [projectionOpen, setProjectionOpen] = useState(false);
   const [feedback, setFeedback] = useState<Record<string, { result: ObservationResult; observationId: string | null }>>({});
 
@@ -104,6 +122,9 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const ccqIndex = current?.ccqIndex ?? 0;
   const showCcqAnswer = current?.ccqAnswer ?? false;
   const showAlternative = current?.alternative ?? false;
+  const wordReveal = current?.wordReveal ?? 'hidden';
+  const drillStage = current?.drillStage ?? null;
+  const recapRevealed = current?.recapRevealed ?? 0;
 
   const revealState = (patch: Partial<Omit<RevealState, 'key'>>) =>
     setReveal({
@@ -116,6 +137,9 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
       ccqIndex,
       ccqAnswer: showCcqAnswer,
       alternative: showAlternative,
+      wordReveal,
+      drillStage,
+      recapRevealed,
       ...patch,
     });
   const revealCorpus = (patch: Partial<CorpusReveal>) => revealState({ corpus: { ...corpusReveal, ...patch } });
@@ -127,6 +151,10 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
 
   const checks = lexeme ? usableCcqs(lexeme) : [];
   const onCcqStep = step?.id === 'ccq';
+  const onElicitStep = step?.id === 'wort-elizitieren';
+  const onDrillStep = step?.id === 'fokus';
+  const onRecapStep = step?.id === 'wiederholung';
+  const recap = useMemo(() => (sequence && lexeme ? recapItems(sequence, lexeme) : []), [lexeme, sequence]);
 
   // Unterbrechen und später fortsetzen.
   useEffect(() => {
@@ -150,6 +178,9 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             ccqIndex,
             showCcqAnswer,
             showCcqAlternative: showAlternative,
+            wordReveal,
+            drillStage,
+            recapRevealed,
             mode,
             finished,
           }
@@ -159,16 +190,19 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   }, [
     ccqIndex,
     corpusReveal,
+    drillStage,
     finished,
     lexeme,
     mode,
     projectionOpen,
+    recapRevealed,
     releaseL1,
     sequenceId,
     showAlternative,
     showCcqAnswer,
     step,
     visibility,
+    wordReveal,
   ]);
 
   const handleProjectionHello = useCallback(() => {
@@ -407,11 +441,16 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
         ccqIndex={ccqIndex}
         showCcqAnswer={showCcqAnswer}
         showCcqAlternative={showAlternative}
+        wordReveal={wordReveal}
+        drillStage={drillStage}
+        recapRevealed={recapRevealed}
         mode={mode}
         audience={projectionOpen ? 'class' : 'teacher'}
       />
 
-      {projectionOpen ? <TeacherPanel lexeme={lexeme} step={step} ccqIndex={ccqIndex} /> : null}
+      {projectionOpen ? (
+        <TeacherPanel lexeme={lexeme} step={step} ccqIndex={ccqIndex} wordReveal={wordReveal} drillStage={drillStage} />
+      ) : null}
 
       {audio.url ? <audio ref={audioRef} src={audio.url} preload="auto" /> : null}
 
@@ -427,6 +466,42 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             />
           </label>
           <Button onClick={() => setNoteOpen(false)}>{t('teach.note.close')}</Button>
+        </div>
+      ) : null}
+
+      {/*
+        * Beiträge der Lerngruppe: Was jemand einbringt, wird zur Einheit
+        * gespeichert und erscheint im Wortfeld – nichts wird bewertet.
+        */}
+      {contributionOpen ? (
+        <div className="teach__bottom">
+          <label className="field teach__note-field">
+            <span className="field__label">{t('teach.contribution.field')}</span>
+            <input
+              className="input"
+              value={contribution}
+              onChange={(event) => setContribution(event.target.value)}
+              placeholder={t('teach.contribution.hint')}
+            />
+          </label>
+          <Button
+            variant="primary"
+            disabled={!contribution.trim()}
+            onClick={() => {
+              const entry = contribution.trim();
+              if (!entry) return;
+              const existing = lexeme.classContributions;
+              if (!existing.includes(entry)) {
+                actions.updateLexeme(sequence.id, lexeme.id, { classContributions: [...existing, entry] });
+              }
+              setContribution('');
+              setContributionOpen(false);
+              toast.show(t('teach.contribution.saved'), 'success');
+            }}
+          >
+            {t('teach.contribution.add')}
+          </Button>
+          <Button onClick={() => setContributionOpen(false)}>{t('teach.contribution.close')}</Button>
         </div>
       ) : null}
 
@@ -468,6 +543,84 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             >
               {t('ccq.showAnswer')}
             </button>
+          ) : null}
+
+          {/*
+            * Das Wort wird gestuft herausgelockt: warten, Anlaut, nennen.
+            * Vorher steht es nirgends – auch nicht über „Schriftbild“.
+            */}
+          {onElicitStep
+            ? (['hidden', 'cue', 'full'] as WordReveal[]).map((stage) => (
+                <button
+                  key={stage}
+                  type="button"
+                  className={wordReveal === stage ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+                  aria-pressed={wordReveal === stage}
+                  onClick={() => revealState({ wordReveal: stage })}
+                >
+                  {t(WORD_REVEAL_LABELS[stage])}
+                </button>
+              ))
+            : null}
+
+          {onDrillStep ? (
+            drillStage ? (
+              <>
+                {DRILL_STAGES.map((stage) => (
+                  <button
+                    key={stage}
+                    type="button"
+                    className={drillStage === stage ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+                    aria-pressed={drillStage === stage}
+                    onClick={() => revealState({ drillStage: stage })}
+                  >
+                    {tid('drill.stage', stage)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="toggle-btn"
+                  onClick={() => revealState({ drillStage: previousDrillStage(drillStage) })}
+                >
+                  {t('drill.previous')}
+                </button>
+                <button
+                  type="button"
+                  className="toggle-btn"
+                  onClick={() => revealState({ drillStage: nextDrillStage(drillStage) })}
+                >
+                  {t('drill.next')}
+                </button>
+                <button type="button" className="toggle-btn" onClick={() => revealState({ drillStage: null })}>
+                  {t('drill.stop')}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="toggle-btn" onClick={() => revealState({ drillStage: 'model' })}>
+                {t('drill.start')}
+              </button>
+            )
+          ) : null}
+
+          {onRecapStep ? (
+            <>
+              <button
+                type="button"
+                className="toggle-btn"
+                disabled={recapRevealed >= recap.length}
+                onClick={() => revealState({ recapRevealed: recapRevealed + 1 })}
+              >
+                {t('teach.recap.reveal')}
+              </button>
+              <button
+                type="button"
+                className="toggle-btn"
+                disabled={recapRevealed === 0}
+                onClick={() => revealState({ recapRevealed: 0 })}
+              >
+                {t('teach.recap.hide')}
+              </button>
+            </>
           ) : null}
 
           <button
@@ -634,6 +787,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             </>
           ) : null}
 
+          <Button onClick={() => setContributionOpen((value) => !value)}>{t('teach.contribution')}</Button>
           <Button onClick={() => setNoteOpen((value) => !value)}>{t('teach.note')}</Button>
           <Button
             onClick={() => {

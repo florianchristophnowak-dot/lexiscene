@@ -1,9 +1,9 @@
 # Datenschema von LexiScène
 
-Version des Schemas: **4** (`schemaVersion: 4`)
-Stand: Version 0.4.0 der Anwendung
+Version des Schemas: **5** (`schemaVersion: 5`)
+Stand: Version 0.5.0 der Anwendung
 
-Dateien der Schemaversionen 1, 2 und 3 werden beim Einlesen vollständig migriert
+Dateien der Schemaversionen 1 bis 4 werden beim Einlesen vollständig migriert
 (siehe Abschnitt 6). Ältere Sicherungen und Exporte bleiben nutzbar.
 
 Alle Daten liegen ausschließlich lokal im Browser (IndexedDB). Dieses Dokument
@@ -15,28 +15,35 @@ andere Werkzeuge übernommen werden können.
 ```jsonc
 {
   "id": "seq_…",              // eindeutige Kennung
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "title": "Freizeit verabreden",
   "targetLanguage": "fr",     // fr | en | es | it | ru | la (offen erweiterbar)
   "learningGroup": "Klasse 7 · Französisch, 2. Lernjahr",
   "learnerLevel": "mittelstufe",   // anfaenger | mittelstufe | fortgeschritten
   "topic": "Am Wochenende gemeinsam etwas unternehmen",
   "canDoGoal": "Die Lernenden können …",
+  "taskType": "rollenspiel",   // gespraech | rollenspiel | diskussion | hoertext | lesetext | lied | sonstige
+  "targetTask": "Zu zweit einen Samstagnachmittag verabreden.",
   "teacherNote": "nur in der Vorbereitung sichtbar",
   "archived": false,
   "steps": {                  // Standarddramaturgie, je Schritt an/aus
     "situation": true, "impuls": true, "audio": true, "vermuten": true,
     "klaeren": true,
     "ccq": true,              // Bedeutung prüfen; entfällt ohne brauchbare Frage
+    "wort-elizitieren": true, // Wort herauslocken; entfällt ohne Ausdruck
     "form": true, "fokus": true,
+    "chunk": true,            // Kollokation ergänzen; entfällt ohne Wendung
     "korpusminiatur": false,  // Angebot: standardmäßig aus (siehe 2c)
     "kontrolle": true,        // Abrufkontrolle (früher „Verständniskontrolle“)
-    "hilfen-ausblenden": true, "abruf": true, "aufgabe": true
+    "hilfen-ausblenden": true, "abruf": true,
+    "wiederholung": true,     // kumulativ; erst ab der zweiten Einheit
+    "aufgabe": true
   },
   "inferenceMode": "optional", // off | optional | planned – Bedeutung erschließen lassen
   "stepOrder": [              // frei sortierbare Reihenfolge der Schritte
-    "situation", "impuls", "audio", "vermuten", "klaeren", "ccq", "form",
-    "fokus", "korpusminiatur", "kontrolle", "hilfen-ausblenden", "abruf", "aufgabe"
+    "situation", "impuls", "vermuten", "klaeren", "ccq", "wort-elizitieren",
+    "audio", "form", "fokus", "chunk", "korpusminiatur", "kontrolle",
+    "hilfen-ausblenden", "abruf", "wiederholung", "aufgabe"
   ],
   "lexemes": [ /* siehe 2. */ ],
   "reactivation": {
@@ -78,6 +85,14 @@ Einzelwörter (`Ça te dit de… ?`, `avoir besoin de qc`).
 | `confusionGroup` | frei gewählte Bezeichnung einer Verwechslungsgruppe |
 | `semantisationMethod` | Freitext; der Berater schlägt typgerechte Methoden vor |
 | `repertoire` | `kern`, `stuetze`, `erweiterung` |
+| `selectionReason` | Warum diese Einheit? Bezug zur Zielaufgabe – nur für die Lehrkraft |
+| `connotation` | `unbestimmt`, `neutral`, `positiv`, `negativ`, `formell`, `umgangssprachlich`, `emotional` |
+| `wordClass` | `unbestimmt`, `nomen`, `verb`, `adjektiv`, `adverb`, `wendung`, `sonstige` |
+| `elicitingTechniques` | gewählte Techniken (siehe 2e), Kennungen in Katalogreihenfolge |
+| `elicitingContext` | vorbereiteter Kontext oder Impuls – nur für die Lehrkraft |
+| `wordCue` | Anlaut oder erste Buchstaben; leer = die App kürzt den Ausdruck |
+| `keyCollocation` | zentrale Wendung, die bei der Einführung ergänzt wird |
+| `classContributions` | im Unterricht aufgenommene Beiträge der Lerngruppe |
 | `imageId`, `audioId`, `videoId` | Verweise auf lokale Mediendateien |
 
 **Aussprache und Form:** `pronunciationHint`, `prosodyNote`, `ipa`, `morphology`
@@ -106,6 +121,11 @@ gültig, die Schemaversion ändert sich dadurch nicht.
 | `translation` | Erstsprache | Klasse, sofern der Sprachmodus es zulässt |
 | `targetPrompt` | Zielsprache | Klasse (Unterrichtsimpuls) |
 | `ccqs[].question` | Zielsprache | Klasse |
+| `keyCollocation` | Zielsprache | Klasse |
+| `wordCue` | Zielsprache | Klasse (im Schritt „Wort herauslocken“) |
+| `classContributions` | Zielsprache | Klasse |
+| `elicitingContext` | Bediensprache | nur Lehrkraft |
+| `selectionReason` | Bediensprache | nur Lehrkraft |
 | `teacherNote` | Bediensprache | nur Lehrkraft |
 
 Alle sechs Felder sind Freitext und werden **nie automatisch übersetzt oder
@@ -139,14 +159,14 @@ aus dem sich keine Kompetenz ableiten lässt – etwa eine frühere Reaktivierun
 
 ## 2b. Phasen
 
-Die dreizehn Schritte sind sechs Phasen zugeordnet:
+Die sechzehn Schritte sind sechs Phasen zugeordnet:
 
 | Phase | Schritte |
 | --- | --- |
 | 1 Kontext | `situation`, `impuls` |
 | 2 Klarheit | `vermuten`, `klaeren`, `ccq` |
-| 3 Muster | `audio`, `form`, `fokus`, `korpusminiatur` |
-| 4 Abruf | `kontrolle`, `hilfen-ausblenden`, `abruf` |
+| 3 Muster | `wort-elizitieren`, `audio`, `form`, `fokus`, `chunk`, `korpusminiatur` |
+| 4 Abruf | `kontrolle`, `hilfen-ausblenden`, `abruf`, `wiederholung` |
 | 5 Gebrauch | `aufgabe` |
 | 6 Wiederbegegnung | Reaktivierungsbereich (keine Schritte im Unterrichtsmodus) |
 
@@ -233,6 +253,33 @@ Vorlage. Der Schritt `ccq` wird nur angeboten, wenn mindestens eine Frage einen
 Text oder eine Vorlage mit Fragerahmen trägt. Fragen entstehen nie automatisch:
 Vorlagen und Fragestämme liefern Gerüste, formuliert wird von Hand.
 
+## 2e. Techniken zum Herauslocken (`elicitingTechniques`)
+
+Zehn Kennungen, gespeichert in der Reihenfolge des Katalogs; unbekannte und
+doppelte Einträge fallen beim Einlesen weg.
+
+| Kennung | Besonders geeignet für |
+| --- | --- |
+| `mimik` | Handlungen und sichtbare Eigenschaften |
+| `bild` | konkrete Gegenstände, Handlungen und Situationen |
+| `zeichnung` | schnell darstellbare Konzepte |
+| `realie` | Gegenstände, die sich mitbringen lassen |
+| `pantomime` | Gegenstände, die nicht verfügbar sind |
+| `synonym` | wenn ein verwandtes Wort schon bekannt ist |
+| `antonym` | eindeutig kontrastierbare Begriffe |
+| `beispiele` | Oberbegriffe und Kategorien |
+| `kontext` | abstrakte oder nuancierte Bedeutungen |
+| `definition` | was sich nicht sinnvoll zeigen lässt |
+
+Die Empfehlung (`recommendElicitingTechniques`) ergibt sich aus dem Profil der
+Einheit – lexikalischer Typ, Bildhaftigkeit, Lernniveau – und wird nur angezeigt.
+Gespeichert wird ausschließlich, was die Lehrkraft auswählt.
+
+Die Stufen der Aussprachearbeit (`model`, `chorus`, `groups`, `individual`,
+`listen`) und die Stufen beim Herauslocken (`hidden`, `cue`, `full`) sind reine
+Regiezustände. Sie gehören zum laufenden Unterricht, werden an das
+Projektionsfenster gesendet und **nicht** gespeichert.
+
 ## 3. Sicherungsdatei (ZIP)
 
 ```
@@ -248,8 +295,8 @@ lexiscene-sicherung-JJJJ-MM-TT.zip
 {
   "format": "lexiscene-backup",
   "version": 1,
-  "schemaVersion": 4,
-  "app": { "name": "LexiScène", "version": "0.4.0" },
+  "schemaVersion": 5,
+  "app": { "name": "LexiScène", "version": "0.5.0" },
   "createdAt": "2026-09-04T20:57:08.614Z",
   "sequences": [ /* vollständige Sequenzen */ ],
   "media": [
@@ -276,13 +323,15 @@ beschreibt:
 {
   "format": "lexiscene.sequence",
   "version": 1,
-  "schemaVersion": 4,
-  "app": { "name": "LexiScène", "version": "0.4.0" },
+  "schemaVersion": 5,
+  "app": { "name": "LexiScène", "version": "0.5.0" },
   "exportedAt": "2026-09-04T20:58:35.519Z",
   "locale": "de",              // Sprache, in der Bezeichnung und Zweck der Schritte beschrieben sind
   "phase": {
     "title": "Freizeit verabreden",
     "canDo": "Die Lernenden können …",
+    "taskType": "rollenspiel",
+    "task": "Zu zweit einen Samstagnachmittag verabreden.",
     "targetLanguage": "fr",
     "learningGroup": "Klasse 7 · Französisch, 2. Lernjahr",
   "learnerLevel": "mittelstufe",   // anfaenger | mittelstufe | fortgeschritten
@@ -306,9 +355,9 @@ Abbildung von `phase` auf dessen Phasenobjekt.
 
 `normalizeSequence` überführt ältere Dateien vollständig.
 
-### Schema 1 → 4
+### Schema 1 → 5
 
-| Schema 1 | Schema 4 |
+| Schema 1 | Schema 5 |
 | --- | --- |
 | `steps.vermuten: true` | `inferenceMode: "optional"` (Schritt bleibt möglich) |
 | `steps.vermuten: false` | `inferenceMode: "off"` |
@@ -323,9 +372,9 @@ Abbildung von `phase` auf dessen Phasenobjekt.
 | kein Profil | Startwerte aus dem lexikalischen Typ |
 | `reactivation` ohne Verlauf | `history: []`, `prioritiseUnsure: true` |
 
-### Schema 2 → 4
+### Schema 2 → 5
 
-| Schema 2 | Schema 4 |
+| Schema 2 | Schema 5 |
 | --- | --- |
 | kein `corpus` | leere, **deaktivierte** Korpusminiatur |
 | kein `steps.korpusminiatur` | `false` – kein zusätzlicher Unterrichtsschritt |
@@ -365,6 +414,25 @@ Sitzungsstand und Reaktivierungsplan bleiben unverändert erhalten. Sequenzen
 ohne gespeicherte Reihenfolge erhalten die an den Phasen ausgerichtete
 Standardreihenfolge; fehlende Schritte werden an ihrer Standardposition
 ergänzt, nicht am Ende angehängt.
+
+### Schema 4 → 5
+
+Die Planung beginnt jetzt bei der Aufgabe, und die Routine bekommt drei
+Schritte. Nichts davon greift in vorhandene Inhalte ein.
+
+| Schema 4 | Schema 5 |
+| --- | --- |
+| kein `taskType` / `targetTask` | `sonstige` und leerer Text – die Aufgabe wird nicht erfunden |
+| kein `selectionReason`, `elicitingContext`, `wordCue`, `keyCollocation` | leere Felder |
+| kein `elicitingTechniques` | leere Liste – es wird nichts vorbelegt |
+| kein `connotation` / `wordClass` | `unbestimmt` |
+| kein `classContributions` | leere Liste |
+| kein `steps.wort-elizitieren`, `steps.chunk`, `steps.wiederholung` | `true`; die Schritte entfallen automatisch, solange kein Material vorliegt |
+| `stepOrder` ohne die drei Schritte | eingefügt an ihrer Standardposition: hinter `ccq`, hinter `fokus`, hinter `abruf` |
+
+Eigene Reihenfolgen bleiben erhalten: Ergänzt wird jeweils hinter dem nächsten
+vorhandenen Vorgänger der Standardreihenfolge. Der Einzelexport beschreibt die
+Aufgabe zusätzlich im `phase`-Block (`taskType`, `task`).
 
 ## 6a. Örtliche Einstellungen
 

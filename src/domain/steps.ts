@@ -1,7 +1,7 @@
 /**
  * Dramaturgie einer Semantisierung.
  *
- * Über den dreizehn Mikro-Schritten liegen sechs didaktische Phasen:
+ * Über den sechzehn Mikro-Schritten liegen sechs didaktische Phasen:
  * Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung.
  * Die Phasen geben die Grundstruktur; welche Schritte darin vorkommen und in
  * welcher Reihenfolge, entscheidet die Lehrkraft je Sequenz und Einheit.
@@ -13,6 +13,7 @@ import type { Lexeme, ObservationDimension, PhaseId, Sequence, StepId } from './
 import { checkTemplate } from './checks';
 import { corpusMiniatureReady } from './corpus';
 import { ccqDimension, hasUsableCcq } from './ccq';
+import { recapItems } from './recap';
 
 export interface PhaseDefinition {
   id: PhaseId;
@@ -49,15 +50,21 @@ export const STEPS: readonly StepDefinition[] = [
   { id: 'klaeren', position: 4, phase: 'klarheit' },
   // Bedeutung prüfen: erst nach der Klärung, und ausdrücklich vor der Form.
   { id: 'ccq', position: 5, phase: 'klarheit' },
-  { id: 'audio', position: 6, phase: 'muster' },
-  { id: 'form', position: 7, phase: 'muster' },
-  { id: 'fokus', position: 8, phase: 'muster' },
-  { id: 'korpusminiatur', position: 9, phase: 'muster' },
+  // Erst wenn das Konzept steht, wird das Wort selbst herausgelockt.
+  { id: 'wort-elizitieren', position: 6, phase: 'muster' },
+  { id: 'audio', position: 7, phase: 'muster' },
+  { id: 'form', position: 8, phase: 'muster' },
+  { id: 'fokus', position: 9, phase: 'muster' },
+  // Eine zentrale Kollokation wird als Ganzes ergänzt und gesprochen.
+  { id: 'chunk', position: 10, phase: 'muster' },
+  { id: 'korpusminiatur', position: 11, phase: 'muster' },
   // Die Abrufkontrolle prüft die sprachliche Form, nicht mehr das Konzept.
-  { id: 'kontrolle', position: 10, phase: 'abruf' },
-  { id: 'hilfen-ausblenden', position: 11, phase: 'abruf' },
-  { id: 'abruf', position: 12, phase: 'abruf' },
-  { id: 'aufgabe', position: 13, phase: 'gebrauch' },
+  { id: 'kontrolle', position: 12, phase: 'abruf' },
+  { id: 'hilfen-ausblenden', position: 13, phase: 'abruf' },
+  { id: 'abruf', position: 14, phase: 'abruf' },
+  // Kumulative Wiederholung vor dem eigenen Sprachhandeln.
+  { id: 'wiederholung', position: 15, phase: 'abruf' },
+  { id: 'aufgabe', position: 16, phase: 'gebrauch' },
 ];
 
 /**
@@ -188,6 +195,13 @@ export function stepHasContent(id: StepId, lexeme: Lexeme, sequence?: Sequence):
       );
     case 'ccq':
       return hasUsableCcq(lexeme);
+    case 'wort-elizitieren':
+      return hasText(lexeme.expression);
+    case 'chunk':
+      return hasText(lexeme.keyCollocation, lexeme.collocations);
+    case 'wiederholung':
+      // Wiederholt wird kumulativ – vor der ersten Einheit gibt es nichts.
+      return recapItems(sequence, lexeme).length > 0;
     case 'korpusminiatur':
       return corpusMiniatureReady(lexeme.corpus);
     case 'kontrolle':
@@ -245,10 +259,13 @@ export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension
       return lexeme ? ccqDimension(lexeme) : 'meaning';
     case 'audio':
     case 'form':
+    case 'wort-elizitieren':
     case 'hilfen-ausblenden':
     case 'abruf':
+    case 'wiederholung':
       return 'form';
     case 'fokus':
+    case 'chunk':
     case 'korpusminiatur':
       return 'pattern';
     case 'aufgabe':
@@ -262,7 +279,7 @@ export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension
 
 /** In diesen Schritten ist eine Rückmeldung der Lerngruppe sinnvoll. */
 export function stepInvitesFeedback(id: StepId): boolean {
-  return ['ccq', 'kontrolle', 'hilfen-ausblenden', 'abruf', 'aufgabe'].includes(id);
+  return ['ccq', 'kontrolle', 'hilfen-ausblenden', 'abruf', 'wiederholung', 'aufgabe'].includes(id);
 }
 
 /** Sichtbarkeit der Hilfen beim Betreten eines Schritts (gestufte Enthüllung). */
@@ -292,6 +309,12 @@ const STEP_VISIBILITY_EXCEPTIONS: Partial<Record<StepId, Partial<StepVisibility>
   // Bei der Bedeutungsprüfung steht die Frage allein; die Erklärung würde sie
   // beantworten, bevor die Klasse antworten kann.
   ccq: { meaning: false, form: false, support: false },
+  // Das Wort wird herausgelockt – es steht erst da, wenn die Lehrkraft es zeigt.
+  'wort-elizitieren': { meaning: true, form: false, support: false },
+  // Beim Chunk trägt die Wendung selbst; die Bedeutung ist geklärt.
+  chunk: { meaning: false, form: true, support: false },
+  // Die Wiederholung ruft ab: Nichts steht von allein da.
+  wiederholung: { meaning: false, form: false, support: false },
   // Innerhalb der Phase „Muster“ kommt das Klangbild vor dem Schriftbild.
   audio: { form: false },
   // Im Fokusschritt stehen Musteranker und Lautung im Vordergrund.
