@@ -3,17 +3,23 @@ import {
   CHECK_TEMPLATES,
   DEMAND_LADDER,
   buildCheckPrompt,
-  buildCounterpartPrompt,
   buildSecondaryPrompt,
-  checkDemandLabel,
+  buildTemplatePrompt,
   checkTemplate,
   counterpartCheck,
   coversBothDirections,
+  hasCheckPrompt,
   recommendedChecks,
   secondaryCheck,
   suggestRetrievalProgression,
 } from './checks';
+import { isCcqTemplateId } from './ccq';
+import { de } from '../i18n/de';
+import { promptFor } from '../i18n/prompts';
 import { createLexeme } from './schema';
+
+/** Zielsprachlicher Impuls wie im Unterricht – hier auf Französisch. */
+const phrase = (key: string, params?: Record<string, string>) => promptFor('fr', key, params);
 
 const productive = () =>
   createLexeme({
@@ -33,21 +39,30 @@ describe('Klassifikation der Abrufvorlagen', () => {
     for (const template of CHECK_TEMPLATES) {
       expect(['meaning', 'form', 'pattern', 'use']).toContain(template.target);
       expect(DEMAND_LADDER).toContain(template.demand);
-      expect(checkDemandLabel(template.demand).length).toBeGreaterThan(3);
+      expect(de[`check.demand.${template.demand}`].length).toBeGreaterThan(3);
+      // Jede Vorlage hat Bezeichnung, Zweck und zielsprachlichen Impuls.
+      expect(de[`check.${template.id}` as keyof typeof de]).toBeTruthy();
+      expect(de[`check.${template.id}.purpose` as keyof typeof de]).toBeTruthy();
+      expect(phrase(template.prompt)).toBeTruthy();
     }
   });
 
-  it('deckt beide Richtungen ab', () => {
+  it('deckt die produktiven Richtungen ab', () => {
     const directions = new Set(CHECK_TEMPLATES.map((template) => template.direction));
-    expect(directions.has('l2-to-meaning')).toBe(true);
     expect(directions.has('meaning-to-l2')).toBe(true);
     expect(directions.has('context-to-l2')).toBe(true);
     expect(directions.has('pattern-completion')).toBe(true);
+    expect(directions.has('l2-to-reaction')).toBe(true);
   });
 
-  it('deckt alle Anforderungsstufen ab', () => {
-    for (const demand of DEMAND_LADDER) {
-      expect(CHECK_TEMPLATES.some((template) => template.demand === demand)).toBe(true);
+  it('enthält keine Bedeutungsprüfung mehr', () => {
+    // Die fünf CCQ-Vorlagen sind in `ccq.ts` gewandert.
+    for (const template of CHECK_TEMPLATES) {
+      expect(isCcqTemplateId(template.id)).toBe(false);
+    }
+    for (const id of ['welches-bild', 'welche-situation', 'beispiel-nichtbeispiel', 'welche-bedeutung', 'sprechhandlung']) {
+      expect(checkTemplate(id)).toBeUndefined();
+      expect(isCcqTemplateId(id)).toBe(true);
     }
   });
 });
@@ -75,71 +90,81 @@ describe('Progression', () => {
   it('lässt Vorlagen ohne passendes Material aus', () => {
     const sparse = createLexeme({ expression: 'le pain', coreMeaning: 'das Brot', learningGoal: 'productive' });
     const ids = suggestRetrievalProgression(sparse).map((template) => template.id);
-    expect(ids).not.toContain('welches-bild');
+    expect(ids).not.toContain('situation-zu-ausdruck');
     expect(ids).not.toContain('einheit-verwenden');
   });
 });
 
 describe('Gegenrichtung', () => {
-  it('bietet zu einer rezeptiven Aufgabe eine produktive an', () => {
-    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'welche-situation' });
+  it('bietet zu einer Bedeutung-→-Form-Aufgabe eine kontextbasierte an', () => {
+    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'ausdruck-auswaehlen' });
     const counterpart = counterpartCheck(lexeme);
-    expect(counterpart?.direction).not.toBe('l2-to-meaning');
-    expect(buildCounterpartPrompt(lexeme).length).toBeGreaterThan(5);
+    expect(['context-to-l2', 'l2-to-reaction']).toContain(counterpart?.direction);
   });
 
-  it('bietet zu einer produktiven Aufgabe eine rezeptive an', () => {
+  it('bietet zu einer kontextbasierten Aufgabe eine Bedeutung-→-Form-Aufgabe an', () => {
     const lexeme = createLexeme({ ...productive(), checkTemplateId: 'einheit-verwenden' });
-    expect(counterpartCheck(lexeme)?.direction).toBe('l2-to-meaning');
+    expect(['meaning-to-l2', 'pattern-completion']).toContain(counterpartCheck(lexeme)?.direction);
   });
 });
 
 describe('Aufgabentext', () => {
   it('bevorzugt die eigene Formulierung', () => {
-    const lexeme = createLexeme({ expression: 'x', checkTemplateId: 'welches-bild', checkPrompt: 'Eigene Frage' });
-    expect(buildCheckPrompt(lexeme)).toBe('Eigene Frage');
+    const lexeme = createLexeme({ expression: 'x', checkTemplateId: 'einheit-verwenden', checkPrompt: 'Eigene Frage' });
+    expect(buildCheckPrompt(lexeme, phrase)).toBe('Eigene Frage');
   });
 
-  it('füllt die Vorlage mit den Daten der Einheit', () => {
-    const lexeme = createLexeme({ expression: 'faire du skate', checkTemplateId: 'welches-bild' });
-    expect(buildCheckPrompt(lexeme)).toBe('Welches Bild passt zu „faire du skate“?');
+  it('baut den Impuls in der Zielsprache auf', () => {
+    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'situation-zu-ausdruck' });
+    expect(buildCheckPrompt(lexeme, phrase)).toBe('Zwei Jugendliche verabreden sich. – comment le dit-on ?');
+    // Dieselbe Vorlage in einer anderen Zielsprache.
+    const english = (key: string, params?: Record<string, string>) => promptFor('en', key, params);
+    expect(buildCheckPrompt(lexeme, english)).toBe('Zwei Jugendliche verabreden sich. – how do you say it?');
   });
 
   it('liefert ohne Vorlage nichts', () => {
-    expect(buildCheckPrompt(createLexeme({ expression: 'x' }))).toBe('');
+    expect(buildCheckPrompt(createLexeme({ expression: 'x' }), phrase)).toBe('');
+    expect(hasCheckPrompt(createLexeme({ expression: 'x' }))).toBe(false);
     expect(checkTemplate('gibt-es-nicht')).toBeUndefined();
   });
 
   it('empfiehlt passende Vorlagen je Typ', () => {
     expect(recommendedChecks('sprechakt').map((entry) => entry.id)).toContain('welche-reaktion');
-    expect(recommendedChecks('polysem').map((entry) => entry.id)).toContain('welche-bedeutung');
+    expect(recommendedChecks('kollokation').map((entry) => entry.id)).toContain('welcher-ausdruck-fehlt');
   });
 });
 
 describe('Zweite Abrufaufgabe', () => {
   it('nutzt den Vorschlag der App, solange nichts gewählt ist', () => {
-    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'welche-situation' });
+    const lexeme = createLexeme({ ...productive(), checkTemplateId: 'ausdruck-auswaehlen' });
     expect(secondaryCheck(lexeme)).toEqual(counterpartCheck(lexeme));
-    expect(buildSecondaryPrompt(lexeme)).toBe(buildCounterpartPrompt(lexeme));
+    const suggested = counterpartCheck(lexeme);
+    expect(buildSecondaryPrompt(lexeme, phrase)).toBe(
+      suggested ? buildTemplatePrompt(suggested, lexeme, phrase) : '',
+    );
   });
 
   it('bevorzugt die ausdrücklich gewählte Aufgabe', () => {
     const lexeme = createLexeme({
       ...productive(),
-      checkTemplateId: 'welche-situation',
+      checkTemplateId: 'ausdruck-auswaehlen',
       checkTemplateIdSecondary: 'welcher-ausdruck-fehlt',
     });
     expect(secondaryCheck(lexeme)?.id).toBe('welcher-ausdruck-fehlt');
-    expect(buildSecondaryPrompt(lexeme)).toMatch(/Ergänzt/);
+    expect(buildSecondaryPrompt(lexeme, phrase)).toMatch(/Complétez/);
   });
 
   it('erkennt, ob beide Richtungen vorbereitet sind', () => {
-    const onlyReceptive = createLexeme({ ...productive(), checkTemplateId: 'welche-situation' });
-    expect(coversBothDirections(onlyReceptive)).toBe(false);
+    const single = createLexeme({
+      ...productive(),
+      checkTemplateId: 'ausdruck-auswaehlen',
+      checkTemplateIdSecondary: 'welcher-ausdruck-fehlt',
+    });
+    expect(coversBothDirections(single)).toBe(false);
 
     const both = createLexeme({
       ...productive(),
-      checkTemplateId: 'welche-situation',
+      checkTemplateId: 'ausdruck-auswaehlen',
       checkTemplateIdSecondary: 'situation-zu-ausdruck',
     });
     expect(coversBothDirections(both)).toBe(true);

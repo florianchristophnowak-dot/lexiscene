@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useStageSubscription } from '../app/presentation';
 import { useStore } from '../app/storeContext';
+import { APP_NAME } from '../domain/model';
 import { CLOSED_CORPUS_REVEAL } from '../domain/corpus';
 import { stepDefinition } from '../domain/steps';
+import { useT } from '../i18n/context';
 import { Button } from '../ui/Button';
 import { TeachStage } from './teach/TeachStage';
 
@@ -14,6 +16,7 @@ import { TeachStage } from './teach/TeachStage';
 export function ProjectionView({ sequenceId }: { sequenceId: string }) {
   const { state } = useStore();
   const stage = useStageSubscription();
+  const t = useT();
 
   const sequence = state.sequences.find((entry) => entry.id === (stage?.sequenceId ?? sequenceId));
   const lexeme = stage ? sequence?.lexemes.find((entry) => entry.id === stage.lexemeId) : undefined;
@@ -21,7 +24,7 @@ export function ProjectionView({ sequenceId }: { sequenceId: string }) {
 
   useEffect(() => {
     const previous = document.title;
-    document.title = sequence ? `${sequence.title} – Projektion` : 'LexiScène – Projektion';
+    document.title = sequence ? `${sequence.title} – ${APP_NAME}` : APP_NAME;
     return () => {
       document.title = previous;
     };
@@ -32,13 +35,9 @@ export function ProjectionView({ sequenceId }: { sequenceId: string }) {
       <div className="teach">
         <div className="teach__stage">
           <div className="projection__waiting">
-            <p className="teach__step">{stage?.finished ? 'Sequenz abgeschlossen' : 'Bereit'}</p>
-            <p className="teach__situation">
-              {stage?.finished
-                ? sequence?.title
-                : 'Dieses Fenster zeigt gleich die Projektion. Die Steuerung bleibt im Fenster der Lehrkraft.'}
-            </p>
-            <Button onClick={() => window.close()}>Fenster schließen</Button>
+            <p className="teach__step">{stage?.finished ? t('teach.finished') : t('teach.projection.ready')}</p>
+            <p className="teach__situation">{stage?.finished ? sequence?.title : t('teach.projection.waiting')}</p>
+            <Button onClick={() => window.close()}>{t('teach.projection.closeWindow')}</Button>
           </div>
         </div>
       </div>
@@ -52,11 +51,15 @@ export function ProjectionView({ sequenceId }: { sequenceId: string }) {
         lexeme={lexeme}
         step={step}
         visibility={stage.visibility}
-        showTranslation={stage.showTranslation}
+        releaseL1={stage.releaseL1 ?? false}
         corpusReveal={stage.corpusReveal ?? CLOSED_CORPUS_REVEAL}
-        teacherView={false}
+        ccqIndex={stage.ccqIndex ?? 0}
+        showCcqAnswer={stage.showCcqAnswer ?? false}
+        showCcqAlternative={stage.showCcqAlternative ?? false}
+        mode={stage.mode ?? 'reserve'}
+        audience="class"
       />
-      <p className="projection__hint">Projektion · Steuerung im Fenster der Lehrkraft</p>
+      <p className="projection__hint">{t('teach.projection.hint')}</p>
     </div>
   );
 }

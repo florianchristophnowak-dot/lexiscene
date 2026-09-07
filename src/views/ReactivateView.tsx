@@ -5,6 +5,7 @@ import type { Sequence } from '../domain/model';
 import { DAY_MS, OFFSET_PRESETS, buildImpulses, isSequenceDue as isDue, nextDueAt, unsureCount } from '../domain/reactivation';
 import { formatDate, formatRelativeDays } from '../domain/text';
 import { summarizeObservations } from '../domain/observations';
+import { usePhrase, useT, useTid } from '../i18n/context';
 import { Button } from '../ui/Button';
 import { CheckboxRow, SelectField, TextField } from '../ui/Field';
 import { EmptyState, Notice } from '../ui/Feedback';
@@ -27,18 +28,20 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
   const plan = sequence.reactivation;
   const due = nextDueAt(sequence);
 
+  const t = useT();
+  const tid = useTid();
   const updatePlan = (patch: Partial<Sequence['reactivation']>) =>
     actions.updateSequence(sequence.id, { reactivation: { ...plan, ...patch } });
 
   return (
     <section className="panel">
       <div className="panel__header">
-        <span className="panel__title">Reaktivierungsplanung</span>
+        <span className="panel__title">{t('reactivate.planning')}</span>
       </div>
       <div className="panel__body stack">
         <CheckboxRow
-          label="Reaktivierung für diese Sequenz planen"
-          hint="Erzeugt Erinnerungen an frei gewählten Abständen – ohne automatische Bewertung."
+          label={t('reactivate.plan.enable')}
+          hint={t('reactivate.plan.enable.hint')}
           checked={plan.enabled}
           onChange={(enabled) =>
             updatePlan({ enabled, anchor: enabled && plan.anchor === null ? Date.now() : plan.anchor })
@@ -50,51 +53,59 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
             <div className="offsets">
               {OFFSET_PRESETS.map((preset) => (
                 <Button
-                  key={preset.label}
+                  key={preset.id}
                   onClick={() => {
                     updatePlan({ offsetsDays: preset.offsets, completedRounds: 0 });
                     setOffsetsText(preset.offsets.join(', '));
-                    toast.show(preset.note);
+                    toast.show(tid('reactivate.preset', `${preset.id}.hint`));
                   }}
                 >
-                  {preset.label}
+                  {tid('reactivate.preset', preset.id)}
                 </Button>
               ))}
             </div>
 
             <TextField
-              label="Eigene Abstände in Tagen"
+              label={t('reactivate.plan.offsets')}
               value={offsetsText}
               onChange={setOffsetsText}
-              hint="Zum Beispiel: 1, 4, 10. Es gibt kein einzig richtiges Intervall – wählen Sie, was zu Ihrem Stundenplan passt."
+              hint={t('reactivate.plan.offsets.hint')}
             />
             <div className="row">
               <Button
                 onClick={() => {
                   const offsets = parseOffsets(offsetsText);
                   if (offsets.length === 0) {
-                    toast.show('Bitte mindestens einen Abstand in Tagen angeben.', 'error');
+                    toast.show(t('reactivate.offsetsRequired'), 'error');
                     return;
                   }
                   updatePlan({ offsetsDays: offsets });
-                  toast.show('Abstände übernommen.');
+                  toast.show(t('reactivate.offsetsSaved'));
                 }}
               >
-                Abstände übernehmen
+                {t('reactivate.plan.apply')}
               </Button>
-              <Button onClick={() => updatePlan({ anchor: Date.now(), completedRounds: 0 })}>Ab heute rechnen</Button>
+              <Button onClick={() => updatePlan({ anchor: Date.now(), completedRounds: 0 })}>
+                {t('reactivate.fromToday')}
+              </Button>
             </div>
 
             <p className="muted text-sm">
               {plan.anchor
-                ? `Startpunkt: ${formatDate(plan.anchor)} · Runde ${plan.completedRounds + 1} von ${plan.offsetsDays.length}`
-                : 'Noch kein Startpunkt gesetzt.'}
-              {due ? ` · nächste Reaktivierung ${formatRelativeDays(due, now)} (${formatDate(due)})` : ' · alle Runden abgeschlossen'}
+                ? t('reactivate.plan.anchor', {
+                    date: formatDate(plan.anchor),
+                    round: plan.completedRounds + 1,
+                    total: plan.offsetsDays.length,
+                  })
+                : t('reactivate.noAnchor')}
+              {due
+                ? t('reactivate.plan.next', { relative: formatRelativeDays(due, now), date: formatDate(due) })
+                : t('reactivate.plan.allDone')}
             </p>
 
             <CheckboxRow
-              label="Unsichere Einheiten zuerst zeigen"
-              hint="Einheiten, die zuletzt „mit Hilfe“ oder „noch nicht“ waren, stehen vorn. Eine transparente Heuristik, kein Lernalgorithmus."
+              label={t('reactivate.plan.prioritise')}
+              hint={t('reactivate.plan.prioritise.hint')}
               checked={plan.prioritiseUnsure}
               onChange={(prioritiseUnsure) => updatePlan({ prioritiseUnsure })}
             />
@@ -102,23 +113,26 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
             {due !== null ? (
               <div className="row">
                 <Button onClick={() => updatePlan({ anchor: Date.now() - DAY_MS * plan.offsetsDays[plan.completedRounds] })}>
-                  Jetzt fällig stellen
+                  {t('reactivate.plan.due')}
                 </Button>
               </div>
             ) : null}
 
-            <p className="muted text-sm">
-              Eine Runde gilt erst als durchgeführt, wenn sie im Unterrichtsmodus mit „Runde abschließen“ beendet wird.
-            </p>
+            <p className="muted text-sm">{t('reactivate.plan.roundNote')}</p>
 
             {plan.history.length > 0 ? (
               <div className="stack-tight">
-                <span className="field__label">Verlauf</span>
+                <span className="field__label">{t('reactivate.history')}</span>
                 <ul className="stack-tight">
                   {[...plan.history].reverse().map((round) => (
                     <li key={round.round} className="muted text-sm">
-                      Runde {round.round} · {formatDate(round.completedAt)} · {round.secure}× sicher, {round.supported}× mit
-                      Hilfe, {round.notYet}× noch nicht
+                      {t('reactivate.plan.historyEntry', {
+                        round: round.round,
+                        date: formatDate(round.completedAt),
+                        secure: round.secure,
+                        supported: round.supported,
+                        notYet: round.notYet,
+                      })}
                     </li>
                   ))}
                 </ul>
@@ -132,13 +146,16 @@ function PlanPanel({ sequence }: { sequence: Sequence }) {
 }
 
 function ImpulseList({ sequence }: { sequence: Sequence }) {
+  const t = useT();
+  const tid = useTid();
+  const phrase = usePhrase(sequence.targetLanguage);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const impulses = useMemo(() => buildImpulses(sequence), [sequence]);
+  const impulses = useMemo(() => buildImpulses(sequence, phrase), [phrase, sequence]);
 
   if (impulses.length === 0) {
     return (
-      <EmptyState title="Keine Impulse verfügbar">
-        <p className="text-sm">Diese Sequenz enthält noch keine Einheiten mit Ausdruck.</p>
+      <EmptyState title={t('reactivate.noImpulses')}>
+        <p className="text-sm">{t('reactivate.noLexemes')}</p>
       </EmptyState>
     );
   }
@@ -146,30 +163,30 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
   return (
     <div className="stack">
       <div className="row-between">
-        <h2 className="pane-head__title">Unterrichtsimpulse ({impulses.length})</h2>
+        <h2 className="pane-head__title">{t('reactivate.impulses', { count: impulses.length })}</h2>
         <Button variant="primary" onClick={() => navigate({ name: 'reactivateTeach', sequenceId: sequence.id })}>
-          Impulse im Unterricht zeigen
+          {t('reactivate.showInClass')}
         </Button>
       </div>
       {sequence.reactivation.prioritiseUnsure && unsureCount(sequence) > 0 ? (
-        <p className="field__hint">
-          {unsureCount(sequence)} Einheiten standen zuletzt auf „mit Hilfe“ oder „noch nicht“ und stehen deshalb vorn.
-        </p>
+        <p className="field__hint">{t('reactivate.unsureFirst', { count: unsureCount(sequence) })}</p>
       ) : null}
       {impulses.map((impulse) => {
         const lexeme = sequence.lexemes.find((entry) => entry.id === impulse.lexemeId);
         return (
           <article className="impulse-card" key={impulse.id}>
-            <span className="tag">{impulse.label}</span>
+            <span className="tag">{tid('impulse', impulse.kind)}</span>
             <p className="impulse-card__prompt">{impulse.prompt}</p>
-            {impulse.support ? <p className="muted text-sm">Hilfe: {impulse.support}</p> : null}
+            {impulse.support ? (
+              <p className="muted text-sm">{t('reactivate.support', { value: impulse.support })}</p>
+            ) : null}
             {impulse.solution && revealed[impulse.id] ? (
               <p className="impulse-card__solution">{impulse.solution}</p>
             ) : null}
             <div className="row">
               {impulse.solution ? (
                 <Button onClick={() => setRevealed((current) => ({ ...current, [impulse.id]: !current[impulse.id] }))}>
-                  {revealed[impulse.id] ? 'Lösung verbergen' : 'Lösung zeigen'}
+                  {revealed[impulse.id] ? t('reactivate.hideSolution') : t('reactivate.showSolution')}
                 </Button>
               ) : null}
               {lexeme
@@ -177,7 +194,10 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
                     .filter((entry) => entry.result)
                     .map((entry) => (
                       <span key={entry.dimension} className={`tag dimension--${entry.result}`}>
-                        {entry.label}: {entry.result === 'secure' ? 'sicher' : entry.result === 'supported' ? 'mit Hilfe' : 'noch nicht'}
+                        {t('reactivate.dimensionTag', {
+                          dimension: tid('dimension', entry.dimension),
+                          result: tid('result', entry.result ?? 'secure'),
+                        })}
                       </span>
                     ))
                 : null}
@@ -191,6 +211,7 @@ function ImpulseList({ sequence }: { sequence: Sequence }) {
 
 export function ReactivateView({ sequenceId }: { sequenceId?: string }) {
   const { state } = useStore();
+  const t = useT();
   const now = useNow();
   const candidates = state.sequences.filter((sequence) => !sequence.archived);
   const selected = candidates.find((sequence) => sequence.id === sequenceId) ?? candidates[0];
@@ -198,10 +219,10 @@ export function ReactivateView({ sequenceId }: { sequenceId?: string }) {
   if (!selected) {
     return (
       <div className="page">
-        <h1 className="page__title">Reaktivieren</h1>
-        <EmptyState title="Keine Sequenz vorhanden">
+        <h1 className="page__title">{t('reactivate.title')}</h1>
+        <EmptyState title={t('reactivate.noSequence')}>
           <Button variant="primary" onClick={() => navigate({ name: 'prepare' })}>
-            Zur Vorbereitung
+            {t('teach.toPrepare')}
           </Button>
         </EmptyState>
       </div>
@@ -213,25 +234,22 @@ export function ReactivateView({ sequenceId }: { sequenceId?: string }) {
   return (
     <div className="page">
       <div className="stack-tight">
-        <h1 className="page__title">Reaktivieren</h1>
-        <p className="muted">
-          Kurze Impulse aus bereits eingeführten Einheiten – zum Einstieg in die Stunde, ohne Punkte und ohne
-          Bewertung.
-        </p>
+        <h1 className="page__title">{t('reactivate.title')}</h1>
+        <p className="muted">{t('reactivate.lede')}</p>
       </div>
 
       <SelectField
-        label="Sequenz"
+        label={t('reactivate.sequence')}
         value={selected.id}
         onChange={(id) => navigate({ name: 'reactivate', sequenceId: id })}
         options={candidates.map((sequence) => ({
           value: sequence.id,
-          label: `${sequence.title}${isDue(sequence, now) ? ' · fällig' : ''}`,
+          label: `${sequence.title}${isDue(sequence, now) ? t('reactivate.dueTag') : ''}`,
         }))}
       />
 
       {dueSoon !== null && dueSoon <= now ? (
-        <Notice>Diese Sequenz ist zur Reaktivierung vorgemerkt ({formatRelativeDays(dueSoon, now)} fällig geworden).</Notice>
+        <Notice>{t('reactivate.dueNotice', { relative: formatRelativeDays(dueSoon, now) })}</Notice>
       ) : null}
 
       <PlanPanel sequence={selected} />

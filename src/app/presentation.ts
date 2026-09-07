@@ -7,7 +7,7 @@
  * Übertragung nach außen.
  */
 import { useEffect, useState } from 'react';
-import type { StepId } from '../domain/model';
+import type { StepId, TeachingLanguageMode } from '../domain/model';
 import type { CorpusReveal } from '../domain/corpus';
 import type { StepVisibility } from '../domain/steps';
 
@@ -19,9 +19,18 @@ export interface StageState {
   lexemeId: string;
   stepId: StepId;
   visibility: StepVisibility;
-  showTranslation: boolean;
+  /** Erstsprachliche Reserve für die Klasse freigegeben. */
+  releaseL1: boolean;
   /** Aufgedeckte Stufen der Korpusminiatur. */
   corpusReveal: CorpusReveal;
+  /** Aktuelle Frage der Bedeutungsprüfung. */
+  ccqIndex: number;
+  /** Erwartete Antwort für die Klasse aufgedeckt. */
+  showCcqAnswer: boolean;
+  /** Alternative Klärung für die Klasse freigegeben. */
+  showCcqAlternative: boolean;
+  /** Sprachmodus des Unterrichts – bestimmt, was projiziert werden darf. */
+  mode: TeachingLanguageMode;
   finished: boolean;
 }
 

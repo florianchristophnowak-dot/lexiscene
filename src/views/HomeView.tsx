@@ -1,5 +1,6 @@
 import { navigate } from '../app/router';
 import { useStore } from '../app/storeContext';
+import { useT } from '../i18n/context';
 import { dueSequences } from '../domain/reactivation';
 import { formatDate } from '../domain/text';
 import { Button } from '../ui/Button';
@@ -25,6 +26,7 @@ function ActionCard({ label, meta, variant = 'default', onClick }: ActionCardPro
 
 export function HomeView() {
   const { state, actions } = useStore();
+  const t = useT();
 
   const activeSequences = state.sequences.filter((sequence) => !sequence.archived);
   const lastSequence =
@@ -36,26 +38,30 @@ export function HomeView() {
     if (!lastSequence) return '';
     if (lastSequence.session) {
       const total = lastSequence.lexemes.length;
-      return `Unterricht unterbrochen bei Einheit ${Math.min(lastSequence.session.lexemeIndex + 1, total)} von ${total}`;
+      return t('home.meta.interrupted', {
+        index: Math.min(lastSequence.session.lexemeIndex + 1, total),
+        total,
+      });
     }
-    return `Zuletzt bearbeitet am ${formatDate(lastSequence.updatedAt)} · ${lastSequence.lexemes.length} Einheiten`;
+    return t('home.meta.edited', { date: formatDate(lastSequence.updatedAt), count: lastSequence.lexemes.length });
   })();
 
   return (
     <div className="home">
       <div className="stack-tight">
         <h1 className="home__title">LexiScène</h1>
-        <p className="home__lede">
-          Lexikalische Einheiten vorbereiten, im Unterricht schrittweise semantisieren und sofort kommunikativ
-          verwenden lassen. Alle Inhalte bleiben auf diesem Gerät.
-        </p>
+        <p className="home__lede">{t('home.lede')}</p>
       </div>
 
       <div className="home__actions">
         {lastSequence ? (
           <ActionCard
             variant="primary"
-            label={lastSequence.session ? `Unterricht fortsetzen: ${lastSequence.title}` : `Weiterarbeiten: ${lastSequence.title}`}
+            label={
+              lastSequence.session
+                ? t('home.resume', { title: lastSequence.title })
+                : t('home.continue', { title: lastSequence.title })
+            }
             meta={resumeMeta}
             onClick={() =>
               navigate(
@@ -68,8 +74,8 @@ export function HomeView() {
         ) : (
           <ActionCard
             variant="primary"
-            label="Erste Sequenz erstellen"
-            meta="Titel, Zielsprache und kommunikatives Ziel festlegen"
+            label={t('home.first')}
+            meta={t('home.first.meta')}
             onClick={() => {
               void actions.createNewSequence().then((id) => navigate({ name: 'prepare', sequenceId: id }));
             }}
@@ -77,8 +83,8 @@ export function HomeView() {
         )}
 
         <ActionCard
-          label="Neue Sequenz erstellen"
-          meta="Leere Semantisierungssequenz anlegen"
+          label={t('home.new')}
+          meta={t('home.new.empty')}
           onClick={() => {
             void actions.createNewSequence().then((id) => navigate({ name: 'prepare', sequenceId: id }));
           }}
@@ -86,18 +92,14 @@ export function HomeView() {
 
         <ActionCard
           variant={due.length > 0 ? 'due' : 'default'}
-          label="Fälligen Wortschatz reaktivieren"
-          meta={
-            due.length > 0
-              ? `${due.length} ${due.length === 1 ? 'Sequenz ist' : 'Sequenzen sind'} zur Reaktivierung vorgemerkt`
-              : 'Nichts fällig – Reaktivierung planen oder Impulse ansehen'
-          }
+          label={t('home.reactivate')}
+          meta={due.length > 0 ? t('home.reactivate.due', { count: due.length }) : t('home.reactivate.none')}
           onClick={() => navigate({ name: 'reactivate' })}
         />
 
         <ActionCard
-          label="Vorhandene Vorlage öffnen"
-          meta={`Bibliothek mit ${activeSequences.length} ${activeSequences.length === 1 ? 'Sequenz' : 'Sequenzen'}`}
+          label={t('home.open')}
+          meta={t('home.open.meta', { count: activeSequences.length })}
           onClick={() => navigate({ name: 'prepare' })}
         />
       </div>
@@ -109,7 +111,7 @@ export function HomeView() {
               void actions.seedDemoSequence().then((id) => navigate({ name: 'prepare', sequenceId: id }));
             }}
           >
-            Beispielsequenz „Freizeit verabreden“ laden
+            {t('home.demoLoad')}
           </Button>
         </div>
       ) : null}

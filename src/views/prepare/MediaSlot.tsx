@@ -4,6 +4,7 @@ import { formatDuration, useAudioRecorder } from '../../app/recorder';
 import { useStore } from '../../app/storeContext';
 import type { Lexeme, MediaKind } from '../../domain/model';
 import { formatBytes } from '../../domain/text';
+import { useT } from '../../i18n/context';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/toastContext';
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function MediaSlot({ sequenceId, lexeme, kind, label }: Props) {
+  const t = useT();
   const { state, actions } = useStore();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +71,7 @@ export function MediaSlot({ sequenceId, lexeme, kind, label }: Props) {
       <span className="field__label">{label}</span>
 
       {mediaId && loading ? <span className="field__hint">wird geladen …</span> : null}
-      {mediaId && missing ? <span className="field__hint">Datei nicht mehr vorhanden.</span> : null}
+      {mediaId && missing ? <span className="field__hint">{t('media.missing')}</span> : null}
 
       {url ? (
         <div className="media-slot__preview">
@@ -101,7 +103,7 @@ export function MediaSlot({ sequenceId, lexeme, kind, label }: Props) {
             </>
           ) : (
             <Button disabled={busy || recorder.state === 'requesting'} onClick={() => void recorder.start()}>
-              {recorder.state === 'requesting' ? 'Mikrofon wird angefragt …' : 'Selbst aufnehmen'}
+              {recorder.state === 'requesting' ? t('media.recording') : t('media.record')}
             </Button>
           )}
         </div>

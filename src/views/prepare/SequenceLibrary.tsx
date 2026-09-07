@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../../app/storeContext';
 import { navigate } from '../../app/router';
-import { languageLabel, type Sequence } from '../../domain/model';
+import type { Sequence } from '../../domain/model';
 import { formatDate } from '../../domain/text';
+import { useT, useTid } from '../../i18n/context';
 import { Button, IconButton } from '../../ui/Button';
 import { ConfirmDialog, Modal } from '../../ui/Dialog';
 import { TextField } from '../../ui/Field';
@@ -29,6 +30,8 @@ interface Props {
 }
 
 export function SequenceLibrary({ activeId, onSelect }: Props) {
+  const t = useT();
+  const tid = useTid();
   const { state, actions } = useStore();
   const toast = useToast();
   const [query, setQuery] = useState('');
@@ -51,34 +54,34 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
   return (
     <div className="stack">
       <div className="pane-head">
-        <h2 className="pane-head__title">Sequenzbibliothek</h2>
+        <h2 className="pane-head__title">{t('library.title')}</h2>
         <Button
           variant="primary"
           onClick={() => {
             void actions.createNewSequence().then((id) => {
               onSelect(id);
-              toast.show('Neue Sequenz angelegt.');
+              toast.show(t('library.new'));
             });
           }}
         >
-          Neu
+          {t('library.new.button')}
         </Button>
       </div>
 
       <div className="library-search">
         <TextField
-          label="Suche"
+          label={t('library.search')}
           value={query}
           onChange={setQuery}
-          placeholder="Titel, Thema, Funktion …"
-          hint="Durchsucht auch die kommunikativen Funktionen der Einheiten."
+          placeholder={t('library.search.placeholder')}
+          hint={t('library.search.hint')}
         />
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState title={query ? 'Keine Treffer' : 'Noch keine Sequenz'}>
+        <EmptyState title={query ? t('library.noHits') : t('library.empty')}>
           <p className="text-sm">
-            {query ? 'Suchbegriff anpassen oder Archiv einblenden.' : 'Legen Sie mit „Neu“ Ihre erste Sequenz an.'}
+            {query ? t('library.noHits.hint') : t('library.empty.hint')}
           </p>
         </EmptyState>
       ) : (
@@ -101,8 +104,8 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
                 >
                   <span className="library-item__title">{sequence.title}</span>
                   <span className="library-item__meta">
-                    <span>{sequence.learningGroup || 'ohne Lerngruppe'}</span>
-                    <span>{languageLabel(sequence.targetLanguage)}</span>
+                    <span>{sequence.learningGroup || t('library.noGroup')}</span>
+                    <span>{tid('language', sequence.targetLanguage)}</span>
                     <span>{sequence.lexemes.length} Einheiten</span>
                     <span>{formatDate(sequence.updatedAt)}</span>
                     {sequence.archived ? <span>archiviert</span> : null}
@@ -111,12 +114,12 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
                 {isActive ? (
                   <div className="row" style={{ padding: '0 var(--space-2) var(--space-2)' }}>
                     <IconButton
-                      label="Sequenz duplizieren"
+                      label={t('library.duplicate')}
                       onClick={() => {
                         void actions.duplicateSequence(sequence.id).then((id) => {
                           if (id) {
                             onSelect(id);
-                            toast.show('Sequenz dupliziert.');
+                            toast.show(t('library.duplicated'));
                           }
                         });
                       }}
@@ -124,7 +127,7 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
                       ⧉
                     </IconButton>
                     <IconButton
-                      label="Sequenz umbenennen"
+                      label={t('library.rename')}
                       onClick={() => {
                         setRenaming(sequence);
                         setRenameValue(sequence.title);
@@ -133,15 +136,15 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
                       ✎
                     </IconButton>
                     <IconButton
-                      label={sequence.archived ? 'Aus dem Archiv holen' : 'Sequenz archivieren'}
+                      label={sequence.archived ? t('library.unarchive') : t('library.archive')}
                       onClick={() => {
                         actions.setArchived(sequence.id, !sequence.archived);
-                        toast.show(sequence.archived ? 'Sequenz wieder aktiv.' : 'Sequenz archiviert.');
+                        toast.show(sequence.archived ? t('library.unarchived') : t('library.archived'));
                       }}
                     >
                       {sequence.archived ? '↺' : '⇩'}
                     </IconButton>
-                    <IconButton label="Sequenz löschen" onClick={() => setDeleting(sequence)}>
+                    <IconButton label={t('library.delete')} onClick={() => setDeleting(sequence)}>
                       ✕
                     </IconButton>
                   </div>
@@ -154,17 +157,17 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
 
       {archivedCount > 0 ? (
         <Button variant="ghost" onClick={() => setShowArchived((value) => !value)}>
-          {showArchived ? 'Archiv ausblenden' : `Archiv einblenden (${archivedCount})`}
+          {showArchived ? t('library.hideArchive') : t('library.showArchive', { count: archivedCount })}
         </Button>
       ) : null}
 
       {renaming ? (
         <Modal
-          title="Sequenz umbenennen"
+          title={t('library.rename')}
           onClose={() => setRenaming(null)}
           actions={
             <>
-              <Button onClick={() => setRenaming(null)}>Abbrechen</Button>
+              <Button onClick={() => setRenaming(null)}>{t('common.cancel')}</Button>
               <Button
                 variant="primary"
                 onClick={() => {
@@ -173,27 +176,28 @@ export function SequenceLibrary({ activeId, onSelect }: Props) {
                   setRenaming(null);
                 }}
               >
-                Übernehmen
+                {t('common.apply')}
               </Button>
             </>
           }
         >
-          <TextField label="Titel" value={renameValue} onChange={setRenameValue} autoFocus />
+          <TextField label={t('library.title.field')} value={renameValue} onChange={setRenameValue} autoFocus />
         </Modal>
       ) : null}
 
       {deleting ? (
         <ConfirmDialog
-          title="Sequenz löschen?"
-          message={`„${deleting.title}“ wird mit allen ${deleting.lexemes.length} lexikalischen Einheiten unwiderruflich gelöscht. Nicht mehr benötigte Medien werden mitentfernt.`}
-          confirmLabel="Endgültig löschen"
+          title={t('library.deleteTitle')}
+          message={t('library.deleteConfirm', { title: deleting.title, count: deleting.lexemes.length })}
+          confirmLabel={t('library.deleteForever')}
+          cancelLabel={t('common.cancel')}
           danger
           onCancel={() => setDeleting(null)}
           onConfirm={() => {
             const id = deleting.id;
             setDeleting(null);
             void actions.deleteSequence(id).then(() => {
-              toast.show('Sequenz gelöscht.');
+              toast.show(t('library.deleted'));
               const next = state.sequences.find((sequence) => sequence.id !== id && !sequence.archived);
               navigate({ name: 'prepare', sequenceId: next?.id }, { replace: true });
             });

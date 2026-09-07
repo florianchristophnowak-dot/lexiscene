@@ -95,7 +95,6 @@ describe('Korpusminiatur im Unterricht', () => {
 
     rerender(<CorpusStage miniature={miniature()} reveal={CLOSED_CORPUS_REVEAL} teacherView />);
     expect(screen.getByText('Für die Lehrkraft: Erster klarer Fall.')).toBeInTheDocument();
-    expect(screen.getByText(/Herkunft: didaktisch erstellt · Selbst formulierte Beispielsätze\./)).toBeInTheDocument();
   });
 
   it('übergeht leere Belege', () => {

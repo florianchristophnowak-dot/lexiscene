@@ -19,7 +19,10 @@ import {
   type StepVisibility,
 } from '../domain/steps';
 import { buildSecondaryPrompt } from '../domain/checks';
+import { usableCcqs } from '../domain/ccq';
 import { CLOSED_CORPUS_REVEAL, corpusStages, type CorpusReveal } from '../domain/corpus';
+import { firstFilled } from '../domain/text';
+import { usePhrase, useT, useTid } from '../i18n/context';
 import { Button, IconButton } from '../ui/Button';
 import { EmptyState, ProgressBar } from '../ui/Feedback';
 import { useFullscreenState } from '../ui/hooks';
@@ -34,24 +37,35 @@ function clamp(value: number, min: number, max: number): number {
 interface RevealState {
   key: string;
   visibility: StepVisibility;
-  translation: boolean;
+  /** Erstsprachliche Reserve für die Klasse freigegeben. */
+  releaseL1: boolean;
   /** Lösung im Abruf – erst Denkzeit, dann zeigen. */
   solution: boolean;
   /** Zusätzliche Aufgabe in der Gegenrichtung. */
   counterpart: boolean;
   /** Gestufte Enthüllung der Korpusminiatur. */
   corpus: CorpusReveal;
+  /** Aktuelle Frage der Bedeutungsprüfung. */
+  ccqIndex: number;
+  /** Erwartete Antwort für die Klasse aufgedeckt. */
+  ccqAnswer: boolean;
+  /** Alternative Klärung auf dem Lehrkraftbildschirm. */
+  alternative: boolean;
 }
 
 export function TeachView({ sequenceId }: { sequenceId: string }) {
   const { state, actions } = useStore();
   const toast = useToast();
+  const t = useT();
+  const tid = useTid();
   const sequence = state.sequences.find((entry) => entry.id === sequenceId);
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const projectionRef = useRef<Window | null>(null);
   const stageRef = useRef<StageState | null>(null);
   const isFullscreen = useFullscreenState();
+  const mode = state.settings.teachingLanguageMode;
+  const phrase = usePhrase(sequence?.targetLanguage ?? 'fr');
 
   const teachable = useMemo(() => sequence?.lexemes.filter((lexeme) => !lexeme.skipped) ?? [], [sequence]);
   const stepsPerLexeme = useMemo(
@@ -82,27 +96,37 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     if (reveal?.key === stepKey) return reveal.visibility;
     return step ? defaultVisibility(step.id) : { meaning: false, form: false, support: false };
   }, [reveal, step, stepKey]);
-  const showTranslation = reveal?.key === stepKey ? reveal.translation : false;
-  const showSolution = reveal?.key === stepKey ? reveal.solution : false;
-  const showCounterpart = reveal?.key === stepKey ? reveal.counterpart : false;
-  const corpusReveal = reveal?.key === stepKey ? reveal.corpus : CLOSED_CORPUS_REVEAL;
+  const current = reveal?.key === stepKey ? reveal : null;
+  const releaseL1 = current?.releaseL1 ?? false;
+  const showSolution = current?.solution ?? false;
+  const showCounterpart = current?.counterpart ?? false;
+  const corpusReveal = current?.corpus ?? CLOSED_CORPUS_REVEAL;
+  const ccqIndex = current?.ccqIndex ?? 0;
+  const showCcqAnswer = current?.ccqAnswer ?? false;
+  const showAlternative = current?.alternative ?? false;
+
   const revealState = (patch: Partial<Omit<RevealState, 'key'>>) =>
     setReveal({
       key: stepKey,
       visibility,
-      translation: showTranslation,
+      releaseL1,
       solution: showSolution,
       counterpart: showCounterpart,
       corpus: corpusReveal,
+      ccqIndex,
+      ccqAnswer: showCcqAnswer,
+      alternative: showAlternative,
       ...patch,
     });
   const revealCorpus = (patch: Partial<CorpusReveal>) => revealState({ corpus: { ...corpusReveal, ...patch } });
   const updateVisibility = (patch: Partial<StepVisibility>) => revealState({ visibility: { ...visibility, ...patch } });
-  const toggleTranslation = () => revealState({ translation: !showTranslation });
 
   const totalSteps = stepsPerLexeme.reduce((sum, entries) => sum + entries.length, 0);
   const completedSteps =
     stepsPerLexeme.slice(0, safeLexemeIndex).reduce((sum, entries) => sum + entries.length, 0) + safeStepIndex + 1;
+
+  const checks = lexeme ? usableCcqs(lexeme) : [];
+  const onCcqStep = step?.id === 'ccq';
 
   // Unterbrechen und später fortsetzen.
   useEffect(() => {
@@ -121,14 +145,31 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             lexemeId: lexeme.id,
             stepId: step.id,
             visibility,
-            showTranslation,
+            releaseL1,
             corpusReveal,
+            ccqIndex,
+            showCcqAnswer,
+            showCcqAlternative: showAlternative,
+            mode,
             finished,
           }
         : null;
     stageRef.current = stage;
     if (projectionOpen) publishStage(stage);
-  }, [corpusReveal, finished, lexeme, projectionOpen, sequenceId, showTranslation, step, visibility]);
+  }, [
+    ccqIndex,
+    corpusReveal,
+    finished,
+    lexeme,
+    mode,
+    projectionOpen,
+    releaseL1,
+    sequenceId,
+    showAlternative,
+    showCcqAnswer,
+    step,
+    visibility,
+  ]);
 
   const handleProjectionHello = useCallback(() => {
     setProjectionOpen(true);
@@ -142,13 +183,13 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     url.hash = toHash({ name: 'projection', sequenceId });
     const opened = window.open(url.toString(), PROJECTION_WINDOW_NAME, 'width=1280,height=800');
     if (!opened) {
-      toast.show('Das Projektionsfenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.', 'error');
+      toast.show(t('teach.projection.blocked'), 'error');
       return;
     }
     projectionRef.current = opened;
     setProjectionOpen(true);
     publishStage(stageRef.current);
-  }, [sequenceId, toast]);
+  }, [sequenceId, t, toast]);
 
   const closeProjection = useCallback(() => {
     projectionRef.current?.close();
@@ -156,7 +197,12 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     setProjectionOpen(false);
   }, []);
 
+  /** Innerhalb der Bedeutungsprüfung erst die Fragen durchgehen. */
   const goNext = useCallback(() => {
+    if (onCcqStep && ccqIndex < checks.length - 1) {
+      revealState({ ccqIndex: ccqIndex + 1, ccqAnswer: false });
+      return;
+    }
     if (safeStepIndex < steps.length - 1) {
       setStepIndex(safeStepIndex + 1);
       return;
@@ -167,11 +213,16 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
       return;
     }
     setFinished(true);
-  }, [safeLexemeIndex, safeStepIndex, steps.length, teachable.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revealState hängt bewusst am Renderstand
+  }, [ccqIndex, checks.length, onCcqStep, safeLexemeIndex, safeStepIndex, steps.length, teachable.length]);
 
   const goBack = useCallback(() => {
     if (finished) {
       setFinished(false);
+      return;
+    }
+    if (onCcqStep && ccqIndex > 0) {
+      revealState({ ccqIndex: ccqIndex - 1, ccqAnswer: false });
       return;
     }
     if (safeStepIndex > 0) {
@@ -183,7 +234,8 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
       setLexemeIndex(previous);
       setStepIndex(Math.max((stepsPerLexeme[previous]?.length ?? 1) - 1, 0));
     }
-  }, [finished, safeLexemeIndex, safeStepIndex, stepsPerLexeme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revealState hängt bewusst am Renderstand
+  }, [ccqIndex, finished, onCcqStep, safeLexemeIndex, safeStepIndex, stepsPerLexeme]);
 
   const leave = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
@@ -222,8 +274,8 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   if (!sequence) {
     return (
       <div className="page">
-        <EmptyState title="Sequenz nicht gefunden">
-          <Button onClick={() => navigate({ name: 'home' })}>Zur Startseite</Button>
+        <EmptyState title={t('teach.notFound')}>
+          <Button onClick={() => navigate({ name: 'home' })}>{t('teach.toStart')}</Button>
         </EmptyState>
       </div>
     );
@@ -232,13 +284,10 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   if (teachable.length === 0 || totalSteps === 0) {
     return (
       <div className="page">
-        <EmptyState title="Nichts zu unterrichten">
-          <p>
-            Diese Sequenz enthält keine aktiven Einheiten mit Material. Ergänzen Sie in der Vorbereitung mindestens
-            einen Ausdruck.
-          </p>
+        <EmptyState title={t('teach.empty.title')}>
+          <p>{t('teach.empty.hint')}</p>
           <Button variant="primary" onClick={() => navigate({ name: 'prepare', sequenceId })}>
-            Zur Vorbereitung
+            {t('teach.toPrepare')}
           </Button>
         </EmptyState>
       </div>
@@ -249,15 +298,12 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
     return (
       <div className="teach" ref={containerRef}>
         <div className="teach__stage">
-          <p className="teach__step">Sequenz abgeschlossen</p>
+          <p className="teach__step">{t('teach.finished')}</p>
           <h1 className="teach__utterance">{sequence.title}</h1>
-          <p className="teach__support">
-            {teachable.length} lexikalische {teachable.length === 1 ? 'Einheit' : 'Einheiten'} eingeführt.
-            Planen Sie jetzt die Reaktivierung oder kehren Sie zur Vorbereitung zurück.
-          </p>
+          <p className="teach__support">{t('teach.finished.hint', { count: teachable.length })}</p>
         </div>
         <div className="teach__bottom">
-          <Button onClick={goBack}>Zurück</Button>
+          <Button onClick={goBack}>{t('common.back')}</Button>
           <span className="spacer" />
           <Button
             variant="primary"
@@ -266,7 +312,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               navigate({ name: 'reactivate', sequenceId: sequence.id });
             }}
           >
-            Reaktivierung planen
+            {t('teach.finished.reactivate')}
           </Button>
           <Button
             onClick={() => {
@@ -276,7 +322,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               setStepIndex(0);
             }}
           >
-            Von vorn beginnen
+            {t('teach.finished.restart')}
           </Button>
           <Button
             onClick={() => {
@@ -285,7 +331,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               leave();
             }}
           >
-            Zur Vorbereitung
+            {t('teach.toPrepare')}
           </Button>
         </div>
       </div>
@@ -295,30 +341,44 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
   const phase = stepPhase(step.id);
   const invitesFeedback = stepInvitesFeedback(step.id);
   const dimension = stepDimension(step.id, lexeme);
-  const counterpartPrompt = step.id === 'kontrolle' ? buildSecondaryPrompt(lexeme) : '';
-  // Nur Stufen anbieten, für die es tatsächlich Inhalt gibt.
+  const counterpartPrompt = step.id === 'kontrolle' ? buildSecondaryPrompt(lexeme, phrase) : '';
   const stages = step.id === 'korpusminiatur' ? corpusStages(lexeme.corpus) : null;
   const feedbackKey = `${stepKey}:${dimension}`;
+  const currentFeedback = feedback[feedbackKey]?.result;
+  const currentCheck = checks[Math.min(ccqIndex, Math.max(checks.length - 1, 0))];
+  const needsSupport = currentFeedback === 'supported' || currentFeedback === 'not-yet';
+  const clarifyIndex = steps.findIndex((entry) => entry.id === 'klaeren');
+  // Erstsprachliche Reserve nur anbieten, wenn es sie gibt und der Modus sie zulässt.
+  const l1Available =
+    mode !== 'strict' && Boolean(firstFilled(lexeme.translation, lexeme.simplifiedExplanation, lexeme.coreMeaning));
 
   return (
     <div className="teach" ref={containerRef}>
       <div className="teach__top">
         <span className="teach__step">
           <span className="teach__step-number">
-            Phase {phase?.position ?? 1}: {phase?.label ?? ''}
+            {t('teach.phase', { position: phase?.position ?? 1, label: phase ? tid('phase', phase.id) : '' })}
           </span>{' '}
-          · {step.label}
+          · {tid('step', step.id)}
         </span>
         <span className="teach__counter">
-          Schritt {safeStepIndex + 1} von {steps.length} · Einheit {safeLexemeIndex + 1} von {teachable.length}
+          {t('teach.counter', {
+            step: safeStepIndex + 1,
+            steps: steps.length,
+            lexeme: safeLexemeIndex + 1,
+            lexemes: teachable.length,
+          })}
         </span>
         <span className="spacer" />
         {isPresentationSupported() ? (
           <Button onClick={projectionOpen ? closeProjection : openProjection}>
-            {projectionOpen ? 'Projektion beenden' : 'Zweitbildschirm'}
+            {projectionOpen ? t('teach.projection.close') : t('teach.projection.open')}
           </Button>
         ) : null}
-        <IconButton label={isFullscreen ? 'Vollbild verlassen' : 'Vollbild einschalten'} onClick={toggleFullscreen}>
+        <IconButton
+          label={isFullscreen ? t('teach.fullscreen.off') : t('teach.fullscreen.on')}
+          onClick={toggleFullscreen}
+        >
           {isFullscreen ? '⤡' : '⤢'}
         </IconButton>
         <Button
@@ -327,12 +387,12 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             leave();
           }}
         >
-          Vorbereiten
+          {t('teach.leave')}
         </Button>
       </div>
 
       <div className="teach__progress">
-        <ProgressBar value={completedSteps} max={totalSteps} label="Fortschritt der Sequenz" />
+        <ProgressBar value={completedSteps} max={totalSteps} label={t('teach.progress')} />
       </div>
 
       <TeachStage
@@ -340,21 +400,25 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
         lexeme={lexeme}
         step={step}
         visibility={visibility}
-        showTranslation={showTranslation}
+        releaseL1={releaseL1}
         showSolution={showSolution}
         counterpartPrompt={showCounterpart ? counterpartPrompt : ''}
         corpusReveal={corpusReveal}
-        teacherView={!projectionOpen}
+        ccqIndex={ccqIndex}
+        showCcqAnswer={showCcqAnswer}
+        showCcqAlternative={showAlternative}
+        mode={mode}
+        audience={projectionOpen ? 'class' : 'teacher'}
       />
 
-      {projectionOpen ? <TeacherPanel lexeme={lexeme} step={step} /> : null}
+      {projectionOpen ? <TeacherPanel lexeme={lexeme} step={step} ccqIndex={ccqIndex} /> : null}
 
       {audio.url ? <audio ref={audioRef} src={audio.url} preload="auto" /> : null}
 
       {noteOpen ? (
         <div className="teach__bottom">
           <label className="field teach__note-field">
-            <span className="field__label">Notiz zu dieser Einheit</span>
+            <span className="field__label">{t('teach.note.field')}</span>
             <textarea
               className="textarea"
               rows={2}
@@ -362,26 +426,57 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               onChange={(event) => actions.updateLexeme(sequence.id, lexeme.id, { liveNote: event.target.value })}
             />
           </label>
-          <Button onClick={() => setNoteOpen(false)}>Notiz schließen</Button>
+          <Button onClick={() => setNoteOpen(false)}>{t('teach.note.close')}</Button>
         </div>
       ) : null}
 
       <div className="teach__bottom">
-        <Button large onClick={goBack} disabled={safeLexemeIndex === 0 && safeStepIndex === 0}>
-          ← Zurück
+        <Button large onClick={goBack} disabled={safeLexemeIndex === 0 && safeStepIndex === 0 && ccqIndex === 0}>
+          {t('teach.back')}
         </Button>
         <Button variant="primary" large onClick={goNext}>
-          Weiter →
+          {t('teach.next')}
         </Button>
 
         <div className="teach__toggles">
+          {onCcqStep && checks.length > 1 ? (
+            <>
+              <button
+                type="button"
+                className="toggle-btn"
+                disabled={ccqIndex === 0}
+                onClick={() => revealState({ ccqIndex: ccqIndex - 1, ccqAnswer: false })}
+              >
+                {t('ccq.prev')}
+              </button>
+              <button
+                type="button"
+                className="toggle-btn"
+                disabled={ccqIndex >= checks.length - 1}
+                onClick={() => revealState({ ccqIndex: ccqIndex + 1, ccqAnswer: false })}
+              >
+                {t('ccq.nextQuestion')}
+              </button>
+            </>
+          ) : null}
+          {onCcqStep && currentCheck?.expectedAnswer.trim() ? (
+            <button
+              type="button"
+              className={showCcqAnswer ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={showCcqAnswer}
+              onClick={() => revealState({ ccqAnswer: !showCcqAnswer })}
+            >
+              {t('ccq.showAnswer')}
+            </button>
+          ) : null}
+
           <button
             type="button"
             className={visibility.meaning ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
             aria-pressed={visibility.meaning}
             onClick={() => updateVisibility({ meaning: !visibility.meaning })}
           >
-            Bedeutung
+            {t('teach.toggle.meaning')}
           </button>
           <button
             type="button"
@@ -389,16 +484,17 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             aria-pressed={visibility.form}
             onClick={() => updateVisibility({ form: !visibility.form })}
           >
-            Schriftbild
+            {t('teach.toggle.form')}
           </button>
-          {lexeme.translation ? (
+          {l1Available ? (
             <button
               type="button"
-              className={showTranslation ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
-              aria-pressed={showTranslation}
-              onClick={toggleTranslation}
+              className={releaseL1 ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+              aria-pressed={releaseL1}
+              title={t('teach.toggle.l1.hint')}
+              onClick={() => revealState({ releaseL1: !releaseL1 })}
             >
-              Übersetzung
+              {t('teach.toggle.l1')}
             </button>
           ) : null}
           <button
@@ -407,16 +503,16 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
             aria-pressed={visibility.support}
             onClick={() => updateVisibility({ support: !visibility.support })}
           >
-            Hilfen
+            {t('teach.toggle.support')}
           </button>
-          {invitesFeedback ? (
+          {invitesFeedback && !onCcqStep ? (
             <button
               type="button"
               className={showSolution ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
               aria-pressed={showSolution}
               onClick={() => revealState({ solution: !showSolution })}
             >
-              Lösung
+              {t('teach.toggle.solution')}
             </button>
           ) : null}
           {counterpartPrompt ? (
@@ -426,7 +522,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={showCounterpart}
               onClick={() => revealState({ counterpart: !showCounterpart })}
             >
-              Gegenrichtung
+              {t('teach.toggle.counterpart')}
             </button>
           ) : null}
           {stages?.highlight ? (
@@ -436,7 +532,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={corpusReveal.highlight}
               onClick={() => revealCorpus({ highlight: !corpusReveal.highlight })}
             >
-              Fokus markieren
+              {t('corpus.reveal.highlight')}
             </button>
           ) : null}
           {stages?.groups ? (
@@ -446,7 +542,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={corpusReveal.groups}
               onClick={() => revealCorpus({ groups: !corpusReveal.groups })}
             >
-              Gruppen zeigen
+              {t('corpus.reveal.groups')}
             </button>
           ) : null}
           {stages?.rule ? (
@@ -456,7 +552,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={corpusReveal.rule}
               onClick={() => revealCorpus({ rule: !corpusReveal.rule })}
             >
-              Regel zeigen
+              {t('corpus.reveal.rule')}
             </button>
           ) : null}
           {stages?.transfer ? (
@@ -466,7 +562,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               aria-pressed={corpusReveal.transfer}
               onClick={() => revealCorpus({ transfer: !corpusReveal.transfer })}
             >
-              Transfer zeigen
+              {t('corpus.reveal.transfer')}
             </button>
           ) : null}
           {audio.url ? (
@@ -477,7 +573,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
                 void audioRef.current.play().catch(() => undefined);
               }}
             >
-              Audio abspielen
+              {t('teach.toggle.audio')}
             </Button>
           ) : null}
         </div>
@@ -486,14 +582,18 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
 
         <div className="teach__status-row">
           {invitesFeedback ? (
-            <div className="teach__feedback" role="group" aria-label={`Rückmeldung der Klasse zur Dimension ${dimension}`}>
-              <span className="teach__feedback-label">Klasse:</span>
+            <div
+              className="teach__feedback"
+              role="group"
+              aria-label={t('teach.feedback.group', { dimension: tid('dimension', dimension) })}
+            >
+              <span className="teach__feedback-label">{t('teach.feedback')}</span>
               {OBSERVATION_RESULTS.map((option) => (
                 <button
-                  key={option.id}
+                  key={option}
                   type="button"
-                  className={feedback[feedbackKey]?.result === option.id ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
-                  aria-pressed={feedback[feedbackKey]?.result === option.id}
+                  className={currentFeedback === option ? 'toggle-btn toggle-btn--on' : 'toggle-btn'}
+                  aria-pressed={currentFeedback === option}
                   onClick={() => {
                     // Eine Korrektur ersetzt die Rückmeldung dieses Schritts,
                     // statt eine zweite Beobachtung anzulegen.
@@ -503,18 +603,38 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
                     }
                     const observationId = actions.recordObservation(sequence.id, lexeme.id, {
                       dimension,
-                      result: option.id,
+                      result: option,
                       source: 'introduction',
                     });
-                    setFeedback((current) => ({ ...current, [feedbackKey]: { result: option.id, observationId } }));
+                    setFeedback((entries) => ({ ...entries, [feedbackKey]: { result: option, observationId } }));
                   }}
                 >
-                  {option.label}
+                  {tid('result', option)}
                 </button>
               ))}
             </div>
           ) : null}
-          <Button onClick={() => setNoteOpen((value) => !value)}>Notiz</Button>
+
+          {onCcqStep && needsSupport ? (
+            <>
+              {currentCheck?.alternativeClarification.trim() ? (
+                <Button
+                  variant={showAlternative ? 'secondary' : 'ghost'}
+                  aria-pressed={showAlternative}
+                  onClick={() => revealState({ alternative: !showAlternative })}
+                >
+                  {t('ccq.showAlternative')}
+                </Button>
+              ) : null}
+              {clarifyIndex >= 0 ? (
+                <Button variant="ghost" onClick={() => setStepIndex(clarifyIndex)}>
+                  {t('ccq.backToClarify')}
+                </Button>
+              ) : null}
+            </>
+          ) : null}
+
+          <Button onClick={() => setNoteOpen((value) => !value)}>{t('teach.note')}</Button>
           <Button
             onClick={() => {
               actions.updateLexeme(sequence.id, lexeme.id, { skipped: true });
@@ -522,7 +642,7 @@ export function TeachView({ sequenceId }: { sequenceId: string }) {
               else setStepIndex(0);
             }}
           >
-            Überspringen
+            {t('teach.skip')}
           </Button>
         </div>
       </div>

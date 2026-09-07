@@ -1,13 +1,10 @@
 import { useId } from 'react';
 import { useStore } from '../../app/storeContext';
-import { EVIDENCE_LABELS, SEMANTISATION_METHODS, advisorContextFromLexeme, recommendMethods } from '../../domain/advisor';
+import { SEMANTISATION_METHOD_IDS, advisorContextFromLexeme, recommendMethods } from '../../domain/advisor';
 import {
   CHECK_TEMPLATES,
   buildCheckPrompt,
   buildSecondaryPrompt,
-  checkDemandLabel,
-  checkDirectionLabel,
-  checkTargetLabel,
   checkTemplate,
   counterpartCheck,
   coversBothDirections,
@@ -15,26 +12,23 @@ import {
   suggestRetrievalProgression,
 } from '../../domain/checks';
 import {
-  IMPULSE_KINDS,
-} from '../../domain/reactivation';
-import {
   IMAGEABILITIES,
   INFERENCE_SUITABILITIES,
   LEARNING_GOALS,
   LEXICAL_TYPES,
   REPERTOIRES,
   TRANSFER_RISKS,
-  dimensionLabel,
-  resultLabel,
   type Lexeme,
   type Sequence,
 } from '../../domain/model';
 import { summarizeObservations } from '../../domain/observations';
 import { effectiveStepOrder, isStepEnabled, moveStep, stepHasContent, stepPhase } from '../../domain/steps';
 import { formatDate, formatDateTime } from '../../domain/text';
+import { usePhrase, useT, useTid } from '../../i18n/context';
 import { Button, IconButton } from '../../ui/Button';
 import { CheckboxRow, SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible } from '../../ui/Feedback';
+import { CcqPanel } from './CcqPanel';
 import { CorpusPanel } from './CorpusPanel';
 import { MediaSlot } from './MediaSlot';
 import { StepOrderList } from './StepOrderList';
@@ -47,6 +41,9 @@ interface Props {
 
 export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
   const { actions } = useStore();
+  const t = useT();
+  const tid = useTid();
+  const phrase = usePhrase(sequence.targetLanguage);
   const methodListId = useId();
   const set = (patch: Partial<Lexeme>) => actions.updateLexeme(sequence.id, lexeme.id, patch);
 
@@ -56,8 +53,8 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
   const selectedCheck = checkTemplate(lexeme.checkTemplateId);
   const counterpart = counterpartCheck(lexeme);
   const secondaryTemplate = checkTemplate(lexeme.checkTemplateIdSecondary);
-  const checkPreview = buildCheckPrompt(lexeme);
-  const secondaryPreview = buildSecondaryPrompt(lexeme);
+  const checkPreview = buildCheckPrompt(lexeme, phrase);
+  const secondaryPreview = buildSecondaryPrompt(lexeme, phrase);
   const bothDirections = coversBothDirections(lexeme);
   const history = [...lexeme.observations].sort((a, b) => b.at - a.at);
   const summary = summarizeObservations(lexeme.observations);
@@ -69,169 +66,173 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
   return (
     <div className="stack">
       <div className="pane-head">
-        <h2 className="pane-head__title">Ausgewählte Einheit</h2>
+        <h2 className="pane-head__title">{t('detail.title')}</h2>
         <div className="row">
           {onClose ? (
-            <IconButton label="Detailspalte schließen" onClick={onClose}>
+            <IconButton label={t('detail.close')} onClick={onClose}>
               ✕
             </IconButton>
           ) : null}
         </div>
       </div>
 
-      <p className="detail-expression">{lexeme.expression || 'Ohne Ausdruck'}</p>
+      <p className="detail-expression">{lexeme.expression || t('sequence.lexeme.unnamed')}</p>
 
       <section className="core-panel">
-        <p className="core-panel__title">Für den Erstkontakt</p>
-        <p className="field__hint">
-          Diese Angaben tragen die erste Begegnung. Alles Weitere ist Vertiefung und kann später ergänzt werden.
-        </p>
+        <p className="core-panel__title">{t('detail.core')}</p>
+        <p className="field__hint">{t('detail.core.hint')}</p>
 
         <div className="stack-tight">
-          <TextField label="Ausdruck oder Chunk" value={lexeme.expression} onChange={(expression) => set({ expression })} target />
           <TextField
-            label="Kernbedeutung"
+            label={t('detail.field.expression')}
+            value={lexeme.expression}
+            onChange={(expression) => set({ expression })}
+            target
+          />
+          <TextField
+            label={t('detail.field.coreMeaning')}
             value={lexeme.coreMeaning}
             onChange={(coreMeaning) => set({ coreMeaning })}
-            placeholder="in Alltagssprache, kurz"
-          />
-          <TextField
-            label="Kommunikative Funktion"
-            value={lexeme.communicativeFunction}
-            onChange={(communicativeFunction) => set({ communicativeFunction })}
-            placeholder="z. B. einen Vorschlag machen"
+            hint={t('detail.field.coreMeaning.hint')}
           />
           <TextArea
-            label="Modelläußerung"
+            label={t('detail.field.targetExplanation')}
+            value={lexeme.targetExplanation}
+            onChange={(targetExplanation) => set({ targetExplanation })}
+            rows={2}
+            target
+            hint={t('detail.field.targetExplanation.hint')}
+          />
+          <TextField
+            label={t('detail.field.function')}
+            value={lexeme.communicativeFunction}
+            onChange={(communicativeFunction) => set({ communicativeFunction })}
+            placeholder={t('detail.field.function.placeholder')}
+          />
+          <TextArea
+            label={t('detail.field.utterance')}
             value={lexeme.modelUtterance}
             onChange={(modelUtterance) => set({ modelUtterance })}
             rows={2}
             target
-            hint="Vollständige Äußerung im Kontext."
+            hint={t('detail.field.utterance.hint')}
           />
           <TextField
-            label="Musteranker"
+            label={t('detail.field.anchor')}
             value={lexeme.sentenceFrame}
             onChange={(sentenceFrame) => set({ sentenceFrame })}
             target
-            placeholder="z. B. avoir peur de + nom/infinitif"
-            hint={
-              anchorMissing
-                ? 'Diese Einheit ist produktiv geplant und gehört zum Kernrepertoire – ohne Musteranker fehlt der Rahmen für die eigene Verwendung.'
-                : 'Fester Teil und variable Bausteine, z. B. „jouer à + Sportart“ oder „prendre une décision“.'
-            }
+            placeholder={t('detail.field.anchor.placeholder')}
+            hint={anchorMissing ? t('detail.field.anchor.missing') : t('detail.field.anchor.hint')}
           />
           <SelectField
-            label="Lexikalischer Typ"
+            label={t('detail.field.type')}
             value={lexeme.lexicalType}
             onChange={(value) => set({ lexicalType: value as Lexeme['lexicalType'] })}
-            options={LEXICAL_TYPES.map((type) => ({ value: type.id, label: type.label }))}
+            options={LEXICAL_TYPES.map((type) => ({ value: type, label: tid('lexicalType', type) }))}
           />
           <SelectField
-            label="Lernziel"
+            label={t('detail.field.goal')}
             value={lexeme.learningGoal}
             onChange={(value) => set({ learningGoal: value as Lexeme['learningGoal'] })}
-            options={LEARNING_GOALS.map((goal) => ({ value: goal.id, label: goal.label }))}
-            hint={LEARNING_GOALS.find((goal) => goal.id === lexeme.learningGoal)?.description}
+            options={LEARNING_GOALS.map((goal) => ({ value: goal, label: tid('learningGoal', goal) }))}
+            hint={tid('learningGoal', `${lexeme.learningGoal}.hint`)}
           />
         </div>
       </section>
 
       <SelectField
-        label="Repertoire"
+        label={t('detail.field.repertoire')}
         value={lexeme.repertoire}
         onChange={(value) => set({ repertoire: value as Lexeme['repertoire'] })}
-        options={REPERTOIRES.map((entry) => ({ value: entry.id, label: entry.label }))}
-        hint={REPERTOIRES.find((entry) => entry.id === lexeme.repertoire)?.description}
+        options={REPERTOIRES.map((entry) => ({ value: entry, label: tid('repertoire', entry) }))}
+        hint={tid('repertoire', `${lexeme.repertoire}.hint`)}
       />
 
       <div className="field">
         <label className="field__label" htmlFor={`${methodListId}-input`}>
-          Semantisierungsmethode
+          {t('detail.field.method')}
         </label>
         <input
           id={`${methodListId}-input`}
           className="input"
           list={methodListId}
           value={lexeme.semantisationMethod}
-          placeholder="frei wählbar"
+          placeholder={t('detail.field.method.placeholder')}
           onChange={(event) => set({ semantisationMethod: event.target.value })}
         />
         <datalist id={methodListId}>
-          {SEMANTISATION_METHODS.map((method) => (
-            <option key={method} value={method} />
+          {SEMANTISATION_METHOD_IDS.map((id) => (
+            <option key={id} value={tid('advisor', `${id}.method`)} />
           ))}
         </datalist>
       </div>
 
       <div className="advisor">
-        <p className="advisor__title">Vorschläge für diese Einheit</p>
+        <p className="advisor__title">{t('detail.advisor')}</p>
         {recommendations.map((recommendation) => (
           <div className="advisor__item" key={recommendation.id}>
-            <button type="button" className="advisor__method" onClick={() => set({ semantisationMethod: recommendation.method })}>
-              {recommendation.method}
+            <button
+              type="button"
+              className="advisor__method"
+              onClick={() => set({ semantisationMethod: tid('advisor', `${recommendation.id}.method`) })}
+            >
+              {tid('advisor', `${recommendation.id}.method`)}
             </button>
-            <span className={`evidence evidence--${recommendation.evidence}`}>{EVIDENCE_LABELS[recommendation.evidence]}</span>
-            <span className="advisor__rationale">{recommendation.rationale}</span>
+            <span className={`evidence evidence--${recommendation.evidence}`}>
+              {tid('evidence', recommendation.evidence)}
+            </span>
+            <span className="advisor__rationale">{tid('advisor', `${recommendation.id}.rationale`)}</span>
             <span className="advisor__rationale">
-              <strong>Bestätigen:</strong> {recommendation.confirmation}
+              <strong>{t('detail.advisor.confirm')}</strong> {tid('advisor', `${recommendation.id}.confirmation`)}
             </span>
             <span className="advisor__rationale">
-              <strong>Risiko:</strong> {recommendation.risk}
+              <strong>{t('detail.advisor.risk')}</strong> {tid('advisor', `${recommendation.id}.risk`)}
             </span>
           </div>
         ))}
         <p className="advisor__rationale" style={{ marginTop: 'var(--space-2)' }}>
-          Unverbindliche Vorschläge auf Grundlage von Typ, Lernziel, Niveau, Bildhaftigkeit und Transferrisiko. Die
-          Entscheidung bleibt bei Ihnen.
+          {t('detail.advisor.note')}
         </p>
       </div>
 
       <section className="panel">
         <div className="panel__header">
-          <span className="panel__title">Beobachtungen der Lerngruppe</span>
+          <span className="panel__title">{t('detail.observations')}</span>
         </div>
         <div className="panel__body">
           <ul className="dimension-grid">
             {summary.map((entry) => (
               <li key={entry.dimension} className={`dimension dimension--${entry.result ?? 'none'}`}>
-                <span className="dimension__label">{entry.label}</span>
+                <span className="dimension__label">{tid('dimension', entry.dimension)}</span>
                 <span className="dimension__value">
-                  {entry.result === 'secure' ? 'sicher' : null}
-                  {entry.result === 'supported' ? 'mit Hilfe' : null}
-                  {entry.result === 'not-yet' ? 'noch nicht' : null}
-                  {entry.result === null ? 'noch keine Beobachtung' : null}
+                  {entry.result ? tid('result', entry.result) : t('observation.none')}
                 </span>
                 {entry.at ? <span className="dimension__meta">{formatDate(entry.at)}</span> : null}
               </li>
             ))}
           </ul>
-          <p className="field__hint">
-            Beobachtungen der Klasse, nicht einzelner Lernender. Es werden bewusst keine Punkte oder Noten daraus
-            berechnet. Erfasst wird im Unterrichts- und Reaktivierungsmodus.
-          </p>
+          <p className="field__hint">{t('detail.observations.hint')}</p>
 
           {history.length > 0 ? (
             <details className="collapsible">
-              <summary>Verlauf ({history.length})</summary>
+              <summary>{t('detail.observations.log', { count: history.length })}</summary>
               <ul className="observation-log">
                 {history.map((entry) => (
                   <li className="observation-log__item" key={entry.id}>
                     <span className="observation-log__when">{formatDateTime(entry.at)}</span>
                     <span>
                       {entry.dimension && entry.result
-                        ? `${dimensionLabel(entry.dimension)}: ${resultLabel(entry.result)}`
-                        : 'Ereignis ohne Kompetenzaussage'}
+                        ? `${tid('dimension', entry.dimension)}: ${tid('result', entry.result)}`
+                        : t('observation.event')}
                       <span className="field__hint" style={{ display: 'block' }}>
-                        {entry.source === 'reactivation' ? 'Reaktivierung' : 'Einführung'}
-                        {entry.round ? ` · Runde ${entry.round}` : ''}
-                        {entry.impulseKind
-                          ? ` · ${IMPULSE_KINDS.find((kind) => kind.id === entry.impulseKind)?.label ?? entry.impulseKind}`
-                          : ''}
+                        {tid('observation.source', entry.source)}
+                        {entry.round ? ` · ${t('reactivate.round', { round: entry.round })}` : ''}
+                        {entry.impulseKind ? ` · ${tid('impulse', entry.impulseKind)}` : ''}
                       </span>
                     </span>
                     <IconButton
-                      label="Diese Beobachtung entfernen"
+                      label={t('detail.observations.remove')}
                       onClick={() => actions.removeObservation(sequence.id, lexeme.id, entry.id)}
                     >
                       ✕
@@ -244,132 +245,149 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
         </div>
       </section>
 
-      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="image" label="Bild" />
-      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="audio" label="Audio" />
-      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="video" label="Kurzes Video" />
+      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="image" label={t('detail.media.image')} />
+      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="audio" label={t('detail.media.audio')} />
+      <MediaSlot sequenceId={sequence.id} lexeme={lexeme} kind="video" label={t('detail.media.video')} />
 
-      <Collapsible title="Einordnung für den Berater">
+      <Collapsible title={t('detail.advisorProfile')}>
         <SelectField
-          label="Bildhaftigkeit"
+          label={t('detail.field.imageability')}
           value={lexeme.imageability}
           onChange={(value) => set({ imageability: value as Lexeme['imageability'] })}
-          options={IMAGEABILITIES.map((entry) => ({ value: entry.id, label: entry.label }))}
-          hint={IMAGEABILITIES.find((entry) => entry.id === lexeme.imageability)?.description}
+          options={IMAGEABILITIES.map((entry) => ({ value: entry, label: tid('imageability', entry) }))}
+          hint={tid('imageability', `${lexeme.imageability}.hint`)}
         />
         <SelectField
-          label="Eignung zur Erschließung"
+          label={t('detail.field.inferenceSuitability')}
           value={lexeme.inferenceSuitability}
           onChange={(value) => set({ inferenceSuitability: value as Lexeme['inferenceSuitability'] })}
-          options={INFERENCE_SUITABILITIES.map((entry) => ({ value: entry.id, label: entry.label }))}
-          hint={INFERENCE_SUITABILITIES.find((entry) => entry.id === lexeme.inferenceSuitability)?.description}
+          options={INFERENCE_SUITABILITIES.map((entry) => ({ value: entry, label: tid('inferenceSuitability', entry) }))}
+          hint={tid('inferenceSuitability', `${lexeme.inferenceSuitability}.hint`)}
         />
         <SelectField
-          label="Transfer- oder Verwechslungsrisiko"
+          label={t('detail.field.transferRisk')}
           value={lexeme.transferRisk}
           onChange={(value) => set({ transferRisk: value as Lexeme['transferRisk'] })}
-          options={TRANSFER_RISKS.map((entry) => ({ value: entry.id, label: entry.label }))}
-          hint={TRANSFER_RISKS.find((entry) => entry.id === lexeme.transferRisk)?.description}
+          options={TRANSFER_RISKS.map((entry) => ({ value: entry, label: tid('transferRisk', entry) }))}
+          hint={tid('transferRisk', `${lexeme.transferRisk}.hint`)}
         />
         <TextField
-          label="Verwechslungsgruppe"
+          label={t('detail.field.confusionGroup')}
           value={lexeme.confusionGroup}
           onChange={(confusionGroup) => set({ confusionGroup })}
-          placeholder="z. B. Kleidungsstücke"
-          hint="Frei gewählte Bezeichnung. Mehrere Einheiten derselben Gruppe in einer Sequenz werden im Bereitschaftscheck angemerkt."
+          placeholder={t('detail.field.confusionGroup.placeholder')}
+          hint={t('detail.field.confusionGroup.hint')}
         />
       </Collapsible>
 
-      <Collapsible title="Aussprache und Form">
+      <Collapsible title={t('detail.pronunciation')}>
         <TextField
-          label="Aussprachehinweis"
+          label={t('detail.field.pronunciation')}
           value={lexeme.pronunciationHint}
           onChange={(pronunciationHint) => set({ pronunciationHint })}
         />
         <TextField
-          label="Betonung, Liaison, problematische Lautung"
+          label={t('detail.field.prosody')}
           value={lexeme.prosodyNote}
           onChange={(prosodyNote) => set({ prosodyNote })}
         />
-        <TextField label="IPA (optional)" value={lexeme.ipa} onChange={(ipa) => set({ ipa })} target />
+        <TextField label={t('detail.field.ipa')} value={lexeme.ipa} onChange={(ipa) => set({ ipa })} target />
         <TextField
-          label="Artikel, Genus, Plural, unregelmäßige Form"
+          label={t('detail.field.morphology')}
           value={lexeme.morphology}
           onChange={(morphology) => set({ morphology })}
         />
-        <p className="field__hint">Eine eigene Aufnahme hinterlegen Sie oben im Feld „Audio“.</p>
+        <p className="field__hint">{t('detail.pronunciation.hint')}</p>
       </Collapsible>
 
-      <Collapsible title="Sprachliches Muster vertiefen">
-        <TextField label="Valenz" value={lexeme.valency} onChange={(valency) => set({ valency })} />
+      <Collapsible title={t('detail.pattern')}>
+        <TextField label={t('detail.field.valency')} value={lexeme.valency} onChange={(valency) => set({ valency })} />
         <TextArea
-          label="Weitere Kollokationen"
+          label={t('detail.field.collocations')}
           value={lexeme.collocations}
           onChange={(collocations) => set({ collocations })}
           rows={2}
         />
-        <TextField label="Wortfamilie" value={lexeme.wordFamily} onChange={(wordFamily) => set({ wordFamily })} />
-        <TextField label="Register" value={lexeme.register} onChange={(register) => set({ register })} />
+        <TextField
+          label={t('detail.field.wordFamily')}
+          value={lexeme.wordFamily}
+          onChange={(wordFamily) => set({ wordFamily })}
+        />
+        <TextField label={t('detail.field.register')} value={lexeme.register} onChange={(register) => set({ register })} />
         <TextArea
-          label="Kulturelle oder pragmatische Besonderheit"
+          label={t('detail.field.culturalNote')}
           value={lexeme.culturalNote}
           onChange={(culturalNote) => set({ culturalNote })}
           rows={2}
         />
       </Collapsible>
 
-      <Collapsible title="Korpusminiatur – Muster entdecken (optional)">
+      <Collapsible title={t('corpus.panel.title')}>
         <CorpusPanel sequence={sequence} lexeme={lexeme} />
       </Collapsible>
 
-      <Collapsible title="Bedeutungssicherung und Abruf">
-        <TextArea label="Beispiel" value={lexeme.example} onChange={(example) => set({ example })} rows={2} target />
-        <TextArea label="Nichtbeispiel" value={lexeme.nonExample} onChange={(nonExample) => set({ nonExample })} rows={2} />
+      <Collapsible title={t('detail.meaning')} defaultOpen>
+        <CcqPanel sequence={sequence} lexeme={lexeme} />
+
         <TextArea
-          label="Kontrastbeispiel"
+          label={t('detail.field.example')}
+          value={lexeme.example}
+          onChange={(example) => set({ example })}
+          rows={2}
+          target
+        />
+        <TextArea
+          label={t('detail.field.nonExample')}
+          value={lexeme.nonExample}
+          onChange={(nonExample) => set({ nonExample })}
+          rows={2}
+        />
+        <TextArea
+          label={t('detail.field.contrastExample')}
           value={lexeme.contrastExample}
           onChange={(contrastExample) => set({ contrastExample })}
           rows={2}
         />
         <TextField
-          label="Mögliche Verwechslung oder falscher Freund"
+          label={t('detail.field.confusionRisk')}
           value={lexeme.confusionRisk}
           onChange={(confusionRisk) => set({ confusionRisk })}
         />
 
         <SelectField
-          label="Abrufaufgabe"
+          label={t('detail.field.check')}
           value={lexeme.checkTemplateId}
           onChange={(checkTemplateId) => set({ checkTemplateId })}
           options={[
-            { value: '', label: 'keine' },
+            { value: '', label: t('common.none') },
             ...CHECK_TEMPLATES.map((template) => ({
               value: template.id,
-              label: recommended.some((entry) => entry.id === template.id) ? `${template.label} (empfohlen)` : template.label,
+              label: recommended.some((entry) => entry.id === template.id)
+                ? t('detail.field.check.recommended', { label: tid('check', template.id) })
+                : tid('check', template.id),
             })),
           ]}
-          hint={selectedCheck?.purpose}
+          hint={selectedCheck ? tid('check', `${selectedCheck.id}.purpose`) : undefined}
         />
         {selectedCheck ? (
           <p className="tag-row">
-            <span className="tag">{checkTargetLabel(selectedCheck.target)}</span>
-            <span className="tag">{checkDirectionLabel(selectedCheck.direction)}</span>
-            <span className="tag">{checkDemandLabel(selectedCheck.demand)}</span>
+            <span className="tag">{tid('check.target', selectedCheck.target)}</span>
+            <span className="tag">{tid('check.direction', selectedCheck.direction)}</span>
+            <span className="tag">{tid('check.demand', selectedCheck.demand)}</span>
           </p>
         ) : null}
 
         <div className="stack-tight">
-          <span className="field__label">Progression der Abrufaufgaben</span>
-          <p className="field__hint">
-            Von auswählen über beurteilen und erinnern bis zur freien Verwendung. Ein Klick übernimmt die Vorlage.
-          </p>
+          <span className="field__label">{t('detail.progression')}</span>
+          <p className="field__hint">{t('detail.progression.hint')}</p>
           <ol className="progression">
             {progression.map((template) => (
               <li key={template.id} className={template.id === lexeme.checkTemplateId ? 'progression__item progression__item--active' : 'progression__item'}>
                 <button type="button" className="progression__button" onClick={() => set({ checkTemplateId: template.id })}>
-                  {template.label}
+                  {tid('check', template.id)}
                 </button>
                 <span className="field__hint">
-                  {checkDemandLabel(template.demand)} · {checkDirectionLabel(template.direction)}
+                  {tid('check.demand', template.demand)} · {tid('check.direction', template.direction)}
                 </span>
               </li>
             ))}
@@ -377,120 +395,149 @@ export function LexemeDetail({ sequence, lexeme, onClose }: Props) {
         </div>
 
         <TextArea
-          label="Eigene Formulierung der Aufgabe"
+          label={t('detail.field.checkPrompt')}
           value={lexeme.checkPrompt}
           onChange={(checkPrompt) => set({ checkPrompt })}
           rows={2}
-          hint="Leer lassen, um die Vorlage zu verwenden."
+          hint={t('detail.field.checkPrompt.hint')}
         />
-        {checkPreview ? <p className="notice">Im Unterricht erscheint: {checkPreview}</p> : null}
+        {checkPreview ? <p className="notice">{t('detail.check.preview', { prompt: checkPreview })}</p> : null}
 
         <SelectField
-          label="Zweite Aufgabe in der Gegenrichtung"
+          label={t('detail.field.secondary')}
           value={lexeme.checkTemplateIdSecondary}
           onChange={(checkTemplateIdSecondary) => set({ checkTemplateIdSecondary })}
           options={[
-            { value: '', label: counterpart ? `Vorschlag der App: ${counterpart.label}` : 'keine' },
+            {
+              value: '',
+              label: counterpart
+                ? t('detail.field.secondary.app', { label: tid('check', counterpart.id) })
+                : t('common.none'),
+            },
             ...CHECK_TEMPLATES.map((template) => ({
               value: template.id,
-              label: `${template.label} – ${checkDirectionLabel(template.direction)}`,
+              label: `${tid('check', template.id)} – ${tid('check.direction', template.direction)}`,
             })),
           ]}
           hint={
             lexeme.learningGoal === 'productive' && !bothDirections
-              ? 'Für produktive Einheiten lohnen beide Richtungen: Form → Bedeutung und Bedeutung oder Situation → Form.'
-              : secondaryTemplate?.purpose
+              ? t('detail.field.secondary.hint')
+              : secondaryTemplate
+                ? tid('check', `${secondaryTemplate.id}.purpose`)
+                : undefined
           }
         />
         {secondaryPreview ? (
           <p className="notice">
-            Im Unterricht zusätzlich einblendbar: {secondaryPreview}
-            {secondaryTemplate ? null : ' (Vorschlag der App)'}
+            {t('detail.secondary.preview', { prompt: secondaryPreview })}
+            {secondaryTemplate ? null : t('detail.secondary.appHint')}
           </p>
         ) : null}
 
       </Collapsible>
 
-      <Collapsible title="Differenzierung">
-        <TextArea label="Zusätzlicher Hinweis" value={lexeme.extraHint} onChange={(extraHint) => set({ extraHint })} rows={2} />
+      <Collapsible title={t('detail.differentiation')}>
         <TextArea
-          label="Vereinfachte Erklärung"
+          label={t('detail.field.extraHint')}
+          value={lexeme.extraHint}
+          onChange={(extraHint) => set({ extraHint })}
+          rows={2}
+        />
+        <TextArea
+          label={t('detail.field.simplified')}
           value={lexeme.simplifiedExplanation}
           onChange={(simplifiedExplanation) => set({ simplifiedExplanation })}
           rows={2}
+          hint={t('detail.field.simplified.hint')}
         />
         <TextField
-          label="Übersetzung (optional)"
+          label={t('detail.field.translation')}
           value={lexeme.translation}
           onChange={(translation) => set({ translation })}
-          hint="Legitime Klärungshilfe – im Unterricht gezielt einblendbar."
+          hint={t('detail.field.translation.hint')}
         />
         <TextField
-          label="Mehrsprachiger Vergleich"
+          label={t('detail.field.comparison')}
           value={lexeme.multilingualComparison}
           onChange={(multilingualComparison) => set({ multilingualComparison })}
         />
         <TextArea
-          label="Erweiterungsaufgabe"
+          label={t('detail.field.extension')}
           value={lexeme.extensionTask}
           onChange={(extensionTask) => set({ extensionTask })}
           rows={2}
         />
       </Collapsible>
 
-      <Collapsible title="Unterricht und Dramaturgie">
+      <Collapsible title={t('detail.lesson')}>
         <TextArea
-          label="Einstiegssituation"
+          label={t('detail.field.situation')}
           value={lexeme.situation}
           onChange={(situation) => set({ situation })}
           rows={2}
-          hint="Trägt die Phase „Kontext“ im Unterrichtsmodus."
+          hint={t('detail.field.situation.hint')}
         />
         <TextArea
-          label="Kommunikative Mini-Aufgabe"
+          label={t('detail.field.task')}
           value={lexeme.communicativeTask}
           onChange={(communicativeTask) => set({ communicativeTask })}
           rows={2}
-          hint="Trägt die Phase „Gebrauch“."
+          hint={t('detail.field.task.hint')}
+        />
+        <TextArea
+          label={t('detail.field.targetPrompt')}
+          value={lexeme.targetPrompt}
+          onChange={(targetPrompt) => set({ targetPrompt })}
+          rows={2}
+          target
+          hint={t('detail.field.targetPrompt.hint')}
+        />
+        <TextArea
+          label={t('detail.field.teacherNote')}
+          value={lexeme.teacherNote}
+          onChange={(teacherNote) => set({ teacherNote })}
+          rows={2}
+          hint={t('detail.field.teacherNote.hint')}
         />
         <CheckboxRow
-          label="Einheit im Unterrichtsmodus überspringen"
+          label={t('detail.skip')}
           checked={lexeme.skipped}
           onChange={(skipped) => set({ skipped })}
         />
 
         <div className="stack-tight">
-          <span className="field__label">Schritte für diese Einheit</span>
-          <p className="field__hint">
-            {hasOwnOrder ? 'Diese Einheit hat eine eigene Reihenfolge.' : 'Es gilt die Reihenfolge der Sequenz.'}
-          </p>
+          <span className="field__label">{t('detail.steps')}</span>
+          <p className="field__hint">{hasOwnOrder ? t('detail.steps.own') : t('detail.steps.sequence')}</p>
           <StepOrderList
             order={stepOrder}
             isEnabled={(stepId) => isStepEnabled(sequence, lexeme, stepId)}
             onToggle={(stepId, checked) => set({ stepOverrides: { ...lexeme.stepOverrides, [stepId]: checked } })}
             onMove={hasOwnOrder ? (from, to) => set({ stepOrderOverride: moveStep(stepOrder, from, to) }) : undefined}
-            lockedHint="Erst eine eigene Reihenfolge für diese Einheit anlegen"
+            lockedHint={t('detail.steps.locked')}
             hintFor={(stepId) =>
               stepHasContent(stepId, lexeme, sequence)
                 ? undefined
                 : stepId === 'vermuten'
-                  ? 'Erschließen ist hier nicht vorgesehen – siehe Sequenzeinstellung und Eignung'
-                  : 'kein Material hinterlegt – wird übersprungen'
+                  ? t('steps.noInference')
+                  : t('steps.noMaterial')
             }
-            phaseFor={(stepId) => stepPhase(stepId)?.label}
+            phaseFor={(stepId) => {
+              const phase = stepPhase(stepId);
+              return phase ? tid('phase', phase.id) : undefined;
+            }}
           />
           <div className="row">
             {hasOwnOrder ? (
               <Button variant="ghost" onClick={() => set({ stepOrderOverride: null })}>
-                Reihenfolge der Sequenz übernehmen
+                {t('detail.steps.useSequence')}
               </Button>
             ) : (
               <Button variant="ghost" onClick={() => set({ stepOrderOverride: stepOrder })}>
-                Eigene Reihenfolge für diese Einheit
+                {t('detail.steps.useOwn')}
               </Button>
             )}
             <Button variant="ghost" onClick={() => set({ stepOverrides: {} })}>
-              Schrittauswahl zurücksetzen
+              {t('detail.steps.reset')}
             </Button>
           </div>
         </div>

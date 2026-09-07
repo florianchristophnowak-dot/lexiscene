@@ -51,7 +51,6 @@ export function latestObservation(
 
 export interface DimensionSummary {
   dimension: ObservationDimension;
-  label: string;
   result: ObservationResult | null;
   at: number | null;
   count: number;
@@ -59,12 +58,11 @@ export interface DimensionSummary {
 
 /** Kompakte Übersicht der vier Dimensionen – ohne Verrechnung. */
 export function summarizeObservations(observations: LexemeObservation[]): DimensionSummary[] {
-  return OBSERVATION_DIMENSIONS.map((entry) => {
-    const latest = latestObservation(observations, entry.id);
-    const count = observations.filter((observation) => observation.dimension === entry.id && observation.result).length;
+  return OBSERVATION_DIMENSIONS.map((dimension) => {
+    const latest = latestObservation(observations, dimension);
+    const count = observations.filter((observation) => observation.dimension === dimension && observation.result).length;
     return {
-      dimension: entry.id,
-      label: entry.label,
+      dimension,
       result: latest?.result ?? null,
       at: latest?.at ?? null,
       count,

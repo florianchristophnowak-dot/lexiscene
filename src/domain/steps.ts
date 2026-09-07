@@ -1,59 +1,31 @@
 /**
  * Dramaturgie einer Semantisierung.
  *
- * Über den zwölf Mikro-Schritten liegen sechs didaktische Phasen:
+ * Über den dreizehn Mikro-Schritten liegen sechs didaktische Phasen:
  * Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung.
  * Die Phasen geben die Grundstruktur; welche Schritte darin vorkommen und in
  * welcher Reihenfolge, entscheidet die Lehrkraft je Sequenz und Einheit.
+ *
+ * Bezeichnung und Begründung stehen im Sprachkatalog: `phase.<id>`,
+ * `phase.<id>.purpose`, `step.<id>` und `step.<id>.purpose`.
  */
 import type { Lexeme, ObservationDimension, PhaseId, Sequence, StepId } from './model';
 import { checkTemplate } from './checks';
 import { corpusMiniatureReady } from './corpus';
+import { ccqDimension, hasUsableCcq } from './ccq';
 
 export interface PhaseDefinition {
   id: PhaseId;
   position: number;
-  label: string;
-  purpose: string;
 }
 
 export const PHASES: readonly PhaseDefinition[] = [
-  {
-    id: 'kontext',
-    position: 1,
-    label: 'Kontext',
-    purpose: 'Situation und kommunikativen Bedarf aufbauen, bevor Sprache angeboten wird.',
-  },
-  {
-    id: 'klarheit',
-    position: 2,
-    label: 'Klarheit',
-    purpose: 'Die Bedeutung eindeutig sichern – erschlossen oder direkt geklärt.',
-  },
-  {
-    id: 'muster',
-    position: 3,
-    label: 'Muster',
-    purpose: 'Klangbild, Schriftbild und Musteranker verfügbar machen.',
-  },
-  {
-    id: 'abruf',
-    position: 4,
-    label: 'Abruf',
-    purpose: 'Prüfen und üben, was ohne Hilfen abrufbar ist.',
-  },
-  {
-    id: 'gebrauch',
-    position: 5,
-    label: 'Gebrauch',
-    purpose: 'Die Einheit in eigenem Sprachhandeln verwenden.',
-  },
-  {
-    id: 'wiederbegegnung',
-    position: 6,
-    label: 'Wiederbegegnung',
-    purpose: 'Später erneut aktivieren – im Bereich „Reaktivieren“ geplant und durchgeführt.',
-  },
+  { id: 'kontext', position: 1 },
+  { id: 'klarheit', position: 2 },
+  { id: 'muster', position: 3 },
+  { id: 'abruf', position: 4 },
+  { id: 'gebrauch', position: 5 },
+  { id: 'wiederbegegnung', position: 6 },
 ];
 
 export function phaseDefinition(id: PhaseId): PhaseDefinition | undefined {
@@ -64,9 +36,6 @@ export interface StepDefinition {
   id: StepId;
   position: number;
   phase: PhaseId;
-  label: string;
-  /** Knappe didaktische Begründung – erscheint als Hinweis in der Vorbereitung. */
-  purpose: string;
 }
 
 /**
@@ -74,92 +43,21 @@ export interface StepDefinition {
  * Reihenfolge und Auswahl sind je Sequenz und Einheit änderbar.
  */
 export const STEPS: readonly StepDefinition[] = [
-  {
-    id: 'situation',
-    position: 1,
-    phase: 'kontext',
-    label: 'Situation',
-    purpose: 'Kommunikativen Bedarf sichtbar machen, bevor Sprache angeboten wird.',
-  },
-  {
-    id: 'impuls',
-    position: 2,
-    phase: 'kontext',
-    label: 'Impuls zeigen',
-    purpose: 'Bild, Gegenstand, Geste oder Video als Bedeutungsträger anbieten.',
-  },
-  {
-    id: 'vermuten',
-    position: 3,
-    phase: 'klarheit',
-    label: 'Bedeutung erschließen',
-    purpose:
-      'Nur sinnvoll, wenn der Kontext informativ genug ist oder Erschließen bewusst geübt wird – die Klärung muss immer folgen.',
-  },
-  {
-    id: 'klaeren',
-    position: 4,
-    phase: 'klarheit',
-    label: 'Bedeutung klären',
-    purpose: 'Bedeutung eindeutig sichern, damit keine falsche Hypothese bestehen bleibt.',
-  },
-  {
-    id: 'audio',
-    position: 5,
-    phase: 'muster',
-    label: 'Hören',
-    purpose: 'Klangbild anbieten. Ob es vor oder nach dem Schriftbild kommt, ist eine Regieentscheidung.',
-  },
-  {
-    id: 'form',
-    position: 6,
-    phase: 'muster',
-    label: 'Form zeigen',
-    purpose: 'Schriftbild einführen. Der Zeitpunkt ist wählbar – früh stützt, spät fordert das Hören.',
-  },
-  {
-    id: 'fokus',
-    position: 7,
-    phase: 'muster',
-    label: 'Aussprache und Muster',
-    purpose: 'Lautung, Betonung und Musteranker gezielt fokussieren.',
-  },
-  {
-    id: 'korpusminiatur',
-    position: 8,
-    phase: 'muster',
-    label: 'Korpusminiatur',
-    purpose:
-      'An wenigen kuratierten Belegen ein Muster gelenkt entdecken. Optionaler Schritt – die Regel wird anschließend ausdrücklich bestätigt.',
-  },
-  {
-    id: 'kontrolle',
-    position: 9,
-    phase: 'abruf',
-    label: 'Verständniskontrolle',
-    purpose: 'Formative Rückmeldung einholen, ohne zu bewerten.',
-  },
-  {
-    id: 'hilfen-ausblenden',
-    position: 10,
-    phase: 'abruf',
-    label: 'Hilfen ausblenden',
-    purpose: 'Stützen entfernen und sehen, was ohne Vorlage abrufbar ist.',
-  },
-  {
-    id: 'abruf',
-    position: 11,
-    phase: 'abruf',
-    label: 'Freier Abruf',
-    purpose: 'Abruf ohne Vorlage anregen – erst Denkzeit, dann Lösung.',
-  },
-  {
-    id: 'aufgabe',
-    position: 12,
-    phase: 'gebrauch',
-    label: 'Kommunikative Mini-Aufgabe',
-    purpose: 'Erstes eigenes Sprachhandeln mit der neuen Einheit ermöglichen.',
-  },
+  { id: 'situation', position: 1, phase: 'kontext' },
+  { id: 'impuls', position: 2, phase: 'kontext' },
+  { id: 'vermuten', position: 3, phase: 'klarheit' },
+  { id: 'klaeren', position: 4, phase: 'klarheit' },
+  // Bedeutung prüfen: erst nach der Klärung, und ausdrücklich vor der Form.
+  { id: 'ccq', position: 5, phase: 'klarheit' },
+  { id: 'audio', position: 6, phase: 'muster' },
+  { id: 'form', position: 7, phase: 'muster' },
+  { id: 'fokus', position: 8, phase: 'muster' },
+  { id: 'korpusminiatur', position: 9, phase: 'muster' },
+  // Die Abrufkontrolle prüft die sprachliche Form, nicht mehr das Konzept.
+  { id: 'kontrolle', position: 10, phase: 'abruf' },
+  { id: 'hilfen-ausblenden', position: 11, phase: 'abruf' },
+  { id: 'abruf', position: 12, phase: 'abruf' },
+  { id: 'aufgabe', position: 13, phase: 'gebrauch' },
 ];
 
 /**
@@ -288,6 +186,8 @@ export function stepHasContent(id: StepId, lexeme: Lexeme, sequence?: Sequence):
         lexeme.valency,
         lexeme.collocations,
       );
+    case 'ccq':
+      return hasUsableCcq(lexeme);
     case 'korpusminiatur':
       return corpusMiniatureReady(lexeme.corpus);
     case 'kontrolle':
@@ -340,6 +240,9 @@ export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension
     case 'vermuten':
     case 'klaeren':
       return 'meaning';
+    // Nach den CCQs richtet sich die Rückmeldung danach, worauf sie zielen.
+    case 'ccq':
+      return lexeme ? ccqDimension(lexeme) : 'meaning';
     case 'audio':
     case 'form':
     case 'hilfen-ausblenden':
@@ -359,7 +262,7 @@ export function stepDimension(id: StepId, lexeme?: Lexeme): ObservationDimension
 
 /** In diesen Schritten ist eine Rückmeldung der Lerngruppe sinnvoll. */
 export function stepInvitesFeedback(id: StepId): boolean {
-  return ['kontrolle', 'hilfen-ausblenden', 'abruf', 'aufgabe'].includes(id);
+  return ['ccq', 'kontrolle', 'hilfen-ausblenden', 'abruf', 'aufgabe'].includes(id);
 }
 
 /** Sichtbarkeit der Hilfen beim Betreten eines Schritts (gestufte Enthüllung). */
@@ -386,6 +289,9 @@ export const PHASE_VISIBILITY: Record<PhaseId, StepVisibility> = {
 const STEP_VISIBILITY_EXCEPTIONS: Partial<Record<StepId, Partial<StepVisibility>>> = {
   // Erst vermuten lassen, dann klären – sonst ist die Frage beantwortet.
   vermuten: { meaning: false },
+  // Bei der Bedeutungsprüfung steht die Frage allein; die Erklärung würde sie
+  // beantworten, bevor die Klasse antworten kann.
+  ccq: { meaning: false, form: false, support: false },
   // Innerhalb der Phase „Muster“ kommt das Klangbild vor dem Schriftbild.
   audio: { form: false },
   // Im Fokusschritt stehen Musteranker und Lautung im Vordergrund.
@@ -400,12 +306,19 @@ export function defaultVisibility(id: StepId): StepVisibility {
   return { ...PHASE_VISIBILITY[phase], ...(STEP_VISIBILITY_EXCEPTIONS[id] ?? {}) };
 }
 
-/** Kurzbeschreibung des Profils für die Vorbereitung. */
-export function visibilityLabel(visibility: StepVisibility): string {
+/**
+ * Kurzbeschreibung des Profils für die Vorbereitung. Die Bezeichnungen kommen
+ * aus dem Sprachkatalog, damit hier kein fester Text steht.
+ */
+export function visibilityLabel(
+  visibility: StepVisibility,
+  label: (prefix: string, id: string) => string,
+  nothing: string,
+): string {
   const parts = [
-    visibility.meaning ? 'Bedeutung' : '',
-    visibility.form ? 'Schriftbild' : '',
-    visibility.support ? 'Hilfen' : '',
+    visibility.meaning ? label('teach.toggle', 'meaning') : '',
+    visibility.form ? label('teach.toggle', 'form') : '',
+    visibility.support ? label('teach.toggle', 'support') : '',
   ].filter(Boolean);
-  return parts.length > 0 ? parts.join(', ') : 'nichts';
+  return parts.length > 0 ? parts.join(', ') : nothing;
 }

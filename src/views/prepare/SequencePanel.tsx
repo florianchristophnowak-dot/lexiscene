@@ -2,18 +2,14 @@ import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { useStore } from '../../app/storeContext';
 import { downloadText } from '../../app/download';
-import {
-  INFERENCE_MODES,
-  LANGUAGES,
-  LEARNER_LEVELS,
-  repertoireLabel,
-  type Sequence,
-} from '../../domain/model';
+import { INFERENCE_MODES, LANGUAGES, LEARNER_LEVELS, type Sequence } from '../../domain/model';
 import { PHASES, PHASE_VISIBILITY, STEP_IDS, effectiveStepOrder, moveStep, stepPhase, visibilityLabel } from '../../domain/steps';
 import { buildSequenceExport, sequenceExportFileName } from '../../storage/backup';
 import { truncate } from '../../domain/text';
-import { readinessSeverityLabel, summarizeReadiness } from '../../domain/readiness';
+import { summarizeReadiness } from '../../domain/readiness';
 import { summarizeObservations } from '../../domain/observations';
+import type { TranslationKey } from '../../i18n';
+import { useLocale, useT, useTid } from '../../i18n/context';
 import { Button, IconButton } from '../../ui/Button';
 import { SelectField, TextArea, TextField } from '../../ui/Field';
 import { Collapsible, EmptyState } from '../../ui/Feedback';
@@ -31,6 +27,9 @@ interface Props {
 export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, headerExtra }: Props) {
   const { actions } = useStore();
   const toast = useToast();
+  const t = useT();
+  const tid = useTid();
+  const locale = useLocale();
   const [quickExpression, setQuickExpression] = useState('');
   const [quickMeaning, setQuickMeaning] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -52,23 +51,40 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
   const move = (from: number, to: number) => {
     if (to < 0 || to >= sequence.lexemes.length) return;
     actions.moveLexeme(sequence.id, from, to);
-    setAnnouncement(`${sequence.lexemes[from].expression || 'Einheit'} ist jetzt an Position ${to + 1} von ${sequence.lexemes.length}.`);
+    setAnnouncement(
+      t('sequence.order.announce', {
+        name: sequence.lexemes[from].expression || t('sequence.lexeme.unnamed'),
+        position: to + 1,
+        total: sequence.lexemes.length,
+      }),
+    );
   };
 
   return (
     <div className="stack">
       <div className="pane-head">
-        <h2 className="pane-head__title">Sequenz</h2>
+        <h2 className="pane-head__title">{t('sequence.title')}</h2>
         <div className="row">
           {headerExtra}
           <Button
             variant="secondary"
             onClick={() => {
-              downloadText(JSON.stringify(buildSequenceExport(sequence), null, 2), sequenceExportFileName(sequence));
-              toast.show('Sequenz als JSON exportiert.');
+              downloadText(
+                JSON.stringify(
+                  buildSequenceExport(sequence, {
+                    locale,
+                    label: (stepId) => tid('step', stepId),
+                    purpose: (stepId) => tid('step', `${stepId}.purpose`),
+                  }),
+                  null,
+                  2,
+                ),
+                sequenceExportFileName(sequence),
+              );
+              toast.show(t('sequence.exported'));
             }}
           >
-            Exportieren
+            {t('common.export')}
           </Button>
           <Button
             variant="primary"
@@ -76,98 +92,98 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
             disabled={sequence.lexemes.length === 0}
             onClick={() => navigate({ name: 'teach', sequenceId: sequence.id })}
           >
-            {sequence.session ? 'Unterricht fortsetzen' : 'Unterrichten'}
+            {sequence.session ? t('sequence.resume') : t('sequence.teach')}
           </Button>
         </div>
       </div>
 
       <div className="sequence-head">
         <div className="sequence-form">
-          <TextField label="Titel" value={sequence.title} onChange={(title) => update({ title })} wide />
+          <TextField label={t('sequence.field.title')} value={sequence.title} onChange={(title) => update({ title })} wide />
           <SelectField
-            label="Zielsprache"
+            label={t('sequence.field.language')}
             value={sequence.targetLanguage}
             onChange={(targetLanguage) => update({ targetLanguage })}
-            options={LANGUAGES.map((language) => ({ value: language.code, label: language.label }))}
+            options={LANGUAGES.map((language) => ({ value: language.code, label: tid('language', language.code) }))}
           />
           <TextField
-            label="Lerngruppe"
+            label={t('sequence.field.group')}
             value={sequence.learningGroup}
             onChange={(learningGroup) => update({ learningGroup })}
-            placeholder="z. B. Klasse 7, 2. Lernjahr"
+            placeholder={t('sequence.field.group.placeholder')}
           />
           <SelectField
-            label="Lernniveau"
+            label={t('sequence.field.level')}
             value={sequence.learnerLevel}
             onChange={(learnerLevel) => update({ learnerLevel: learnerLevel as Sequence['learnerLevel'] })}
-            options={LEARNER_LEVELS.map((level) => ({ value: level.id, label: level.label }))}
-            hint="Fließt in die Vorschläge des Methodenberaters ein."
+            options={LEARNER_LEVELS.map((level) => ({ value: level, label: tid('learnerLevel', level) }))}
+            hint={t('sequence.field.level.hint')}
           />
           <TextField
-            label="Thema oder Situation"
+            label={t('sequence.field.topic')}
             value={sequence.topic}
             onChange={(topic) => update({ topic })}
-            placeholder="z. B. Am Wochenende etwas unternehmen"
+            placeholder={t('sequence.field.topic.placeholder')}
             wide
           />
           <TextArea
-            label="Kommunikatives Kann-Ziel"
+            label={t('sequence.field.canDo')}
             value={sequence.canDoGoal}
             onChange={(canDoGoal) => update({ canDoGoal })}
-            placeholder="Die Lernenden können …"
+            placeholder={t('sequence.field.canDo.placeholder')}
             rows={2}
             wide
           />
         </div>
 
-        <Collapsible title="Notiz für die Lehrkraft">
+        <Collapsible title={t('sequence.note')}>
           <TextArea
-            label="Notiz"
+            label={t('sequence.note.field')}
             value={sequence.teacherNote}
             onChange={(teacherNote) => update({ teacherNote })}
             rows={3}
-            hint="Erscheint nur in der Vorbereitung, nicht im Unterrichtsmodus."
+            hint={t('sequence.note.hint')}
           />
         </Collapsible>
 
-        <Collapsible title="Dramaturgie der Einführung">
+        <Collapsible title={t('sequence.dramaturgy')}>
           <p className="field__hint">
-            Grundstruktur sind sechs Phasen: {PHASES.map((phase) => phase.label).join(' – ')}. Welche Schritte darin
-            vorkommen und in welcher Reihenfolge, entscheiden Sie. Deaktivierte Schritte werden übersprungen; Schritte
-            ohne Material entfallen automatisch.
+            {t('sequence.dramaturgy.hint', {
+              phases: PHASES.map((phase) => tid('phase', phase.id)).join(' – '),
+            })}
           </p>
           <SelectField
-            label="Bedeutung erschließen lassen"
+            label={t('sequence.inference')}
             value={sequence.inferenceMode}
             onChange={(inferenceMode) => update({ inferenceMode: inferenceMode as Sequence['inferenceMode'] })}
-            options={INFERENCE_MODES.map((mode) => ({ value: mode.id, label: mode.label }))}
-            hint={INFERENCE_MODES.find((mode) => mode.id === sequence.inferenceMode)?.description}
+            options={INFERENCE_MODES.map((mode) => ({ value: mode, label: tid('inferenceMode', mode) }))}
+            hint={tid('inferenceMode', `${sequence.inferenceMode}.hint`)}
           />
           <StepOrderList
             order={effectiveStepOrder(sequence)}
             isEnabled={(stepId) => sequence.steps[stepId] !== false}
             onToggle={(stepId, enabled) => actions.setSequenceStep(sequence.id, stepId, enabled)}
             onMove={(from, to) => update({ stepOrder: moveStep(effectiveStepOrder(sequence), from, to) })}
-            phaseFor={(stepId) => stepPhase(stepId)?.label}
+            phaseFor={(stepId) => {
+              const phase = stepPhase(stepId);
+              return phase ? tid('phase', phase.id) : undefined;
+            }}
           />
           <Button variant="ghost" onClick={() => update({ stepOrder: [...STEP_IDS] })}>
-            Standardreihenfolge wiederherstellen
+            {t('sequence.restoreOrder')}
           </Button>
 
           <div className="stack-tight">
-            <span className="field__label">Was die Klasse je Phase zuerst sieht</span>
+            <span className="field__label">{t('sequence.visibility')}</span>
             <ul className="phase-visibility">
               {PHASES.filter((phase) => phase.id !== 'wiederbegegnung').map((phase) => (
                 <li key={phase.id}>
-                  <span className="tag">{phase.label}</span>
-                  <span className="field__hint">{visibilityLabel(PHASE_VISIBILITY[phase.id])}</span>
+                  <span className="tag">{tid('phase', phase.id)}</span>
+                  <span className="field__hint">{visibilityLabel(PHASE_VISIBILITY[phase.id], tid, t('sequence.visibility.nothing'))}</span>
                 </li>
               ))}
             </ul>
-            <p className="field__hint">
-              Ausgangspunkt beim Betreten eines Schritts. Im Unterricht lässt sich jederzeit umschalten; einzelne
-              Schritte weichen begründet ab (etwa Erschließen und Hören).
-            </p>
+            <p className="field__hint">{t('sequence.visibility.hint')}</p>
           </div>
         </Collapsible>
       </div>
@@ -175,25 +191,22 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
       <Collapsible
         title={
           readiness.toComplete > 0
-            ? `Bereitschaft: ${readiness.toComplete} Hinweis${readiness.toComplete === 1 ? '' : 'e'} zum Ergänzen`
+            ? t('sequence.readiness.toComplete', { count: readiness.toComplete })
             : readiness.optional > 0
-              ? `Bereitschaft: ${readiness.optional} optionale${readiness.optional === 1 ? 'r' : ''} Hinweis${readiness.optional === 1 ? '' : 'e'}`
-              : 'Bereitschaft: nichts offen'
+              ? t('sequence.readiness.optional', { count: readiness.optional })
+              : t('sequence.readiness.clear')
         }
       >
-        <p className="field__hint">
-          Der Check blockiert nichts. Er zeigt nur, was für einen tragfähigen Erstkontakt noch fehlt und was sich
-          optional vertiefen lässt.
-        </p>
+        <p className="field__hint">{t('sequence.readiness.hint')}</p>
         {readiness.findings.length === 0 ? (
-          <p className="muted text-sm">Für diese Sequenz ist alles Wesentliche vorbereitet.</p>
+          <p className="muted text-sm">{t('sequence.readiness.ok')}</p>
         ) : (
           <ul className="readiness">
             {readiness.findings.map((finding) => (
               <li key={finding.id} className={`readiness__item readiness__item--${finding.severity}`}>
-                <span className="tag">{readinessSeverityLabel(finding.severity)}</span>
-                <p className="readiness__title">{finding.title}</p>
-                <p className="readiness__detail">{finding.detail}</p>
+                <span className="tag">{tid('readiness.severity', finding.severity)}</span>
+                <p className="readiness__title">{tid('readiness', `${finding.key}.title`)}</p>
+                <p className="readiness__detail">{t(`readiness.${finding.key}.detail` as TranslationKey, finding.params)}</p>
               </li>
             ))}
           </ul>
@@ -202,18 +215,16 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
 
       <div>
         <h3 className="pane-head__title" style={{ marginBottom: 'var(--space-2)' }}>
-          Lexikalische Einheiten ({sequence.lexemes.length})
+          {t('sequence.lexemes', { count: sequence.lexemes.length })}
         </h3>
 
-        <p className="visually-hidden" role="status" aria-live="polite" aria-label="Reihenfolge der Einheiten">
+        <p className="visually-hidden" role="status" aria-live="polite" aria-label={t('sequence.order.label')}>
           {announcement}
         </p>
 
         {sequence.lexemes.length === 0 ? (
-          <EmptyState title="Noch keine Einheit">
-            <p className="text-sm">
-              Tragen Sie unten einen Ausdruck oder Chunk ein – Details lassen sich jederzeit ergänzen.
-            </p>
+          <EmptyState title={t('sequence.noLexeme')}>
+            <p className="text-sm">{t('sequence.noLexeme.hint')}</p>
           </EmptyState>
         ) : (
           <ul className="lexeme-list">
@@ -258,34 +269,39 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
                 </span>
 
                 <button type="button" className="lexeme-row__main" onClick={() => onSelectLexeme(lexeme.id)}>
-                  <span className="lexeme-row__expression">{lexeme.expression || 'Ohne Ausdruck'}</span>
+                  <span className="lexeme-row__expression">{lexeme.expression || t('sequence.lexeme.unnamed')}</span>
                   <span className="lexeme-row__meta">
-                    <span>{truncate(lexeme.communicativeFunction || lexeme.coreMeaning || 'ohne Kernbedeutung', 42)}</span>
+                    <span>
+                      {truncate(
+                        lexeme.communicativeFunction || lexeme.coreMeaning || t('sequence.lexeme.noMeaning'),
+                        42,
+                      )}
+                    </span>
                     {lexeme.semantisationMethod ? <span>{truncate(lexeme.semantisationMethod, 28)}</span> : null}
-                    <span className={`tag tag--${lexeme.repertoire}`}>{repertoireLabel(lexeme.repertoire)}</span>
+                    <span className={`tag tag--${lexeme.repertoire}`}>{tid('repertoire', lexeme.repertoire)}</span>
                     {summarizeObservations(lexeme.observations)
                       .filter((entry) => entry.result)
                       .map((entry) => (
                         <span key={entry.dimension} className={`tag dimension--${entry.result}`}>
-                          {entry.label}
+                          {tid('dimension', entry.dimension)}
                         </span>
                       ))}
                   </span>
                 </button>
 
                 <span className="lexeme-row__actions">
-                  <IconButton label="Nach oben verschieben" disabled={index === 0} onClick={() => move(index, index - 1)}>
+                  <IconButton label={t('common.moveUp')} disabled={index === 0} onClick={() => move(index, index - 1)}>
                     ↑
                   </IconButton>
                   <IconButton
-                    label="Nach unten verschieben"
+                    label={t('common.moveDown')}
                     disabled={index === sequence.lexemes.length - 1}
                     onClick={() => move(index, index + 1)}
                   >
                     ↓
                   </IconButton>
                   <IconButton
-                    label="Einheit duplizieren"
+                    label={t('sequence.lexeme.duplicate')}
                     onClick={() => {
                       const id = actions.duplicateLexeme(sequence.id, lexeme.id);
                       if (id) onSelectLexeme(id);
@@ -294,10 +310,10 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
                     ⧉
                   </IconButton>
                   <IconButton
-                    label="Einheit entfernen"
+                    label={t('sequence.lexeme.remove')}
                     onClick={() => {
                       actions.removeLexeme(sequence.id, lexeme.id);
-                      toast.show('Einheit entfernt.');
+                      toast.show(t('sequence.lexeme.removed'));
                     }}
                   >
                     ✕
@@ -310,30 +326,30 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
 
         <div className="quick-add">
           <TextField
-            label="Neuer Ausdruck oder Chunk"
+            label={t('sequence.quick.expression')}
             value={quickExpression}
             onChange={setQuickExpression}
-            placeholder="z. B. Ça te dit de… ?"
+            placeholder={t('sequence.quick.expression.placeholder')}
             target
             onKeyDown={(event) => {
               if (event.key === 'Enter') addQuickLexeme();
             }}
           />
           <TextField
-            label="Kernbedeutung (optional)"
+            label={t('sequence.quick.meaning')}
             value={quickMeaning}
             onChange={setQuickMeaning}
-            placeholder="Hast du Lust, …?"
+            placeholder={t('sequence.quick.meaning.placeholder')}
             onKeyDown={(event) => {
               if (event.key === 'Enter') addQuickLexeme();
             }}
           />
           <Button variant="primary" onClick={addQuickLexeme} disabled={!quickExpression.trim()}>
-            Hinzufügen
+            {t('common.add')}
           </Button>
         </div>
 
-        <Collapsible title="Mehrere Einheiten aus einer Tabelle übernehmen">
+        <Collapsible title={t('sequence.table')}>
           <TableImport sequence={sequence} />
         </Collapsible>
       </div>

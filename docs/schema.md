@@ -1,9 +1,9 @@
 # Datenschema von LexiScène
 
-Version des Schemas: **3** (`schemaVersion: 3`)
-Stand: Version 0.3.0 der Anwendung
+Version des Schemas: **4** (`schemaVersion: 4`)
+Stand: Version 0.4.0 der Anwendung
 
-Dateien der Schemaversionen 1 und 2 werden beim Einlesen vollständig migriert
+Dateien der Schemaversionen 1, 2 und 3 werden beim Einlesen vollständig migriert
 (siehe Abschnitt 6). Ältere Sicherungen und Exporte bleiben nutzbar.
 
 Alle Daten liegen ausschließlich lokal im Browser (IndexedDB). Dieses Dokument
@@ -15,7 +15,7 @@ andere Werkzeuge übernommen werden können.
 ```jsonc
 {
   "id": "seq_…",              // eindeutige Kennung
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "title": "Freizeit verabreden",
   "targetLanguage": "fr",     // fr | en | es | it | ru | la (offen erweiterbar)
   "learningGroup": "Klasse 7 · Französisch, 2. Lernjahr",
@@ -26,14 +26,16 @@ andere Werkzeuge übernommen werden können.
   "archived": false,
   "steps": {                  // Standarddramaturgie, je Schritt an/aus
     "situation": true, "impuls": true, "audio": true, "vermuten": true,
-    "klaeren": true, "form": true, "fokus": true,
+    "klaeren": true,
+    "ccq": true,              // Bedeutung prüfen; entfällt ohne brauchbare Frage
+    "form": true, "fokus": true,
     "korpusminiatur": false,  // Angebot: standardmäßig aus (siehe 2c)
-    "kontrolle": true,
+    "kontrolle": true,        // Abrufkontrolle (früher „Verständniskontrolle“)
     "hilfen-ausblenden": true, "abruf": true, "aufgabe": true
   },
   "inferenceMode": "optional", // off | optional | planned – Bedeutung erschließen lassen
   "stepOrder": [              // frei sortierbare Reihenfolge der Schritte
-    "situation", "impuls", "audio", "vermuten", "klaeren", "form",
+    "situation", "impuls", "audio", "vermuten", "klaeren", "ccq", "form",
     "fokus", "korpusminiatur", "kontrolle", "hilfen-ausblenden", "abruf", "aufgabe"
   ],
   "lexemes": [ /* siehe 2. */ ],
@@ -82,7 +84,11 @@ Einzelwörter (`Ça te dit de… ?`, `avoir besoin de qc`).
 
 **Sprachliches Muster:** `valency`, `collocations`, `wordFamily`, `register`, `culturalNote`
 
-**Bedeutungssicherung:** `example`, `nonExample`, `contrastExample`, `confusionRisk`, `checkTemplateId`, `checkTemplateIdSecondary`, `checkPrompt`
+**Bedeutungssicherung:** `example`, `nonExample`, `contrastExample`, `confusionRisk`, `ccqs` (siehe 2d), `checkTemplateId`, `checkTemplateIdSecondary`, `checkPrompt`
+
+`checkTemplateId`, `checkTemplateIdSecondary` und `checkPrompt` gehören seit
+Schema 4 ausschließlich zur **Abrufkontrolle**; Vorlagen, die das Konzept prüfen,
+stehen in `ccqs`.
 
 `checkTemplateIdSecondary` hält die Aufgabe in der Gegenrichtung fest. Bleibt das
 Feld leer, schlägt die App selbst eine passende Vorlage vor; gespeichert wird nur
@@ -90,6 +96,21 @@ eine ausdrückliche Wahl. Das Feld ist additiv – Dateien ohne dieses Feld blei
 gültig, die Schemaversion ändert sich dadurch nicht.
 
 **Differenzierung:** `extraHint`, `simplifiedExplanation`, `translation`, `multilingualComparison`, `extensionTask`
+
+**Sprachlich getrennte Inhalte:**
+
+| Feld | Sprache | Sichtbar für |
+| --- | --- | --- |
+| `coreMeaning` | Bediensprache | nur Lehrkraft (interne Bedeutung) |
+| `targetExplanation` | Zielsprache | Klasse |
+| `translation` | Erstsprache | Klasse, sofern der Sprachmodus es zulässt |
+| `targetPrompt` | Zielsprache | Klasse (Unterrichtsimpuls) |
+| `ccqs[].question` | Zielsprache | Klasse |
+| `teacherNote` | Bediensprache | nur Lehrkraft |
+
+Alle sechs Felder sind Freitext und werden **nie automatisch übersetzt oder
+überschrieben**. Die Entscheidung, was projiziert wird, trifft nicht die
+einzelne Ansicht, sondern `src/domain/stage.ts`.
 
 **Korpusminiatur:** `corpus` (siehe 2c)
 
@@ -118,12 +139,12 @@ aus dem sich keine Kompetenz ableiten lässt – etwa eine frühere Reaktivierun
 
 ## 2b. Phasen
 
-Die zwölf Schritte sind sechs Phasen zugeordnet:
+Die dreizehn Schritte sind sechs Phasen zugeordnet:
 
 | Phase | Schritte |
 | --- | --- |
 | 1 Kontext | `situation`, `impuls` |
-| 2 Klarheit | `vermuten`, `klaeren` |
+| 2 Klarheit | `vermuten`, `klaeren`, `ccq` |
 | 3 Muster | `audio`, `form`, `fokus`, `korpusminiatur` |
 | 4 Abruf | `kontrolle`, `hilfen-ausblenden`, `abruf` |
 | 5 Gebrauch | `aufgabe` |
@@ -177,6 +198,41 @@ wird niemals abgerufen.
 * Der Unterrichtsschritt `korpusminiatur` wird nur angeboten, wenn `enabled`
   gesetzt ist und mindestens **drei** Belege einen nicht leeren `text` haben.
 
+## 2d. Bedeutungsfragen (`ccqs`)
+
+Concept Checking Questions prüfen das Konzept, nicht die Form. Sie liegen als
+sortierte Liste an der Einheit; die Reihenfolge im Array ist die Reihenfolge im
+Unterricht.
+
+```jsonc
+"ccqs": [
+  {
+    "id": "ccq_…",
+    "templateId": "beispiel-nichtbeispiel", // leer erlaubt (eigene Frage)
+    "question": "Est-ce que je propose ou est-ce que je refuse ?",
+    "expectedAnswer": "Tu proposes.",   // nur auf dem Lehrkraftbildschirm
+    "options": ["proposer", "refuser"], // darf der Klasse gezeigt werden
+    "feature": "funktion",              // geprüftes Bedeutungsmerkmal
+    "format": "a-b",                    // Antwortformat
+    "misconception": "wird als Frage nach Erlaubnis gelesen",
+    "alternativeClarification": "Mini-Dialog mit zwei Reaktionen",
+    "language": "fr",                   // Sprachcode der Frage
+    "target": "meaning"                 // meaning | use
+  }
+]
+```
+
+| Feld | Werte |
+| --- | --- |
+| `feature` | `kernbedeutung`, `begriffsgrenze`, `beispiel`, `person`, `zeit`, `absicht`, `wertung`, `modalitaet`, `register`, `funktion`, `sonstiges` |
+| `format` | `ja-nein`, `a-b`, `kurzantwort`, `beispiel-nichtbeispiel`, `auswahl-bild`, `zeigen`, `sortieren` |
+| `target` | `meaning` (Rückmeldung zur Dimension Bedeutung) oder `use` (Gebrauch) |
+
+Ist `question` leer, zeigt der Unterricht den zielsprachlichen Fragerahmen der
+Vorlage. Der Schritt `ccq` wird nur angeboten, wenn mindestens eine Frage einen
+Text oder eine Vorlage mit Fragerahmen trägt. Fragen entstehen nie automatisch:
+Vorlagen und Fragestämme liefern Gerüste, formuliert wird von Hand.
+
 ## 3. Sicherungsdatei (ZIP)
 
 ```
@@ -192,8 +248,8 @@ lexiscene-sicherung-JJJJ-MM-TT.zip
 {
   "format": "lexiscene-backup",
   "version": 1,
-  "schemaVersion": 3,
-  "app": { "name": "LexiScène", "version": "0.3.0" },
+  "schemaVersion": 4,
+  "app": { "name": "LexiScène", "version": "0.4.0" },
   "createdAt": "2026-09-04T20:57:08.614Z",
   "sequences": [ /* vollständige Sequenzen */ ],
   "media": [
@@ -220,9 +276,10 @@ beschreibt:
 {
   "format": "lexiscene.sequence",
   "version": 1,
-  "schemaVersion": 3,
-  "app": { "name": "LexiScène", "version": "0.3.0" },
+  "schemaVersion": 4,
+  "app": { "name": "LexiScène", "version": "0.4.0" },
   "exportedAt": "2026-09-04T20:58:35.519Z",
+  "locale": "de",              // Sprache, in der Bezeichnung und Zweck der Schritte beschrieben sind
   "phase": {
     "title": "Freizeit verabreden",
     "canDo": "Die Lernenden können …",
@@ -249,9 +306,9 @@ Abbildung von `phase` auf dessen Phasenobjekt.
 
 `normalizeSequence` überführt ältere Dateien vollständig.
 
-### Schema 1 → 3
+### Schema 1 → 4
 
-| Schema 1 | Schema 3 |
+| Schema 1 | Schema 4 |
 | --- | --- |
 | `steps.vermuten: true` | `inferenceMode: "optional"` (Schritt bleibt möglich) |
 | `steps.vermuten: false` | `inferenceMode: "off"` |
@@ -266,9 +323,9 @@ Abbildung von `phase` auf dessen Phasenobjekt.
 | kein Profil | Startwerte aus dem lexikalischen Typ |
 | `reactivation` ohne Verlauf | `history: []`, `prioritiseUnsure: true` |
 
-### Schema 2 → 3
+### Schema 2 → 4
 
-| Schema 2 | Schema 3 |
+| Schema 2 | Schema 4 |
 | --- | --- |
 | kein `corpus` | leere, **deaktivierte** Korpusminiatur |
 | kein `steps.korpusminiatur` | `false` – kein zusätzlicher Unterrichtsschritt |
@@ -278,11 +335,52 @@ Bestehende Sequenzen erhalten den neuen Schritt also **nicht ungefragt**: Er ist
 abgeschaltet, bis die Lehrkraft ihn für eine Sequenz oder – üblicher – für eine
 einzelne Einheit einschaltet (`stepOverrides.korpusminiatur`).
 
+### Schema 3 → 4
+
+Fünf frühere Kontrollvorlagen prüfen das Konzept und nicht die Form. Sie ziehen
+in den CCQ-Bereich um, damit die Abrufkontrolle wirklich nur noch den Abruf
+prüft.
+
+| Schema 3 | Schema 4 |
+| --- | --- |
+| `checkTemplateId` ∈ {`welches-bild`, `welche-situation`, `beispiel-nichtbeispiel`, `welche-bedeutung`, `sprechhandlung`} | wird zu einem Eintrag in `ccqs`; `checkTemplateId` wird geleert |
+| `checkPrompt` zu einer dieser Vorlagen | wandert als `question` mit; `checkPrompt` wird geleert |
+| `checkTemplateIdSecondary` mit einer dieser Vorlagen | wird zu einem weiteren Eintrag in `ccqs` |
+| andere `checkTemplateId` | bleibt unverändert Abrufkontrolle |
+| kein `ccqs` | leere Liste |
+| kein `targetExplanation`, `targetPrompt`, `teacherNote` | leere Felder |
+| kein `steps.ccq` | `true` – der Schritt entfällt automatisch, solange keine Frage vorliegt |
+| `stepOrder` ohne `ccq` | Schritt wird unmittelbar hinter `klaeren` eingefügt |
+
+Die Sprache übernommener Fragen ist die `targetLanguage` der Sequenz. Die
+Migration ist idempotent: Ein zweiter Durchlauf ändert nichts mehr, weil die
+Abruffelder danach leer sind.
+
+Uneindeutige Fälle – etwa eine eigene Frageformulierung zu einer Abrufvorlage –
+werden **nicht** angetastet. Die Vorbereitung bietet dafür
+*Abrufaufgabe als CCQ übernehmen* an; die Entscheidung bleibt bei der Lehrkraft.
+
 Freitexte, Medienverweise, Schrittauswahl, Schrittreihenfolge, Beobachtungen,
 Sitzungsstand und Reaktivierungsplan bleiben unverändert erhalten. Sequenzen
 ohne gespeicherte Reihenfolge erhalten die an den Phasen ausgerichtete
 Standardreihenfolge; fehlende Schritte werden an ihrer Standardposition
 ergänzt, nicht am Ende angehängt.
+
+## 6a. Örtliche Einstellungen
+
+Die Einstellungen der Lehrkraft gehören nicht zum Austauschformat: Sie liegen im
+Objektspeicher `settings` derselben lokalen Datenbank und werden weder gesichert
+noch exportiert, damit ein eingespieltes Backup die Bedienung des Geräts nicht
+umstellt. Für Sprache und Unterricht sind zwei Felder maßgeblich:
+
+| Feld | Werte | Bedeutung |
+| --- | --- | --- |
+| `uiLanguage` | `de`, `fr`, `sequence` | Bediensprache der Lehrkraftoberfläche; `sequence` folgt der `targetLanguage` der geöffneten Sequenz, sofern deren Katalog vollständig ist |
+| `teachingLanguageMode` | `reserve` (Standard), `strict`, `flexible` | wie viel Erstsprache die Projektion zeigen darf |
+
+Angeboten werden nur Sprachen mit vollständigem Katalog (`UI_LOCALES` in
+`src/i18n/index.ts`); ein Test prüft die Vollständigkeit, und der Typ des
+französischen Katalogs macht eine Lücke bereits beim Übersetzen zum Fehler.
 
 ## 7. Änderungen am Schema
 

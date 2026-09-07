@@ -3,6 +3,7 @@ import { useStore } from '../../app/storeContext';
 import { IMPORT_FIELDS, buildPreview, rowsToLexemes, type ImportField } from '../../domain/import';
 import type { Sequence } from '../../domain/model';
 import { truncate } from '../../domain/text';
+import { useT } from '../../i18n/context';
 import { Button } from '../../ui/Button';
 import { CheckboxRow } from '../../ui/Field';
 import { useToast } from '../../ui/toastContext';
@@ -10,6 +11,7 @@ import { useToast } from '../../ui/toastContext';
 const PREVIEW_ROWS = 4;
 
 export function TableImport({ sequence }: { sequence: Sequence }) {
+  const t = useT();
   const { actions } = useStore();
   const toast = useToast();
   const [text, setText] = useState('');
@@ -33,7 +35,7 @@ export function TableImport({ sequence }: { sequence: Sequence }) {
   const insert = () => {
     const lexemes = rowsToLexemes(preview.rows, preview.mapping, headerActive);
     const count = actions.addLexemes(sequence.id, lexemes);
-    toast.show(count === 1 ? 'Eine Einheit übernommen.' : `${count} Einheiten übernommen.`, count > 0 ? 'success' : 'error');
+    toast.show(t('import.taken', { count }), count > 0 ? 'success' : 'error');
     if (count > 0) reset();
   };
 
@@ -45,7 +47,7 @@ export function TableImport({ sequence }: { sequence: Sequence }) {
       </p>
 
       <label className="field">
-        <span className="field__label">Tabelle einfügen</span>
+        <span className="field__label">{t('import.paste')}</span>
         <textarea
           className="textarea"
           rows={5}
@@ -62,7 +64,7 @@ export function TableImport({ sequence }: { sequence: Sequence }) {
       {preview.rows.length > 0 ? (
         <>
           <CheckboxRow
-            label="Erste Zeile enthält Überschriften"
+            label={t('import.header')}
             checked={headerActive}
             onChange={(checked) => {
               setHasHeader(checked);
@@ -70,7 +72,7 @@ export function TableImport({ sequence }: { sequence: Sequence }) {
             }}
           />
 
-          <div className="import-preview" role="group" aria-label="Spaltenzuordnung und Vorschau">
+          <div className="import-preview" role="group" aria-label={t('import.preview')}>
             <div className="import-preview__scroll">
               <table className="import-table">
                 <thead>
@@ -119,7 +121,7 @@ export function TableImport({ sequence }: { sequence: Sequence }) {
 
           <div className="row">
             <Button variant="primary" disabled={preview.usableCount === 0} onClick={insert}>
-              {preview.usableCount === 1 ? 'Eine Einheit übernehmen' : `${preview.usableCount} Einheiten übernehmen`}
+              {t('import.take', { count: preview.usableCount })}
             </Button>
             <Button variant="ghost" onClick={reset}>
               Verwerfen

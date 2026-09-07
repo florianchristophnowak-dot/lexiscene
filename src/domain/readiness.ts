@@ -8,27 +8,26 @@
  * statt; geprüft wird ausschließlich, was die Lehrkraft eingetragen hat.
  */
 import type { Lexeme, Sequence } from './model';
-import { buildCheckPrompt, coversBothDirections } from './checks';
+import { coversBothDirections, hasCheckPrompt } from './checks';
 import { CORPUS_MIN_EXAMPLES, corpusMiniatureReady, usableExamples } from './corpus';
+import { ccqWarnings, hasUsableCcq } from './ccq';
 import { isStepEnabled } from './steps';
 import { firstFilled, truncate } from './text';
 
 export type ReadinessSeverity = 'ergaenzen' | 'vertiefen';
 
+/**
+ * Ein Hinweis nennt nur seine Kennung; Titel und Erläuterung stehen im
+ * Sprachkatalog unter `readiness.<key>.title` und `readiness.<key>.detail`.
+ */
 export interface ReadinessFinding {
   id: string;
   severity: ReadinessSeverity;
-  title: string;
-  detail: string;
+  /** Schlüsselteil für den Sprachkatalog. */
+  key: string;
+  params: Record<string, string | number>;
   lexemeIds: string[];
 }
-
-const SEVERITY_LABELS: Record<ReadinessSeverity, string> = {
-  ergaenzen: 'Noch ergänzen',
-  vertiefen: 'Optional vertiefen',
-};
-
-export const readinessSeverityLabel = (severity: ReadinessSeverity): string => SEVERITY_LABELS[severity];
 
 const label = (lexeme: Lexeme): string => truncate(lexeme.expression || 'ohne Ausdruck', 28);
 
@@ -40,12 +39,14 @@ function listOf(lexemes: Lexeme[]): string {
 
 /** Hat die Einheit überhaupt einen Abrufimpuls? */
 function hasRetrievalPrompt(lexeme: Lexeme): boolean {
-  return Boolean(buildCheckPrompt(lexeme).trim() || lexeme.communicativeTask.trim());
+  return hasCheckPrompt(lexeme) || Boolean(lexeme.communicativeTask.trim());
 }
 
 /** Steht eine eindeutige Lösung oder Bestätigung bereit? */
 function hasConfirmation(lexeme: Lexeme): boolean {
-  return Boolean(firstFilled(lexeme.coreMeaning, lexeme.translation, lexeme.simplifiedExplanation, lexeme.example));
+  return Boolean(
+    firstFilled(lexeme.targetExplanation, lexeme.coreMeaning, lexeme.translation, lexeme.simplifiedExplanation, lexeme.example),
+  );
 }
 
 export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
@@ -55,82 +56,57 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
   const add = (
     id: string,
     severity: ReadinessSeverity,
-    title: string,
-    detail: string,
+    key: string,
+    params: Record<string, string | number> = {},
     lexemes: Lexeme[] = [],
   ): void => {
-    findings.push({ id, severity, title, detail, lexemeIds: lexemes.map((lexeme) => lexeme.id) });
+    findings.push({ id, severity, key, params, lexemeIds: lexemes.map((lexeme) => lexeme.id) });
   };
 
   if (!sequence.canDoGoal.trim()) {
-    add('can-do', 'ergaenzen', 'Kommunikatives Kann-Ziel fehlt', 'Ohne Ziel bleibt offen, wofür die Einheiten gebraucht werden.');
+    add('can-do', 'ergaenzen', 'canDo');
   }
 
   const withoutMeaning = active.filter((lexeme) => !lexeme.coreMeaning.trim());
   if (withoutMeaning.length > 0) {
-    add(
-      'core-meaning',
-      'ergaenzen',
-      'Kernbedeutung fehlt',
-      `Ohne Kernbedeutung lässt sich die Bedeutung im Unterricht nicht eindeutig klären: ${listOf(withoutMeaning)}.`,
-      withoutMeaning,
-    );
+    add('core-meaning', 'ergaenzen', 'coreMeaning', { list: listOf(withoutMeaning) }, withoutMeaning);
   }
 
   const withoutContext = active.filter((lexeme) => !firstFilled(lexeme.situation, lexeme.example, lexeme.modelUtterance));
   if (withoutContext.length > 0) {
-    add(
-      'context',
-      'ergaenzen',
-      'Situation oder Kontext fehlt',
-      `Der Erstkontakt beginnt ohne erkennbaren Anlass: ${listOf(withoutContext)}.`,
-      withoutContext,
-    );
+    add('context', 'ergaenzen', 'context', { list: listOf(withoutContext) }, withoutContext);
   }
 
   const productiveCore = active.filter((lexeme) => lexeme.learningGoal === 'productive' && lexeme.repertoire === 'kern');
   const withoutAnchor = productiveCore.filter((lexeme) => !lexeme.sentenceFrame.trim());
   if (withoutAnchor.length > 0) {
-    add(
-      'pattern-anchor',
-      'ergaenzen',
-      'Produktives Kernitem ohne Musteranker',
-      `Für die eigene Verwendung fehlt der Rahmen, in dem die Einheit steht: ${listOf(withoutAnchor)}.`,
-      withoutAnchor,
-    );
+    add('pattern-anchor', 'ergaenzen', 'patternAnchor', { list: listOf(withoutAnchor) }, withoutAnchor);
   }
 
   const withoutRetrieval = active.filter((lexeme) => !hasRetrievalPrompt(lexeme));
   if (withoutRetrieval.length > 0) {
-    add(
-      'retrieval',
-      'ergaenzen',
-      'Kein Abrufimpuls vorbereitet',
-      `Weder Verständniskontrolle noch Mini-Aufgabe hinterlegt: ${listOf(withoutRetrieval)}.`,
-      withoutRetrieval,
-    );
+    add('retrieval', 'ergaenzen', 'retrieval', { list: listOf(withoutRetrieval) }, withoutRetrieval);
   }
 
   const withoutConfirmation = active.filter((lexeme) => hasRetrievalPrompt(lexeme) && !hasConfirmation(lexeme));
   if (withoutConfirmation.length > 0) {
-    add(
-      'confirmation',
-      'ergaenzen',
-      'Keine eindeutige Lösung vorbereitet',
-      `Zum Abruf fehlt die Bestätigung, an der sich die Klasse ausrichten kann: ${listOf(withoutConfirmation)}.`,
-      withoutConfirmation,
-    );
+    add('confirmation', 'ergaenzen', 'confirmation', { list: listOf(withoutConfirmation) }, withoutConfirmation);
   }
 
   const singleDirection = productiveCore.filter((lexeme) => !coversBothDirections(lexeme));
   if (singleDirection.length > 0) {
-    add(
-      'both-directions',
-      'vertiefen',
-      'Nur eine Abrufrichtung vorbereitet',
-      `Für produktive Kerneinheiten lohnen beide Richtungen – Form → Bedeutung und Bedeutung oder Situation → Form: ${listOf(singleDirection)}.`,
-      singleDirection,
-    );
+    add('both-directions', 'vertiefen', 'bothDirections', { list: listOf(singleDirection) }, singleDirection);
+  }
+
+  // Bedeutungsprüfung: nur ein Angebot, nie eine Pflicht.
+  const withoutCcq = active.filter((lexeme) => !hasUsableCcq(lexeme));
+  if (withoutCcq.length > 0) {
+    add('ccq', 'vertiefen', 'ccq', { list: listOf(withoutCcq) }, withoutCcq);
+  }
+
+  const ccqIssues = active.filter((lexeme) => ccqWarnings(lexeme.ccqs).length > 0);
+  if (ccqIssues.length > 0) {
+    add('ccq-quality', 'vertiefen', 'ccqQuality', { list: listOf(ccqIssues) }, ccqIssues);
   }
 
   // Korpusminiaturen: rein formale Hinweise, keine Bewertung der Belege.
@@ -140,8 +116,8 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
     add(
       'corpus-incomplete',
       'ergaenzen',
-      'Korpusminiatur mit zu wenigen Belegen',
-      `Der Schritt wird erst ab ${CORPUS_MIN_EXAMPLES} Belegen angeboten: ${listOf(corpusTooShort)}.`,
+      'corpusIncomplete',
+      { min: CORPUS_MIN_EXAMPLES, list: listOf(corpusTooShort) },
       corpusTooShort,
     );
   }
@@ -150,13 +126,7 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
     (lexeme) => corpusMiniatureReady(lexeme.corpus) && !isStepEnabled(sequence, lexeme, 'korpusminiatur'),
   );
   if (corpusHidden.length > 0) {
-    add(
-      'corpus-step-off',
-      'vertiefen',
-      'Korpusminiatur vorbereitet, aber nicht eingeschaltet',
-      `Der Schritt „Korpusminiatur“ ist für diese Einheiten abgeschaltet und wird im Unterricht übersprungen: ${listOf(corpusHidden)}.`,
-      corpusHidden,
-    );
+    add('corpus-step-off', 'vertiefen', 'corpusStepOff', { list: listOf(corpusHidden) }, corpusHidden);
   }
 
   // Verwechslungsgruppen: rein aus den Angaben der Lehrkraft, ohne Textanalyse.
@@ -171,19 +141,14 @@ export function checkReadiness(sequence: Sequence): ReadinessFinding[] {
     add(
       `confusion-${group}`,
       'vertiefen',
-      'Eng verwandte Einheiten in einer Sequenz',
-      `${members.length} Einheiten der Gruppe „${group}“ (${listOf(members)}) könnten sich gegenseitig stören – eine zeitliche Staffelung ist oft ruhiger.`,
+      'confusion',
+      { count: members.length, group, list: listOf(members) },
       members,
     );
   }
 
   if (!sequence.reactivation.enabled) {
-    add(
-      'reactivation',
-      'vertiefen',
-      'Reaktivierung noch nicht geplant',
-      'Die Wiederbegegnung lässt sich im Bereich „Reaktivieren“ mit frei wählbaren Abständen vorbereiten.',
-    );
+    add('reactivation', 'vertiefen', 'reactivation');
   }
 
   return findings;

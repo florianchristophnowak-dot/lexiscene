@@ -143,7 +143,8 @@ describe('Hinweise für die Vorbereitung', () => {
     const warnings = corpusWarnings(miniature);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].exampleId).toBe(miniature.examples[2].id);
-    expect(warnings[0].message).toContain('kommt in diesem Beleg nicht vor');
+    expect(warnings[0].key).toBe('corpus.warning.highlightMissing');
+    expect(warnings[0].params?.highlight).toBe('au piano');
   });
 
   it('weist auf zu wenige Belege hin', () => {

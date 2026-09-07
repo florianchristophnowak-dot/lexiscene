@@ -104,7 +104,15 @@ describe('Wiederherstellung', () => {
 
 describe('Einstellungen', () => {
   it('speichert und normalisiert Einstellungen', async () => {
-    await saveSettings({ theme: 'dark', detailPaneVisible: false, lastSequenceId: 'seq_1', reactivationOffsets: [2, 5], demoSeeded: true });
+    await saveSettings({
+      theme: 'dark',
+      detailPaneVisible: false,
+      lastSequenceId: 'seq_1',
+      reactivationOffsets: [2, 5],
+      demoSeeded: true,
+      uiLanguage: 'fr',
+      teachingLanguageMode: 'strict',
+    });
     const settings = await loadSettings();
     expect(settings).toEqual({
       theme: 'dark',
@@ -112,6 +120,8 @@ describe('Einstellungen', () => {
       lastSequenceId: 'seq_1',
       reactivationOffsets: [2, 5],
       demoSeeded: true,
+      uiLanguage: 'fr',
+      teachingLanguageMode: 'strict',
     });
   });
 

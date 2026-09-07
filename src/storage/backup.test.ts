@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { createDemoSequence } from '../domain/demo';
+import { de } from '../i18n/de';
 import { createCorpusExample, createCorpusMiniature } from '../domain/corpus';
+import { createConceptCheck } from '../domain/ccq';
 import { createLexeme, createSequence, SchemaError } from '../domain/schema';
 import type { MediaRecord } from '../domain/model';
 import { ZipError } from './zip';
@@ -13,6 +15,13 @@ import {
   parseSequenceDocument,
   sequenceExportFileName,
 } from './backup';
+
+/** Beschreibung der Schritte, wie sie die Oberfläche liefert. */
+const describe_ = {
+  locale: 'de',
+  label: (stepId: string) => de[`step.${stepId}` as keyof typeof de] ?? stepId,
+  purpose: (stepId: string) => de[`step.${stepId}.purpose` as keyof typeof de] ?? '',
+};
 
 const mediaRecord = (id: string, bytes: number[]): MediaRecord => ({
   id,
@@ -129,7 +138,7 @@ describe('Alte Sicherungen', () => {
     const sequence = restored.sequences[0];
 
     expect(restored.warnings).toEqual([]);
-    expect(sequence.schemaVersion).toBe(3);
+    expect(sequence.schemaVersion).toBe(4);
     expect(sequence.inferenceMode).toBe('off');
     expect(sequence.reactivation).toMatchObject({ offsetsDays: [2, 5], completedRounds: 1, history: [] });
     expect(sequence.lexemes[0]).toMatchObject({
@@ -145,7 +154,7 @@ describe('Alte Sicherungen', () => {
   it('schreibt eine neue Sicherung, die wieder eingelesen werden kann', async () => {
     const demo = createDemoSequence();
     const roundtrip = await parseBackup(await (await buildBackup([demo], [])).arrayBuffer());
-    expect(roundtrip.sequences[0].schemaVersion).toBe(3);
+    expect(roundtrip.sequences[0].schemaVersion).toBe(4);
     expect(roundtrip.sequences[0]).toEqual(demo);
   });
 });
@@ -192,16 +201,16 @@ describe('Korpusminiaturen in Sicherung und Export', () => {
 
   it('überträgt eine Miniatur durch den Einzelexport', () => {
     const sequence = withMiniature();
-    const document = buildSequenceExport(sequence);
+    const document = buildSequenceExport(sequence, describe_);
     const [reimported] = parseSequenceDocument(JSON.stringify(document));
 
-    expect(document.schemaVersion).toBe(3);
+    expect(document.schemaVersion).toBe(4);
     expect(document.phase.steps.map((step) => step.id)).toContain('korpusminiatur');
     expect(reimported.lexemes[0].corpus).toEqual(sequence.lexemes[0].corpus);
   });
 
   it('lässt den Schritt aus dem Export, solange die Sequenz ihn nicht führt', () => {
-    const document = buildSequenceExport(createSequence({ lexemes: [createLexeme({ expression: 'x' })] }));
+    const document = buildSequenceExport(createSequence({ lexemes: [createLexeme({ expression: 'x' })] }), describe_);
     expect(document.phase.steps.map((step) => step.id)).not.toContain('korpusminiatur');
   });
 
@@ -215,7 +224,7 @@ describe('Korpusminiaturen in Sicherung und Export', () => {
       }),
     );
 
-    expect(sequence.schemaVersion).toBe(3);
+    expect(sequence.schemaVersion).toBe(4);
     expect(sequence.lexemes[0].expression).toBe('Ça te dit de… ?');
     expect(sequence.lexemes[0].corpus).toEqual(createCorpusMiniature());
     expect(sequence.steps.korpusminiatur).toBe(false);
@@ -259,7 +268,7 @@ describe('Einzelexport', () => {
       steps: { ...createSequence().steps, audio: false },
       lexemes: [createLexeme({ expression: 'x' })],
     });
-    const document = buildSequenceExport(sequence);
+    const document = buildSequenceExport(sequence, describe_);
     expect(document.format).toBe('lexiscene.sequence');
     expect(document.phase.lexemeCount).toBe(1);
     expect(document.phase.steps.map((step) => step.id)).not.toContain('audio');
@@ -268,12 +277,99 @@ describe('Einzelexport', () => {
 
   it('liest Austauschdokument, nackte Sequenz und Liste', () => {
     const sequence = createSequence({ title: 'Import' });
-    expect(parseSequenceDocument(JSON.stringify(buildSequenceExport(sequence)))[0].title).toBe('Import');
+    expect(parseSequenceDocument(JSON.stringify(buildSequenceExport(sequence, describe_)))[0].title).toBe('Import');
     expect(parseSequenceDocument(JSON.stringify(sequence))[0].title).toBe('Import');
     expect(parseSequenceDocument(JSON.stringify([sequence, sequence]))).toHaveLength(2);
   });
 
   it('meldet ungültiges JSON verständlich', () => {
     expect(() => parseSequenceDocument('kein json')).toThrow(SchemaError);
+  });
+});
+
+describe('Bedeutungsfragen in Sicherung und Export', () => {
+  const withCcqs = () =>
+    createSequence({
+      title: 'Vorschlag machen',
+      lexemes: [
+        createLexeme({
+          expression: 'Ça te dit de… ?',
+          coreMeaning: 'Hast du Lust?',
+          targetExplanation: 'On propose quelque chose à quelqu’un.',
+          targetPrompt: 'Écoutez bien.',
+          teacherNote: 'Nicht mit „Tu veux ?“ verwechseln.',
+          ccqs: [
+            createConceptCheck({
+              templateId: 'beispiel-nichtbeispiel',
+              question: 'Est-ce que je propose ou est-ce que je refuse ?',
+              expectedAnswer: 'Tu proposes.',
+              options: ['proposer', 'refuser'],
+              feature: 'funktion',
+              format: 'a-b',
+              misconception: 'Wird oft als Frage nach Erlaubnis gelesen.',
+              alternativeClarification: 'Mini-Dialog mit zwei Reaktionen zeigen.',
+              target: 'use',
+            }),
+            createConceptCheck({ question: 'Est-ce poli ?', expectedAnswer: 'Oui.' }),
+          ],
+        }),
+      ],
+    });
+
+  it('überträgt Fragen samt Reihenfolge durch Sicherung und Wiederherstellung', async () => {
+    const sequence = withCcqs();
+    const restored = await parseBackup(await (await buildBackup([sequence], [])).arrayBuffer());
+
+    expect(restored.sequences[0]).toEqual(sequence);
+    expect(restored.sequences[0].lexemes[0].ccqs.map((check) => check.question)).toEqual([
+      'Est-ce que je propose ou est-ce que je refuse ?',
+      'Est-ce poli ?',
+    ]);
+  });
+
+  it('überträgt Fragen und Sprachfelder durch den Einzelexport', () => {
+    const sequence = withCcqs();
+    const document = buildSequenceExport(sequence, describe_);
+    const [reimported] = parseSequenceDocument(JSON.stringify(document));
+
+    expect(document.schemaVersion).toBe(4);
+    expect(document.locale).toBe('de');
+    expect(document.phase.steps.map((step) => step.id)).toContain('ccq');
+    expect(reimported.lexemes[0].ccqs).toEqual(sequence.lexemes[0].ccqs);
+    expect(reimported.lexemes[0].targetExplanation).toBe('On propose quelque chose à quelqu’un.');
+    expect(reimported.lexemes[0].teacherNote).toBe('Nicht mit „Tu veux ?“ verwechseln.');
+  });
+
+  it('lässt den Schritt aus dem Export, solange keine Frage vorliegt', () => {
+    const document = buildSequenceExport(createSequence({ lexemes: [createLexeme({ expression: 'x' })] }), describe_);
+    expect(document.phase.steps.map((step) => step.id)).not.toContain('ccq');
+  });
+
+  it('holt eine ältere Sicherung mit Bedeutungsfrage im Abruffeld nach', () => {
+    const [sequence] = parseSequenceDocument(
+      JSON.stringify({
+        schemaVersion: 3,
+        title: 'Ältere Sequenz',
+        targetLanguage: 'fr',
+        lexemes: [
+          {
+            id: 'lex_1',
+            expression: 'Ça te dit de… ?',
+            checkTemplateId: 'welches-bild',
+            checkPrompt: 'Quelle image montre une proposition ?',
+            checkTemplateIdSecondary: 'welche-situation',
+          },
+        ],
+      }),
+    );
+
+    const lexeme = sequence.lexemes[0];
+    expect(lexeme.ccqs.map((check) => [check.templateId, check.question])).toEqual([
+      ['welches-bild', 'Quelle image montre une proposition ?'],
+      ['welche-situation', ''],
+    ]);
+    expect(lexeme.checkTemplateId).toBe('');
+    expect(lexeme.checkPrompt).toBe('');
+    expect(lexeme.ccqs[0].language).toBe('fr');
   });
 });

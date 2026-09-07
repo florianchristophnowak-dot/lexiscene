@@ -13,7 +13,7 @@ export function Notice({ children, tone = 'neutral' }: { children: ReactNode; to
   return <p className={tone === 'error' ? 'notice notice--error' : 'notice'}>{children}</p>;
 }
 
-export function LoadingState({ label = 'Daten werden geladen …' }: { label?: string }) {
+export function LoadingState({ label }: { label: string }) {
   return (
     <p className="loading" role="status">
       {label}

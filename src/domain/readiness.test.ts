@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLexeme, createReactivationPlan, createSequence } from './schema';
+import { createConceptCheck } from './ccq';
 import { createCorpusExample, createCorpusMiniature } from './corpus';
 import { checkReadiness, summarizeReadiness } from './readiness';
 
@@ -9,8 +10,9 @@ const complete = () =>
     coreMeaning: 'Hast du Lust?',
     situation: 'Zwei Jugendliche verabreden sich.',
     sentenceFrame: 'Ça te dit de + Infinitiv ?',
-    checkTemplateId: 'welche-situation',
+    checkTemplateId: 'ausdruck-auswaehlen',
     checkTemplateIdSecondary: 'situation-zu-ausdruck',
+    ccqs: [createConceptCheck({ question: 'Est-ce une proposition ?', expectedAnswer: 'Oui.' })],
     learningGoal: 'productive',
     repertoire: 'kern',
   });
@@ -79,9 +81,18 @@ describe('Bereitschaftscheck', () => {
   });
 
   it('regt bei produktiven Kerneinheiten beide Abrufrichtungen an', () => {
+    // Ohne Situation und Äußerung findet die App keine Aufgabe aus dem Kontext heraus.
     const oneDirection = createSequence({
       canDoGoal: 'Ziel',
-      lexemes: [createLexeme({ ...complete(), checkTemplateIdSecondary: '' })],
+      lexemes: [
+        createLexeme({
+          ...complete(),
+          situation: '',
+          example: '',
+          modelUtterance: '',
+          checkTemplateIdSecondary: '',
+        }),
+      ],
     });
     const finding = checkReadiness(oneDirection).find((entry) => entry.id === 'both-directions');
     expect(finding?.severity).toBe('vertiefen');

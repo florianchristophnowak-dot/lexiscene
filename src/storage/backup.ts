@@ -8,7 +8,7 @@
  */
 import { APP_NAME, APP_VERSION, SCHEMA_VERSION, type MediaMeta, type MediaRecord, type Sequence } from '../domain/model';
 import { SchemaError, normalizeMediaMeta, normalizeSequence } from '../domain/schema';
-import { STEPS } from '../domain/steps';
+import { resolveSteps, STEPS } from '../domain/steps';
 import { slugify } from '../domain/text';
 import { createZip, readZip, textToBytes, bytesToText, ZipError } from './zip';
 
@@ -171,6 +171,8 @@ export interface SequenceExportDocument {
   schemaVersion: number;
   app: { name: string; version: string };
   exportedAt: string;
+  /** Sprache der beschreibenden Texte in `phase` (nicht der Inhalte). */
+  locale: string;
   /**
    * Beschreibung der Sequenz als Unterrichtsphase. Bewusst rein deskriptiv:
    * Solange kein Prép-ybara-Datenformat vorliegt, wird keine Schnittstelle
@@ -187,21 +189,39 @@ export interface SequenceExportDocument {
   sequence: Sequence;
 }
 
-export function buildSequenceExport(sequence: Sequence, now = new Date()): SequenceExportDocument {
-  const activeSteps = STEPS.filter((step) => sequence.steps[step.id] !== false);
+/**
+ * Beschreibende Texte werden in der Bediensprache mitgeschrieben; welche das
+ * war, hält `locale` fest. Die Inhalte der Sequenz bleiben unverändert.
+ */
+export function buildSequenceExport(
+  sequence: Sequence,
+  describe: { locale: string; label: (stepId: string) => string; purpose: (stepId: string) => string },
+  now = new Date(),
+): SequenceExportDocument {
+  // Beschrieben werden die Schritte, die im Unterricht wirklich laufen: eingeschaltet und mit Material.
+  const running = new Set(sequence.lexemes.flatMap((lexeme) => resolveSteps(sequence, lexeme).map((step) => step.id)));
+  const activeSteps = STEPS.filter(
+    (step) => sequence.steps[step.id] !== false && (sequence.lexemes.length === 0 || running.has(step.id)),
+  );
   return {
     format: SEQUENCE_EXPORT_FORMAT,
     version: SEQUENCE_EXPORT_VERSION,
     schemaVersion: SCHEMA_VERSION,
     app: { name: APP_NAME, version: APP_VERSION },
     exportedAt: now.toISOString(),
+    locale: describe.locale,
     phase: {
       title: sequence.title,
       canDo: sequence.canDoGoal,
       targetLanguage: sequence.targetLanguage,
       learningGroup: sequence.learningGroup,
       lexemeCount: sequence.lexemes.length,
-      steps: activeSteps.map((step) => ({ position: step.position, id: step.id, label: step.label, purpose: step.purpose })),
+      steps: activeSteps.map((step) => ({
+        position: step.position,
+        id: step.id,
+        label: describe.label(step.id),
+        purpose: describe.purpose(step.id),
+      })),
     },
     sequence,
   };

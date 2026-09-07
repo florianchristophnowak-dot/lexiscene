@@ -3,6 +3,7 @@ import { navigate } from '../app/router';
 import { useStore } from '../app/storeContext';
 import type { Sequence } from '../domain/model';
 import { useMediaQuery } from '../ui/hooks';
+import { useT } from '../i18n/context';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/Feedback';
 import { SequenceLibrary } from './prepare/SequenceLibrary';
@@ -14,6 +15,7 @@ type MidPane = 'library' | 'detail';
 
 export function PrepareView({ sequenceId }: { sequenceId?: string }) {
   const { state, actions } = useStore();
+  const t = useT();
 
   const sequence = state.sequences.find((entry) => entry.id === sequenceId);
   const lastSequenceId = state.settings.lastSequenceId;
@@ -35,8 +37,8 @@ export function PrepareView({ sequenceId }: { sequenceId?: string }) {
   if (state.sequences.length === 0) {
     return (
       <div className="page">
-        <EmptyState title="Noch keine Sequenz vorhanden">
-          <p>Legen Sie eine neue Semantisierungssequenz an oder laden Sie die französische Beispielsequenz.</p>
+        <EmptyState title={t('prepare.noSequence')}>
+          <p>{t('prepare.noSequence.hint')}</p>
           <div className="row">
             <Button
               variant="primary"
@@ -51,7 +53,7 @@ export function PrepareView({ sequenceId }: { sequenceId?: string }) {
                 void actions.seedDemoSequence().then((id) => navigate({ name: 'prepare', sequenceId: id }));
               }}
             >
-              Beispielsequenz laden
+              {t('home.demoLoad')}
             </Button>
           </div>
         </EmptyState>
@@ -62,8 +64,8 @@ export function PrepareView({ sequenceId }: { sequenceId?: string }) {
   if (!sequence) {
     return (
       <div className="page">
-        <EmptyState title="Sequenz wird geöffnet …">
-          <Button onClick={() => navigate({ name: 'prepare' })}>Zur Bibliothek</Button>
+        <EmptyState title={t('prepare.opening')}>
+          <Button onClick={() => navigate({ name: 'prepare' })}>{t('prepare.toLibrary')}</Button>
         </EmptyState>
       </div>
     );
@@ -75,6 +77,7 @@ export function PrepareView({ sequenceId }: { sequenceId?: string }) {
 
 function PrepareWorkspace({ sequence }: { sequence: Sequence }) {
   const { state, actions } = useStore();
+  const t = useT();
   const isWide = useMediaQuery('(min-width: 1024px)');
   const isMid = useMediaQuery('(min-width: 768px)');
   const [selectedLexemeId, setSelectedLexemeId] = useState<string | null>(null);
@@ -107,8 +110,8 @@ function PrepareWorkspace({ sequence }: { sequence: Sequence }) {
           }
         />
       ) : (
-        <EmptyState title="Keine Einheit ausgewählt">
-          <p className="text-sm">Wählen Sie in der mittleren Spalte eine lexikalische Einheit aus.</p>
+        <EmptyState title={t('prepare.noLexeme')}>
+          <p className="text-sm">{t('prepare.noLexeme.hint')}</p>
         </EmptyState>
       )}
     </div>
@@ -122,16 +125,16 @@ function PrepareWorkspace({ sequence }: { sequence: Sequence }) {
 
   const headerExtra = isWide ? (
     <Button variant="ghost" onClick={() => actions.updateSettings({ detailPaneVisible: !state.settings.detailPaneVisible })}>
-      {state.settings.detailPaneVisible ? 'Details ausblenden' : 'Details einblenden'}
+      {state.settings.detailPaneVisible ? t('prepare.hideDetails') : t('prepare.showDetails')}
     </Button>
   ) : isMid ? (
-    <div className="row" role="group" aria-label="Linke Spalte wählen">
+    <div className="row" role="group" aria-label={t('prepare.leftColumn')}>
       <button
         type="button"
         className={midPane === 'library' ? 'nav-link nav-link--active' : 'nav-link'}
         onClick={() => setMidPane('library')}
       >
-        Bibliothek
+        {t('prepare.library')}
       </button>
       <button
         type="button"
@@ -139,7 +142,7 @@ function PrepareWorkspace({ sequence }: { sequence: Sequence }) {
         disabled={!selectedLexeme}
         onClick={() => setMidPane('detail')}
       >
-        Details
+        {t('prepare.details')}
       </button>
     </div>
   ) : null;
@@ -187,12 +190,12 @@ function PrepareWorkspace({ sequence }: { sequence: Sequence }) {
 
   return (
     <>
-      <div className="pane-switcher" role="group" aria-label="Bereich wählen">
+      <div className="pane-switcher" role="group" aria-label={t('prepare.chooseArea')}>
         {(
           [
-            ['library', 'Bibliothek'],
-            ['sequence', 'Sequenz'],
-            ['detail', 'Details'],
+            ['library', t('prepare.library')],
+            ['sequence', t('prepare.sequence')],
+            ['detail', t('prepare.details')],
           ] as [NarrowPane, string][]
         ).map(([pane, label]) => (
           <button

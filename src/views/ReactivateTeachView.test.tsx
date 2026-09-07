@@ -3,12 +3,14 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDemoSequence } from '../domain/demo';
 import { buildImpulses } from '../domain/reactivation';
+import { promptFor } from '../i18n/prompts';
 import { renderWithStore } from '../test/renderWithStore';
 import { ReactivateTeachView } from './ReactivateTeachView';
 
 function setup() {
   const sequence = createDemoSequence();
-  const impulses = buildImpulses(sequence);
+  // Die Impulse sind zielsprachlich – wie im Unterricht.
+  const impulses = buildImpulses(sequence, (key, params) => promptFor(sequence.targetLanguage, key, params));
   const view = renderWithStore(<ReactivateTeachView sequenceId={sequence.id} />, [sequence]);
   return { sequence, impulses, ...view };
 }

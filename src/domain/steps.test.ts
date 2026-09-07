@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createLexeme, createSequence } from './schema';
+import { de } from '../i18n/de';
 import {
   PHASES,
   PHASE_VISIBILITY,
@@ -48,7 +49,7 @@ describe('Phasen', () => {
 
   it('ordnet jeden Schritt genau einer Phase zu', () => {
     expect(stepsOfPhase('kontext').map((step) => step.id)).toEqual(['situation', 'impuls']);
-    expect(stepsOfPhase('klarheit').map((step) => step.id)).toEqual(['vermuten', 'klaeren']);
+    expect(stepsOfPhase('klarheit').map((step) => step.id)).toEqual(['vermuten', 'klaeren', 'ccq']);
     expect(stepsOfPhase('muster').map((step) => step.id)).toEqual(['audio', 'form', 'fokus', 'korpusminiatur']);
     expect(stepsOfPhase('abruf').map((step) => step.id)).toEqual(['kontrolle', 'hilfen-ausblenden', 'abruf']);
     expect(stepsOfPhase('gebrauch').map((step) => step.id)).toEqual(['aufgabe']);
@@ -118,6 +119,33 @@ describe('stepHasContent', () => {
   });
 });
 
+describe('Standardreihenfolge', () => {
+  it('führt dreizehn Schritte in der festgelegten Folge', () => {
+    expect(STEP_IDS).toEqual([
+      'situation',
+      'impuls',
+      'vermuten',
+      'klaeren',
+      'ccq',
+      'audio',
+      'form',
+      'fokus',
+      'korpusminiatur',
+      'kontrolle',
+      'hilfen-ausblenden',
+      'abruf',
+      'aufgabe',
+    ]);
+    expect(STEPS.map((step) => step.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  });
+
+  it('schaltet nur die Korpusminiatur ab, nicht die Bedeutungsprüfung', () => {
+    const steps = createSequence().steps;
+    expect(steps.ccq).toBe(true);
+    expect(steps.korpusminiatur).toBe(false);
+  });
+});
+
 describe('resolveSteps', () => {
   it('folgt der Standardreihenfolge entlang der Phasen', () => {
     const lexeme = fullLexeme();
@@ -135,6 +163,13 @@ describe('resolveSteps', () => {
       'abruf',
       'aufgabe',
     ]);
+  });
+
+  it('lässt den leeren CCQ-Schritt automatisch aus', () => {
+    const lexeme = fullLexeme();
+    const sequence = createSequence({ lexemes: [lexeme] });
+    // Ohne Frage entfällt er wie jeder andere Schritt ohne Material.
+    expect(resolveSteps(sequence, lexeme).map((step) => step.id)).not.toContain('ccq');
   });
 
   it('lässt auf Sequenzebene abgeschaltete Schritte aus', () => {
@@ -192,8 +227,9 @@ describe('Sichtbarkeitsprofile der Phasen', () => {
   });
 
   it('beschreibt ein Profil in Worten', () => {
-    expect(visibilityLabel(PHASE_VISIBILITY.kontext)).toBe('nichts');
-    expect(visibilityLabel(PHASE_VISIBILITY.muster)).toBe('Bedeutung, Schriftbild');
+    const label = (prefix: string, id: string) => de[`${prefix}.${id}` as keyof typeof de] ?? id;
+    expect(visibilityLabel(PHASE_VISIBILITY.kontext, label, 'nichts')).toBe('nichts');
+    expect(visibilityLabel(PHASE_VISIBILITY.muster, label, 'nichts')).toBe('Bedeutung, Schriftbild');
   });
 });
 

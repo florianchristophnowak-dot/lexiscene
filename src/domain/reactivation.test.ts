@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { promptFor } from '../i18n/prompts';
+
+/** Zielsprachliche Impulse wie im Unterricht. */
+const phrase = (key: string, params?: Record<string, string>) => promptFor('fr', key, params);
 import { createLexeme, createReactivationPlan, createSequence } from './schema';
 import { DAY_MS, buildImpulses, completeRound, dueSequences, isSequenceDue, nextDueAt, summariseOutcomes, unsureCount } from './reactivation';
 import { createObservation } from './observations';
@@ -81,25 +85,25 @@ describe('buildImpulses', () => {
   });
 
   it('überspringt deaktivierte Einheiten', () => {
-    const impulses = buildImpulses(sequence);
+    const impulses = buildImpulses(sequence, phrase);
     expect(impulses).toHaveLength(2);
     expect(impulses.map((impulse) => impulse.prompt.includes('übersprungen'))).toEqual([false, false]);
   });
 
   it('ist deterministisch und wechselt die Impulsart je Runde', () => {
-    const first = buildImpulses(sequence, { round: 0 });
-    expect(buildImpulses(sequence, { round: 0 })).toEqual(first);
-    const second = buildImpulses(sequence, { round: 1 });
+    const first = buildImpulses(sequence, phrase, { round: 0 });
+    expect(buildImpulses(sequence, phrase, { round: 0 })).toEqual(first);
+    const second = buildImpulses(sequence, phrase, { round: 1 });
     expect(second[0].kind).not.toBe(first[0].kind);
   });
 
   it('liefert zu jeder Bedeutungsfrage die Lösung mit', () => {
-    const impulse = buildImpulses(sequence, { round: 0 }).find((entry) => entry.kind === 'bedeutung-erinnern');
+    const impulse = buildImpulses(sequence, phrase, { round: 0 }).find((entry) => entry.kind === 'bedeutung-erinnern');
     expect(impulse?.solution).toBe('Hast du Lust?');
   });
 
   it('begrenzt die Anzahl auf Wunsch', () => {
-    expect(buildImpulses(sequence, { limit: 1 })).toHaveLength(1);
+    expect(buildImpulses(sequence, phrase, { limit: 1 })).toHaveLength(1);
   });
 });
 
@@ -144,7 +148,7 @@ describe('Priorisierung', () => {
 
   it('stellt unsichere Einheiten nach vorn, wenn die Sequenz das vorsieht', () => {
     const sequence = createSequence({ lexemes: [secure, unsure] });
-    expect(buildImpulses(sequence)[0].lexemeId).toBe(unsure.id);
+    expect(buildImpulses(sequence, phrase)[0].lexemeId).toBe(unsure.id);
     expect(unsureCount(sequence)).toBe(1);
   });
 
@@ -153,6 +157,6 @@ describe('Priorisierung', () => {
       lexemes: [secure, unsure],
       reactivation: createReactivationPlan({ prioritiseUnsure: false }),
     });
-    expect(buildImpulses(sequence)[0].lexemeId).toBe(secure.id);
+    expect(buildImpulses(sequence, phrase)[0].lexemeId).toBe(secure.id);
   });
 });

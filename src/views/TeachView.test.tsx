@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createDemoSequence } from '../domain/demo';
+import { DEFAULT_SETTINGS } from '../domain/model';
 import { renderWithStore } from '../test/renderWithStore';
 import { TeachView } from './TeachView';
+import { TeacherPanel } from './teach/TeachStage';
+import { stepDefinition } from '../domain/steps';
 
 const EXPRESSION = 'Ça te dit de… ?';
+const EXPLANATION = 'On propose une activité à quelqu’un.';
 
 function setup() {
   const sequence = createDemoSequence();
@@ -22,18 +26,19 @@ describe('Unterrichtsmodus', () => {
     expect(screen.queryByText('Hast du Lust, etwas zu tun?')).not.toBeInTheDocument();
   });
 
-  it('deckt die Bedeutung vor der Form auf', async () => {
+  it('deckt die zielsprachliche Erklärung vor der Form auf', async () => {
     const user = userEvent.setup();
     setup();
 
-    await user.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}');
-    expect(screen.getByText(/Schritt 5/)).toBeInTheDocument();
-    expect(screen.getByText('Hast du Lust, etwas zu tun?')).toBeInTheDocument();
+    // bis zum Schritt „Bedeutung klären“ blättern
+    for (let index = 0; index < 6; index += 1) {
+      if (screen.queryByText(EXPLANATION)) break;
+      await user.keyboard('{ArrowRight}');
+    }
+    expect(screen.getByText(EXPLANATION)).toBeInTheDocument();
     expect(screen.queryByText(EXPRESSION)).not.toBeInTheDocument();
-
-    await user.keyboard(' ');
-    expect(screen.getByText(/Schritt 6/)).toBeInTheDocument();
-    expect(screen.getByText(EXPRESSION)).toBeInTheDocument();
+    // Die interne Bedeutung steht als Lehrkrafthinweis daneben, nicht als Bühnentext.
+    expect(screen.getByText(/Interne Bedeutung:/)).toBeInTheDocument();
   });
 
   it('blendet Informationen einzeln ein und aus', async () => {
@@ -46,7 +51,8 @@ describe('Unterrichtsmodus', () => {
     await user.click(screen.getByRole('button', { name: 'Schriftbild' }));
     expect(screen.queryByText(EXPRESSION)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Übersetzung' }));
+    // Die erstsprachliche Reserve wird ausdrücklich freigegeben.
+    await user.click(screen.getByRole('button', { name: 'Erstsprache' }));
     expect(screen.getByText('Hast du Lust, …?')).toBeInTheDocument();
   });
 
@@ -253,5 +259,133 @@ describe('Korpusminiatur im Unterrichtsmodus', () => {
       expect(screen.queryByRole('button', { name: 'Fokus markieren' })).not.toBeInTheDocument();
       await user.keyboard('{ArrowRight}');
     }
+  });
+});
+
+describe('Bedeutungsprüfung im Unterricht', () => {
+  function setupCcq() {
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes[0];
+    const sequence = { ...demo, lexemes: [lexeme] };
+    const view = renderWithStore(<TeachView sequenceId={sequence.id} />, [sequence]);
+    return { sequence, lexeme, ...view };
+  }
+
+  async function goToCcq(user: ReturnType<typeof userEvent.setup>) {
+    for (let index = 0; index < 12; index += 1) {
+      if (screen.queryByText(/Bedeutung prüfen/)) return;
+      await user.keyboard('{ArrowRight}');
+    }
+    throw new Error('Der Schritt „Bedeutung prüfen“ wurde nicht erreicht.');
+  }
+
+  it('erscheint in der Phase „Klarheit“ hinter der Klärung', async () => {
+    const user = userEvent.setup();
+    setupCcq();
+    await goToCcq(user);
+
+    expect(screen.getByText('Phase 2: Klarheit')).toBeInTheDocument();
+    await user.keyboard('{ArrowLeft}');
+    expect(screen.getByText(/Bedeutung klären/)).toBeInTheDocument();
+  });
+
+  it('zeigt die Frage, hält die erwartete Antwort aber zurück', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupCcq();
+    await goToCcq(user);
+
+    expect(screen.getByText(lexeme.ccqs[0].question)).toBeInTheDocument();
+    // Auf dem Lehrkraftbildschirm steht die Antwort bereit …
+    expect(screen.getByText(/Erwartet: Elle propose\./)).toBeInTheDocument();
+    // … und die Klasse sieht sie erst nach „Antwort zeigen“.
+    expect(screen.getByRole('button', { name: 'Antwort zeigen' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('blättert durch mehrere Fragen, bevor der Schritt endet', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupCcq();
+    await goToCcq(user);
+
+    expect(screen.getByText('Frage 1 von 2')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Nächste Frage' }));
+    expect(screen.getByText('Frage 2 von 2')).toBeInTheDocument();
+    expect(screen.getByText(lexeme.ccqs[1].question)).toBeInTheDocument();
+
+    // Die Pfeiltaste blättert erst die Fragen durch und geht dann weiter.
+    await user.click(screen.getByRole('button', { name: 'Vorherige Frage' }));
+    expect(screen.getByText('Frage 1 von 2')).toBeInTheDocument();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByText('Frage 2 von 2')).toBeInTheDocument();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.queryByText(/Frage 2 von 2/)).not.toBeInTheDocument();
+  });
+
+  it('ordnet die Rückmeldung der geprüften Dimension zu', async () => {
+    const user = userEvent.setup();
+    const { actions, sequence, lexeme } = setupCcq();
+    await goToCcq(user);
+
+    await user.click(screen.getByRole('button', { name: 'sicher' }));
+    expect(actions.recordObservation).toHaveBeenCalledWith(
+      sequence.id,
+      lexeme.id,
+      expect.objectContaining({ dimension: 'use', result: 'secure', source: 'introduction' }),
+    );
+  });
+
+  it('bietet bei Unsicherheit die alternative Klärung und den Rücksprung an', async () => {
+    const user = userEvent.setup();
+    const { lexeme } = setupCcq();
+    await goToCcq(user);
+
+    expect(screen.queryByRole('button', { name: 'Zurück zur Klärung' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'mit Hilfe' }));
+    await user.click(screen.getByRole('button', { name: 'Alternative Klärung zeigen' }));
+    expect(screen.getByText(new RegExp(lexeme.ccqs[0].alternativeClarification))).toBeInTheDocument();
+
+    // Zurück zur Klärung – und von dort wieder zur Frage.
+    await user.click(screen.getByRole('button', { name: 'Zurück zur Klärung' }));
+    expect(screen.getByText(/Bedeutung klären/)).toBeInTheDocument();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByText(lexeme.ccqs[0].question)).toBeInTheDocument();
+  });
+});
+
+describe('Erstsprachliche Reserve', () => {
+  it('bietet die Freigabe an und blendet die Übersetzung ein', async () => {
+    const user = userEvent.setup();
+    setup();
+
+    const release = screen.getByRole('button', { name: 'Erstsprache' });
+    expect(release).toHaveAttribute('aria-pressed', 'false');
+    await user.click(release);
+    expect(screen.getByText('Hast du Lust, …?')).toBeInTheDocument();
+  });
+
+  it('entfällt im streng zielsprachlichen Modus', () => {
+    const sequence = createDemoSequence();
+    renderWithStore(<TeachView sequenceId={sequence.id} />, [sequence], {
+      state: { settings: { ...DEFAULT_SETTINGS, teachingLanguageMode: 'strict' } },
+    });
+    expect(screen.queryByRole('button', { name: 'Erstsprache' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Lehrkraftfeld während der Projektion', () => {
+  it('trägt die Angaben zur laufenden Frage, die die Klasse nicht sieht', () => {
+    const demo = createDemoSequence();
+    const lexeme = demo.lexemes[0];
+    const step = stepDefinition('ccq')!;
+
+    const { unmount } = renderWithStore(<TeacherPanel lexeme={lexeme} step={step} />, [demo]);
+    expect(screen.getByText('Frage 1 von 2')).toBeInTheDocument();
+    expect(screen.getByText(/Erwartet: Elle propose\./)).toBeInTheDocument();
+    expect(screen.getByText(/Prüft:/)).toBeInTheDocument();
+    unmount();
+
+    renderWithStore(<TeacherPanel lexeme={lexeme} step={step} ccqIndex={1} />, [demo]);
+    expect(screen.getByText('Frage 2 von 2')).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Erwartet: ${lexeme.ccqs[1].expectedAnswer}`))).toBeInTheDocument();
   });
 });

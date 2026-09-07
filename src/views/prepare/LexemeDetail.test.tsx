@@ -21,7 +21,8 @@ describe('Detailspalte', () => {
     expect(core).toBeTruthy();
     for (const label of [
       'Ausdruck oder Chunk',
-      'Kernbedeutung',
+      'Interne Bedeutung (nur für die Lehrkraft)',
+      'Erklärung in der Zielsprache',
       'Kommunikative Funktion',
       'Modelläußerung',
       'Musteranker',
@@ -71,7 +72,7 @@ describe('Detailspalte', () => {
 
   it('zeigt die vier Dimensionen ohne Verrechnung', () => {
     setup([createObservation({ dimension: 'meaning', result: 'secure', source: 'introduction' })]);
-    expect(screen.getByText('Bedeutung')).toBeInTheDocument();
+    expect(screen.getAllByText('Bedeutung').length).toBeGreaterThan(0);
     expect(screen.getByText('sicher')).toBeInTheDocument();
     expect(screen.getAllByText('noch keine Beobachtung')).toHaveLength(3);
   });

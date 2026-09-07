@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EVIDENCE_LABELS, advisorContextFromLexeme, recommendMethods, SEMANTISATION_METHODS } from './advisor';
+import { EVIDENCE_GRADES, advisorContextFromLexeme, recommendMethods, SEMANTISATION_METHOD_IDS } from './advisor';
+import { de } from '../i18n/de';
 import { createLexeme, createSequence } from './schema';
 import type { AdvisorContext } from './advisor';
 
@@ -19,11 +20,12 @@ describe('Methodenberater', () => {
       const recommendations = recommendMethods(context({ lexicalType: type }));
       expect(recommendations.length).toBeGreaterThan(0);
       for (const entry of recommendations) {
-        expect(entry.method.length).toBeGreaterThan(5);
-        expect(entry.rationale.length).toBeGreaterThan(10);
-        expect(entry.confirmation.length).toBeGreaterThan(10);
-        expect(entry.risk.length).toBeGreaterThan(10);
-        expect(Object.keys(EVIDENCE_LABELS)).toContain(entry.evidence);
+        // Der Text steht im Sprachkatalog – geprüft wird, dass er vollständig vorliegt.
+        for (const part of ['method', 'rationale', 'confirmation', 'risk'] as const) {
+          const text = de[`advisor.${entry.id}.${part}` as keyof typeof de];
+          expect(text?.length ?? 0).toBeGreaterThan(10);
+        }
+        expect(EVIDENCE_GRADES).toContain(entry.evidence);
       }
     }
   });
@@ -55,7 +57,7 @@ describe('Methodenberater', () => {
   it('stellt beim falschen Freund die Sicherung vor den Vergleich', () => {
     const [first] = recommendMethods(context({ lexicalType: 'falscher-freund', transferRisk: 'hoch' }));
     expect(first.id).toBe('falscher-freund');
-    expect(first.method).toMatch(/Kernbedeutung/);
+    expect(de['advisor.falscher-freund.method']).toMatch(/Kernbedeutung/);
   });
 
   it('ergänzt bei produktivem Lernziel den Musteranker', () => {
@@ -65,7 +67,12 @@ describe('Methodenberater', () => {
 
   it('vermeidet absolute Formulierungen', () => {
     const all = recommendMethods(context({ lexicalType: 'abstrakt' }));
-    const text = all.map((entry) => `${entry.method} ${entry.rationale}`).join(' ');
+    const text = all
+      .map(
+        (entry) =>
+          `${de[`advisor.${entry.id}.method` as keyof typeof de]} ${de[`advisor.${entry.id}.rationale` as keyof typeof de]}`,
+      )
+      .join(' ');
     expect(text).not.toMatch(/wäre ein Umweg|robusteste|immer besser|garantiert/);
   });
 
@@ -80,7 +87,11 @@ describe('Methodenberater', () => {
   });
 
   it('bietet die Methodenliste für die Auswahl an', () => {
-    expect(SEMANTISATION_METHODS.length).toBeGreaterThan(5);
-    expect(new Set(SEMANTISATION_METHODS).size).toBe(SEMANTISATION_METHODS.length);
+    expect(SEMANTISATION_METHOD_IDS.length).toBeGreaterThan(5);
+    expect(new Set(SEMANTISATION_METHOD_IDS).size).toBe(SEMANTISATION_METHOD_IDS.length);
+    // Zu jeder Methode gibt es einen Katalogeintrag.
+    for (const id of SEMANTISATION_METHOD_IDS) {
+      expect(de[`advisor.${id}.method` as keyof typeof de]).toBeTruthy();
+    }
   });
 });

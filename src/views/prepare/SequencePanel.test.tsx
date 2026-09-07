@@ -27,7 +27,7 @@ describe('Sequenzspalte', () => {
     const { actions, onSelectLexeme, sequence } = setup();
 
     await user.type(screen.getByLabelText('Neuer Ausdruck oder Chunk'), 'On y va !');
-    await user.type(screen.getByLabelText('Kernbedeutung (optional)'), 'Los geht’s!');
+    await user.type(screen.getByLabelText('Interne Bedeutung (optional)'), 'Los geht’s!');
     await user.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
     expect(actions.addLexeme).toHaveBeenCalledWith(sequence.id, {
@@ -87,6 +87,7 @@ describe('Sequenzspalte', () => {
         'situation',
         'vermuten',
         'klaeren',
+        'ccq',
         'audio',
         'form',
         'fokus',
@@ -98,7 +99,7 @@ describe('Sequenzspalte', () => {
       ],
     });
     expect(screen.getByRole('status', { name: 'Reihenfolge der Schritte' })).toHaveTextContent(
-      '„Impuls zeigen“ ist jetzt an Position 1 von 12',
+      '„Impuls zeigen“ ist jetzt an Position 1 von 13',
     );
   });
 });
