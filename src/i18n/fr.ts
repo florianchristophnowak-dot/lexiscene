@@ -149,12 +149,17 @@ export const fr: Catalogue = {
   'step.ccq': 'Vérifier le sens (CCQ)',
   'step.ccq.purpose':
     'Vérifier par de courtes questions si le concept est passé – pas la forme. N’apparaît qu’avec une question préparée.',
+  'step.wort-elizitieren': 'Faire trouver le mot',
+  'step.wort-elizitieren.purpose':
+    'Attendre, puis donner le début du mot, et seulement ensuite le dire – le concept est déjà clair.',
   'step.audio': 'Écouter',
   'step.audio.purpose': 'Proposer la forme sonore. Avant ou après l’écrit : c’est un choix de mise en scène.',
   'step.form': 'Découvrir la forme',
   'step.form.purpose': 'Introduire la forme écrite. Le moment se choisit – tôt cela soutient, tard cela sollicite l’écoute.',
   'step.fokus': 'Observer et s’entraîner',
   'step.fokus.purpose': 'Travailler prononciation, accentuation et structure type.',
+  'step.chunk': 'Ajouter la collocation',
+  'step.chunk.purpose': 'Proposer une expression centrale entière et la dire d’un seul tenant.',
   'step.korpusminiatur': 'Miniature de corpus',
   'step.korpusminiatur.purpose':
     'Découvrir une régularité sur quelques attestations choisies. Étape facultative – la règle est ensuite confirmée explicitement.',
@@ -164,6 +169,9 @@ export const fr: Catalogue = {
   'step.hilfen-ausblenden.purpose': 'Retirer les appuis et voir ce qui reste disponible.',
   'step.abruf': 'Se rappeler',
   'step.abruf.purpose': 'Solliciter la restitution sans modèle – d’abord le temps de réflexion, puis la solution.',
+  'step.wiederholung': 'Reprise rapide',
+  'step.wiederholung.purpose':
+    'Reprendre de façon cumulative ce qui a déjà été introduit – faire rappeler, pas redire.',
   'step.aufgabe': 'Mini-tâche communicative',
   'step.aufgabe.purpose': 'Permettre un premier emploi personnel de la nouvelle unité.',
 
@@ -937,4 +945,209 @@ export const fr: Catalogue = {
   'detail.steps.useSequence': 'Reprendre l’ordre de la séquence',
   'detail.steps.useOwn': 'Ordre propre à cette unité',
   'detail.steps.reset': 'Réinitialiser le choix des étapes',
+
+  /* ------------------------------------------------- Aide : approche */
+  'help.task.title': 'Planifier à partir de l’objectif',
+  'help.task.backwards':
+    'Ne pas partir d’une liste de mots, mais de ce que les élèves doivent comprendre ou faire. La tâche vient d’abord – conversation, jeu de rôle, discussion, document audio ou chanson –, le lexique en découle.',
+  'help.task.choose':
+    'La priorité va à ce que les élèves emploieront probablement eux-mêmes. Un ensemble de mots isolés reliés par un thème n’y suffit pas : il faut des combinaisons et des schémas utilisables.',
+  'help.task.criteria':
+    'Comptent le niveau et l’âge, les intérêts et les besoins de communication, le contexte d’emploi scolaire et extrascolaire, le naturel de l’expression et la voix que les élèves doivent développer. Le champ « Pourquoi cette unité ? » garde trace de votre décision.',
+
+  'help.routine.title': 'Routine pour une unité',
+  'help.routine.lede':
+    'La mise en scène reprend une routine applicable à chaque nouvelle unité. Chaque étape se désactive, et celles sans matériel disparaissent d’elles-mêmes.',
+  'help.routine.steps':
+    'Créer un contexte ou une impulsion · activer les acquis · resserrer l’attention · s’assurer que le concept est compris · faire trouver le mot ou le dire · l’écrire avec les indications grammaticales nécessaires · modéliser et travailler la prononciation · ajouter une collocation centrale · vérifier le sens par des CCQ · reprendre le mot plusieurs fois · l’employer aussitôt dans une tâche.',
+  'help.routine.note':
+    'La présentation reste une phase préparatoire. Son but est que les élèves comprennent la langue et l’emploient eux-mêmes.',
+
+  'help.eliciting.title': 'Faire trouver le sens',
+  'help.eliciting.principle':
+    'Le mot nouveau n’est ni écrit, ni expliqué, ni traduit d’emblée. On crée plutôt une situation qui permet d’en inférer le sens.',
+  'help.eliciting.techniques':
+    'Au choix : mimique et gestes, image, dessin, objet réel, accessoire et pantomime, synonyme, antonyme, exemples et hyponymes, contexte, définition brève. Plusieurs se combinent – un geste avec un contexte bref est souvent plus clair qu’une longue explication.',
+  'help.eliciting.short':
+    'Cela ne doit pas tourner à la devinette : rapide, clair, adapté au niveau et économe en parole enseignante. L’image d’une pêche porte plus loin qu’une description de sa forme, de sa couleur et de son noyau.',
+  'help.eliciting.concept':
+    'On fait d’abord trouver le concept, pas le mot : personne ne peut nommer un mot jamais entendu. Une fois le concept clair, attendez un instant, donnez ensuite une amorce et dites le mot s’il ne vient pas vite. L’étape « Faire trouver le mot » suit exactement ces trois temps.',
+
+  'help.drill.title': 'Écrire au tableau et prononcer',
+  'help.drill.board':
+    'Après la clarification, le mot est écrit de façon visible et correcte – avec article et genre, pluriel, infinitif, prépositions, classe de mot, accentuation et collocations typiques. Les champs correspondants se trouvent sous « Prononciation et forme » et « Schéma linguistique ».',
+  'help.drill.stages':
+    'Vous modélisez ensuite la prononciation naturelle : modèle, reprise en chœur, groupes, élèves isolés – et entre les deux, une écoute ciblée. L’étape « Prononciation et schéma » guide ces temps ; répéter n’est pas un rituel mais une écoute des sons, des syllabes, de l’accent et des liaisons.',
+  'help.drill.chunk':
+    'On dit l’expression d’un seul tenant, non une suite de mots isolés. L’étape « Ajouter la collocation » tient l’expression centrale prête ; les contributions du groupe se notent en cours et apparaissent ensuite dans le champ lexical.',
+
+  /* ------------------------------------------------------- Tâche cible */
+  'sequence.task.title': 'Tâche cible',
+  'sequence.task.hint':
+    'D’abord la tâche, ensuite le lexique : que feront les élèves avec la langue ? C’est de là que découlent les unités vraiment nécessaires.',
+  'sequence.field.taskType': 'Type de tâche',
+  'sequence.field.targetTask': 'Ce que les élèves en feront',
+  'sequence.field.targetTask.hint':
+    'Concret et observable, par exemple « convenir à deux d’une sortie commune ».',
+  'sequence.field.targetTask.placeholder': 'p. ex. convenir à deux d’un samedi après-midi',
+  'sequence.task.missing': 'Aucune tâche définie – le lexique n’a alors aucun point d’ancrage.',
+  'taskType.gespraech': 'Conversation',
+  'taskType.rollenspiel': 'Jeu de rôle',
+  'taskType.diskussion': 'Discussion',
+  'taskType.hoertext': 'Document audio',
+  'taskType.lesetext': 'Texte à lire',
+  'taskType.lied': 'Chanson',
+  'taskType.sonstige': 'Autre',
+
+  /* ------------------------------------------------------ Profil du mot */
+  'profile.title': 'Profil du mot',
+  'profile.hint':
+    'Sept dimensions à clarifier avant le cours. On vérifie seulement si quelque chose est renseigné – rien n’est évalué.',
+  'profile.complete': 'Les sept dimensions sont renseignées.',
+  'profile.open': 'Encore ouvert : {list}',
+  'profile.dimension.bedeutung': 'Sens',
+  'profile.question.bedeutung': 'Que désigne exactement l’expression ? Où risque-t-on un malentendu ?',
+  'profile.dimension.konnotation': 'Connotation',
+  'profile.question.konnotation': 'Est-elle neutre, évaluative, formelle, familière ou émotionnelle ?',
+  'profile.dimension.form': 'Forme',
+  'profile.question.form': 'Classe de mot, genre, pluriel, infinitif – qu’écrit-on au tableau ?',
+  'profile.dimension.wortbildung': 'Formation des mots',
+  'profile.question.wortbildung': 'Quelles formes apparentées sont pertinentes ici ?',
+  'profile.dimension.aussprache': 'Prononciation',
+  'profile.question.aussprache': 'Quels sons, syllabes, accents ou liaisons posent problème ?',
+  'profile.dimension.kollokation': 'Collocation',
+  'profile.question.kollokation': 'Avec quels mots l’expression apparaît-elle habituellement ?',
+  'profile.dimension.verwendung': 'Emploi',
+  'profile.question.verwendung': 'Dans quelles situations l’emploie-t-on réellement ?',
+
+  /* ------------------------------------------------- Faire trouver le sens */
+  'eliciting.title': 'Faire trouver le sens',
+  'eliciting.hint':
+    'Le sens se montre plutôt qu’il ne s’explique. Plusieurs techniques se combinent – un geste avec un contexte bref est souvent plus clair qu’une longue explication.',
+  'eliciting.techniques': 'Techniques prévues',
+  'eliciting.recommended': 'Conviennent au profil de cette unité : {list}',
+  'eliciting.count': 'Choisies : {count}',
+  'eliciting.recommendedTag': 'recommandée',
+  'eliciting.field.context': 'Contexte ou impulsion préparés',
+  'eliciting.field.context.hint':
+    'Rester bref. Faire trouver le sens doit être rapide et clair, pas un jeu de devinettes.',
+  'eliciting.field.context.placeholder': 'p. ex. deux amis un vendredi après-midi, image d’un cinéma',
+  'eliciting.warning.none': 'Aucune technique choisie – il ne reste alors que l’explication.',
+  'eliciting.warning.long': 'Le contexte est long. Plus court est ici généralement plus clair.',
+  'eliciting.warning.visualFirst':
+    'Cette unité se montre facilement. Une définition coûte plus de parole enseignante qu’une image.',
+  'eliciting.warning.contextMissing': 'Pour inférer le sens du contexte, il manque encore un contexte.',
+  'eliciting.technique.mimik': 'Mimique et gestes',
+  'eliciting.technique.mimik.fits': 'actions et propriétés visibles',
+  'eliciting.technique.bild': 'Image',
+  'eliciting.technique.bild.fits': 'objets, actions et situations concrets',
+  'eliciting.technique.zeichnung': 'Dessin',
+  'eliciting.technique.zeichnung.fits': 'concepts rapides à représenter',
+  'eliciting.technique.realie': 'Objet réel',
+  'eliciting.technique.realie.fits': 'objets que l’on peut apporter',
+  'eliciting.technique.pantomime': 'Accessoire et pantomime',
+  'eliciting.technique.pantomime.fits': 'objets non disponibles en classe',
+  'eliciting.technique.synonym': 'Synonyme',
+  'eliciting.technique.synonym.fits': 'lorsqu’un mot apparenté est déjà connu',
+  'eliciting.technique.antonym': 'Antonyme',
+  'eliciting.technique.antonym.fits': 'notions clairement opposables',
+  'eliciting.technique.beispiele': 'Exemples et hyponymes',
+  'eliciting.technique.beispiele.fits': 'termes génériques et catégories',
+  'eliciting.technique.kontext': 'Contexte',
+  'eliciting.technique.kontext.fits': 'sens abstraits ou nuancés',
+  'eliciting.technique.definition': 'Définition brève',
+  'eliciting.technique.definition.fits': 'ce qui ne se montre pas utilement',
+
+  /* ------------------------------------------------------- Mot et chunk */
+  'detail.field.selectionReason': 'Pourquoi cette unité ?',
+  'detail.field.selectionReason.hint':
+    'Lien avec la tâche cible, le groupe et l’emploi personnel attendu. Visible pour vous seule.',
+  'detail.field.connotation': 'Connotation',
+  'detail.field.wordClass': 'Classe de mot',
+  'detail.field.wordCue': 'Amorce du mot',
+  'detail.field.wordCue.hint':
+    'Premiers sons ou premières lettres pour faire trouver le mot si personne ne le dit. Laissez vide : l’application abrège l’expression.',
+  'detail.field.keyCollocation': 'Collocation centrale',
+  'detail.field.keyCollocation.hint':
+    'L’expression que l’on ajoute lors de l’introduction et que l’on dit d’un seul tenant.',
+  'detail.field.keyCollocation.fromCollocations': 'Reprendre la première collocation',
+  'connotation.unbestimmt': 'à préciser',
+  'connotation.neutral': 'neutre',
+  'connotation.positiv': 'positive',
+  'connotation.negativ': 'négative',
+  'connotation.formell': 'formelle',
+  'connotation.umgangssprachlich': 'familière',
+  'connotation.emotional': 'émotionnelle',
+  'wordClass.unbestimmt': 'à préciser',
+  'wordClass.nomen': 'Nom',
+  'wordClass.verb': 'Verbe',
+  'wordClass.adjektiv': 'Adjectif',
+  'wordClass.adverb': 'Adverbe',
+  'wordClass.wendung': 'expression figée',
+  'wordClass.sonstige': 'autre',
+
+  /* ------------------------------------------------ Travail de prononciation */
+  'drill.title': 'Travailler la prononciation',
+  'drill.hint': 'Écouter vraiment : sons, syllabes, accent de mot et liaisons.',
+  'drill.stage.model': 'Modèle',
+  'drill.stage.chorus': 'En chœur',
+  'drill.stage.groups': 'Par groupes',
+  'drill.stage.individual': 'Individuel',
+  'drill.stage.listen': 'Écoute ciblée',
+  'drill.stage.model.teacher': 'Dire naturellement – l’expression entière, pas mot à mot.',
+  'drill.stage.chorus.teacher': 'Faire répéter tout le groupe ensemble.',
+  'drill.stage.groups.teacher': 'Faire répéter rangée par rangée ou par îlots.',
+  'drill.stage.individual.teacher': 'Faire répéter quelques élèves – sans les exposer.',
+  'drill.stage.listen.teacher': 'Nommer la difficulté, redonner le modèle, refaire répéter.',
+  'drill.position': 'Étape {position} sur {total}',
+  'drill.start': 'Travailler la prononciation',
+  'drill.stop': 'Terminer le travail de prononciation',
+  'drill.next': 'Étape suivante',
+  'drill.previous': 'Étape précédente',
+
+  /* --------------------------------------------- Faire trouver le mot en cours */
+  'teach.word.wait': 'Attendre',
+  'teach.word.cue': 'Donner l’amorce',
+  'teach.word.full': 'Dire le mot',
+  'teach.word.teacher':
+    'Attendre un instant. Quelqu’un le connaît-il ? Sinon donner l’amorce – et si le mot ne vient pas vite, le dire soi-même.',
+  'teach.word.hidden': 'Le concept est clair. Qui connaît le mot ?',
+  'teach.teacher.word': 'Mot : {value}',
+
+  /* --------------------------------------------------- Reprise cumulative */
+  'teach.recap.title': 'Déjà introduit',
+  'teach.recap.reveal': 'Dévoiler l’expression suivante',
+  'teach.recap.hide': 'Masquer de nouveau',
+  'teach.recap.counter': '{revealed} sur {total} dévoilées',
+  'teach.recap.masked': 'masqué',
+  'teach.recap.teacher': 'Faire participer des élèves différents et reprendre les prononciations difficiles.',
+
+  /* ------------------------------------------------ Contributions du groupe */
+  'teach.contribution': 'Noter une contribution',
+  'teach.contribution.title': 'Contribution du groupe',
+  'teach.contribution.field': 'Expression proposée en classe',
+  'teach.contribution.hint':
+    'Enregistrée avec l’unité et affichée dans le champ lexical – à formuler en langue cible.',
+  'teach.contribution.add': 'Reprendre',
+  'teach.contribution.close': 'Fermer',
+  'teach.contribution.saved': 'Contribution reprise.',
+  'detail.contributions': 'Contributions du groupe',
+  'detail.contributions.hint': 'Notées en cours. Vous pouvez les modifier ou les supprimer ici.',
+  'detail.contributions.remove': 'Supprimer la contribution {index}',
+  'detail.contributions.empty': 'Rien de noté pour l’instant.',
+
+  /* --------------------------------------------------- Conseils de préparation */
+  'readiness.targetTask.title': 'Définir la tâche cible',
+  'readiness.targetTask.detail':
+    'Le lexique découle de la tâche. Sans elle, la liste reste sans point d’ancrage.',
+  'readiness.eliciting.title': 'Prévoir comment faire trouver le sens',
+  'readiness.eliciting.detail': 'Sans technique choisie, il ne reste que l’explication pour {list}.',
+  'readiness.ccqCount.title': 'Peu de questions de sens',
+  'readiness.ccqCount.detail':
+    'Environ trois questions brèves par unité vérifient le concept plus sûrement qu’une seule. Concerne {list}.',
+  'readiness.profile.title': 'Profil du mot incomplet',
+  'readiness.profile.detail': 'Sens, prononciation et emploi restent ouverts pour {list}.',
+  'readiness.chunk.title': 'Pas de collocation centrale',
+  'readiness.chunk.detail':
+    'Les mots isolés portent rarement. Une expression typique rend l’unité utilisable. Concerne {list}.',
 };

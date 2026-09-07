@@ -2,7 +2,9 @@ import { useMediaUrl } from '../../app/media';
 import { buildCheckPrompt } from '../../domain/checks';
 import { CLOSED_CORPUS_REVEAL, type CorpusReveal } from '../../domain/corpus';
 import { usableCcqs } from '../../domain/ccq';
-import { buildCcqView, buildStageView, type StageAudience } from '../../domain/stage';
+import { buildCcqView, buildStageView, type StageAudience, type WordReveal } from '../../domain/stage';
+import { drillPromptKey, type DrillStage as DrillStageId } from '../../domain/drill';
+import { recapItems } from '../../domain/recap';
 import { corpusProvenanceLabel } from './corpusLabels';
 import type { Lexeme, Sequence, TeachingLanguageMode } from '../../domain/model';
 import type { StepDefinition, StepVisibility } from '../../domain/steps';
@@ -10,6 +12,9 @@ import { firstFilled, splitPatternAnchor } from '../../domain/text';
 import { usePhrase, useT, useTid } from '../../i18n/context';
 import { CorpusStage } from './CorpusStage';
 import { CcqStage } from './CcqStage';
+import { DrillStage } from './DrillStage';
+import { ElicitStage } from './ElicitStage';
+import { RecapStage } from './RecapStage';
 
 /** Bild oder Video der aktuellen Einheit. */
 function StageMedia({ lexeme }: { lexeme: Lexeme }) {
@@ -33,7 +38,7 @@ function StageMedia({ lexeme }: { lexeme: Lexeme }) {
   return null;
 }
 
-const MEDIA_STEPS = ['impuls', 'vermuten', 'ccq', 'hilfen-ausblenden', 'abruf', 'kontrolle'];
+const MEDIA_STEPS = ['impuls', 'vermuten', 'ccq', 'wort-elizitieren', 'hilfen-ausblenden', 'abruf', 'kontrolle'];
 
 /** Musteranker mit sichtbar unterschiedenen festen Teilen und Slots. */
 export function PatternAnchor({ text }: { text: string }) {
@@ -73,6 +78,12 @@ export interface TeachStageProps {
   showCcqAnswer?: boolean;
   /** Alternative Klärung für die Klasse freigegeben. */
   showCcqAlternative?: boolean;
+  /** Stufe beim Herauslocken des Wortes. */
+  wordReveal?: WordReveal;
+  /** Laufende Stufe der Aussprachearbeit, sonst `null`. */
+  drillStage?: DrillStageId | null;
+  /** Aufgedeckte Einträge der kumulativen Wiederholung. */
+  recapRevealed?: number;
   mode: TeachingLanguageMode;
   /**
    * Für wen die Bühne gebaut wird. Im Projektionsfenster ist es immer
@@ -93,6 +104,9 @@ export function TeachStage({
   ccqIndex = 0,
   showCcqAnswer = false,
   showCcqAlternative = false,
+  wordReveal = 'hidden',
+  drillStage = null,
+  recapRevealed = 0,
   mode,
   audience,
 }: TeachStageProps) {
@@ -102,7 +116,20 @@ export function TeachStage({
   const audio = useMediaUrl(lexeme.audioId);
   const teacherView = audience === 'teacher';
 
-  const view = buildStageView({ lexeme, step, visibility, releaseL1, showSolution, mode, audience });
+  const recap = recapItems(sequence, lexeme);
+  const view = buildStageView({
+    lexeme,
+    step,
+    visibility,
+    releaseL1,
+    showSolution,
+    mode,
+    audience,
+    wordReveal,
+    drillStage,
+    recap,
+    recapRevealed,
+  });
   const checkPrompt = buildCheckPrompt(lexeme, phrase);
   const showMedia = MEDIA_STEPS.includes(step.id);
 
@@ -140,10 +167,36 @@ export function TeachStage({
             teacherView={teacherView}
           />
         ) : null;
+      case 'wort-elizitieren':
+        return (
+          <ElicitStage view={view} prompt={phrase('step.prompt.wort-elizitieren')} teacherView={teacherView} />
+        );
       case 'fokus':
-        // Phase „Muster“: Der Musteranker steht vorn; die Modelläußerung folgt
-        // weiter unten aus dem Schriftbild-Block, damit nichts doppelt erscheint.
+        // Läuft die Aussprachearbeit, trägt sie die Bühne; sonst steht der
+        // Musteranker vorn. Die Modelläußerung folgt aus dem Schriftbild-Block.
+        if (drillStage) {
+          return (
+            <DrillStage
+              item={view.drillItem}
+              stage={drillStage}
+              instruction={phrase(drillPromptKey(drillStage))}
+              difficulty={teacherView ? firstFilled(lexeme.pronunciationHint, lexeme.prosodyNote) : ''}
+              teacherView={teacherView}
+            />
+          );
+        }
         return lexeme.sentenceFrame ? <PatternAnchor text={lexeme.sentenceFrame} /> : null;
+      case 'chunk':
+        return (
+          <>
+            {view.chunk ? <p className="chunk-stage__item">{view.chunk}</p> : null}
+            <p className="teach__support">{phrase('step.prompt.chunk')}</p>
+          </>
+        );
+      case 'wiederholung':
+        return (
+          <RecapStage lines={view.recap} prompt={phrase('step.prompt.wiederholung')} teacherView={teacherView} />
+        );
       case 'korpusminiatur':
         return <CorpusStage miniature={lexeme.corpus} reveal={corpusReveal} teacherView={teacherView} />;
       case 'kontrolle':
@@ -191,6 +244,18 @@ export function TeachStage({
       {view.translation ? <p className="teach__l1">{view.translation}</p> : null}
       {view.simplified ? <p className="teach__l1">{view.simplified}</p> : null}
 
+      {/*
+        * Beiträge der Lerngruppe gehören zum wachsenden Wortfeld: Sie sind
+        * zielsprachlich und dürfen dort erscheinen, wo daran gearbeitet wird.
+        */}
+      {view.contributions.length > 0 && ['chunk', 'wiederholung', 'fokus'].includes(step.id) ? (
+        <ul className="teach__contributions" aria-label={t('teach.contribution.title')}>
+          {view.contributions.map((entry) => (
+            <li key={entry}>{entry}</li>
+          ))}
+        </ul>
+      ) : null}
+
       {view.supportLines.length > 0 ? <p className="teach__support">{view.supportLines.join(' · ')}</p> : null}
       {view.patternAnchor ? <PatternAnchor text={view.patternAnchor} /> : null}
 
@@ -224,11 +289,17 @@ export function TeacherPanel({
   lexeme,
   step,
   ccqIndex = 0,
+  wordReveal = 'hidden',
+  drillStage = null,
 }: {
   lexeme: Lexeme;
   step: StepDefinition;
   /** Laufende Bedeutungsfrage – nur im Schritt „Bedeutung prüfen“ von Belang. */
   ccqIndex?: number;
+  /** Stufe beim Herauslocken des Wortes. */
+  wordReveal?: WordReveal;
+  /** Laufende Stufe der Aussprachearbeit. */
+  drillStage?: DrillStageId | null;
 }) {
   const t = useT();
   const tid = useTid();
@@ -242,6 +313,13 @@ export function TeacherPanel({
   const current = checks[Math.min(ccqIndex, Math.max(checks.length - 1, 0))];
 
   const lines = [
+    // Beim Herauslocken bleibt das Wort auf der Bühne verborgen – hier steht es.
+    step.id === 'wort-elizitieren' && wordReveal !== 'full' && lexeme.expression
+      ? t('teach.teacher.word', { value: lexeme.expression })
+      : '',
+    step.id === 'wort-elizitieren' ? t('teach.word.teacher') : '',
+    step.id === 'fokus' && drillStage ? tid('drill.stage', `${drillStage}.teacher`) : '',
+    step.id === 'wiederholung' ? t('teach.recap.teacher') : '',
     current && checks.length > 1 ? t('ccq.counter', { index: Math.min(ccqIndex, checks.length - 1) + 1, total: checks.length }) : '',
     current?.expectedAnswer ? t('ccq.expected', { value: current.expectedAnswer }) : '',
     current ? t('ccq.checks', { value: tid('ccq.feature', current.feature) }) : '',

@@ -88,18 +88,21 @@ describe('Sequenzspalte', () => {
         'vermuten',
         'klaeren',
         'ccq',
+        'wort-elizitieren',
         'audio',
         'form',
         'fokus',
+        'chunk',
         'korpusminiatur',
         'kontrolle',
         'hilfen-ausblenden',
         'abruf',
+        'wiederholung',
         'aufgabe',
       ],
     });
     expect(screen.getByRole('status', { name: 'Reihenfolge der Schritte' })).toHaveTextContent(
-      '„Impuls zeigen“ ist jetzt an Position 1 von 13',
+      '„Impuls zeigen“ ist jetzt an Position 1 von 16',
     );
   });
 });

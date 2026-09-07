@@ -70,6 +70,17 @@ const fr = {
   'impulse.prompt.reaktion-formulieren': 'Répondez à : « {utterance} »',
   'impulse.prompt.neuer-kontext': 'Utilisez « {expression} » dans une nouvelle situation.',
   'impulse.prompt.neuer-kontext-thema': 'Utilisez « {expression} » dans une nouvelle situation : {topic}.',
+  /* Wort herauslocken, Kollokation, Wiederholung */
+  'step.prompt.wort-elizitieren': 'Comment dit-on cela en français ?',
+  'step.prompt.chunk': 'Écoutez l’expression entière.',
+  'step.prompt.wiederholung': 'Qu’avons-nous appris ? Redites-le.',
+
+  /* Travail de prononciation */
+  'drill.prompt.model': 'Écoutez bien.',
+  'drill.prompt.chorus': 'Tous ensemble.',
+  'drill.prompt.groups': 'Cette rangée, s’il vous plaît.',
+  'drill.prompt.individual': 'Une personne, s’il vous plaît.',
+  'drill.prompt.listen': 'Encore une fois, doucement.',
 };
 
 export type PromptKey = keyof typeof fr;
@@ -124,6 +135,15 @@ const en: Record<PromptKey, string> = {
   'impulse.prompt.reaktion-formulieren': 'Respond to: “{utterance}”',
   'impulse.prompt.neuer-kontext': 'Use “{expression}” in a new situation.',
   'impulse.prompt.neuer-kontext-thema': 'Use “{expression}” in a new situation: {topic}.',
+  'step.prompt.wort-elizitieren': 'How do we say this in English?',
+  'step.prompt.chunk': 'Listen to the whole phrase.',
+  'step.prompt.wiederholung': 'What did we learn? Say it again.',
+
+  'drill.prompt.model': 'Listen carefully.',
+  'drill.prompt.chorus': 'All together.',
+  'drill.prompt.groups': 'This row, please.',
+  'drill.prompt.individual': 'One person, please.',
+  'drill.prompt.listen': 'Once more, slowly.',
 };
 
 const es: Record<PromptKey, string> = {
@@ -176,6 +196,15 @@ const es: Record<PromptKey, string> = {
   'impulse.prompt.reaktion-formulieren': 'Responded a: «{utterance}»',
   'impulse.prompt.neuer-kontext': 'Usad «{expression}» en una situación nueva.',
   'impulse.prompt.neuer-kontext-thema': 'Usad «{expression}» en una situación nueva: {topic}.',
+  'step.prompt.wort-elizitieren': '¿Cómo se dice esto en español?',
+  'step.prompt.chunk': 'Escuchad la expresión entera.',
+  'step.prompt.wiederholung': '¿Qué hemos aprendido? Decidlo otra vez.',
+
+  'drill.prompt.model': 'Escuchad bien.',
+  'drill.prompt.chorus': 'Todos juntos.',
+  'drill.prompt.groups': 'Esta fila, por favor.',
+  'drill.prompt.individual': 'Una persona, por favor.',
+  'drill.prompt.listen': 'Otra vez, despacio.',
 };
 
 const it: Record<PromptKey, string> = {
@@ -228,6 +257,15 @@ const it: Record<PromptKey, string> = {
   'impulse.prompt.reaktion-formulieren': 'Rispondete a: «{utterance}»',
   'impulse.prompt.neuer-kontext': 'Usate «{expression}» in una nuova situazione.',
   'impulse.prompt.neuer-kontext-thema': 'Usate «{expression}» in una nuova situazione: {topic}.',
+  'step.prompt.wort-elizitieren': 'Come si dice in italiano?',
+  'step.prompt.chunk': 'Ascoltate l’espressione intera.',
+  'step.prompt.wiederholung': 'Che cosa abbiamo imparato? Ripetetelo.',
+
+  'drill.prompt.model': 'Ascoltate bene.',
+  'drill.prompt.chorus': 'Tutti insieme.',
+  'drill.prompt.groups': 'Questa fila, per favore.',
+  'drill.prompt.individual': 'Una persona, per favore.',
+  'drill.prompt.listen': 'Ancora una volta, piano.',
 };
 
 const ru: Record<PromptKey, string> = {
@@ -280,6 +318,15 @@ const ru: Record<PromptKey, string> = {
   'impulse.prompt.reaktion-formulieren': 'Ответьте на: «{utterance}»',
   'impulse.prompt.neuer-kontext': 'Используйте «{expression}» в новой ситуации.',
   'impulse.prompt.neuer-kontext-thema': 'Используйте «{expression}» в новой ситуации: {topic}.',
+  'step.prompt.wort-elizitieren': 'Как это будет по-русски?',
+  'step.prompt.chunk': 'Послушайте выражение целиком.',
+  'step.prompt.wiederholung': 'Что мы выучили? Скажите ещё раз.',
+
+  'drill.prompt.model': 'Слушайте внимательно.',
+  'drill.prompt.chorus': 'Все вместе.',
+  'drill.prompt.groups': 'Этот ряд, пожалуйста.',
+  'drill.prompt.individual': 'Один человек, пожалуйста.',
+  'drill.prompt.listen': 'Ещё раз, медленно.',
 };
 
 const la: Record<PromptKey, string> = {
@@ -332,6 +379,15 @@ const la: Record<PromptKey, string> = {
   'impulse.prompt.reaktion-formulieren': 'Respondete ad: «{utterance}»',
   'impulse.prompt.neuer-kontext': 'Utimini «{expression}» in novo situ.',
   'impulse.prompt.neuer-kontext-thema': 'Utimini «{expression}» in novo situ: {topic}.',
+  'step.prompt.wort-elizitieren': 'Quomodo hoc Latine dicitur?',
+  'step.prompt.chunk': 'Locutionem totam audite.',
+  'step.prompt.wiederholung': 'Quid didicimus? Iterum dicite.',
+
+  'drill.prompt.model': 'Audite diligenter.',
+  'drill.prompt.chorus': 'Omnes simul.',
+  'drill.prompt.groups': 'Hic ordo, quaeso.',
+  'drill.prompt.individual': 'Unus, quaeso.',
+  'drill.prompt.listen': 'Iterum, lente.',
 };
 
 export const PROMPTS: Record<string, Record<PromptKey, string>> = { fr, en, es, it, ru, la };

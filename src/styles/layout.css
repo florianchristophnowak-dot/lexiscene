@@ -1053,3 +1053,46 @@
     flex-wrap: wrap;
   }
 }
+
+/* ------------------------------------------------------ Wortprofil */
+
+.profile-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+}
+
+.profile-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+}
+
+/*
+ * Belegt oder offen wird nicht allein über Farbe unterschieden: Das Zeichen
+ * (● / ○) trägt die Information, die Schriftstärke verstärkt sie nur.
+ */
+.profile-item__mark {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.profile-item--filled .profile-item__mark {
+  color: var(--petrol);
+}
+
+.profile-item__name {
+  font-weight: 600;
+}
+
+.profile-item--filled .profile-item__name {
+  color: var(--text);
+}
+
+.profile-item__question {
+  display: block;
+}

@@ -434,3 +434,127 @@
   color: var(--text-muted);
   max-width: 44ch;
 }
+
+/* ------------------------------------------------- Wort herauslocken */
+
+.elicit-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: min(100%, 52rem);
+}
+
+/*
+ * Die Anlauthilfe steht groß, aber sichtbar unfertig: Sie ist ein Hinweis auf
+ * das Wort, nicht das Wort selbst.
+ */
+.elicit-stage__cue {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: 0.08em;
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 3px dashed var(--border-strong);
+}
+
+/* ------------------------------------------------------ Aussprache üben */
+
+.drill-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: min(100%, 52rem);
+}
+
+.drill-stage__item {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 5vw, 3.5rem);
+  line-height: 1.15;
+  max-width: 22ch;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------- Kollokation ergänzen */
+
+.chunk-stage__item {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 5vw, 3.5rem);
+  line-height: 1.15;
+  max-width: 24ch;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* -------------------------------------------------- Kumulative Wiederholung */
+
+.recap-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: min(100%, 60rem);
+}
+
+.recap-stage__list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+}
+
+.recap-stage__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 6rem;
+}
+
+/* Aufgedeckte Einträge treten hervor – auch ohne Farbe erkennbar. */
+.recap-stage__item--open {
+  border-color: var(--border-strong);
+  border-width: 2px;
+}
+
+.recap-stage__expression {
+  font-family: var(--font-serif);
+  font-size: clamp(1.125rem, 2.4vw, 1.875rem);
+}
+
+.recap-stage__chunk {
+  font-size: clamp(0.875rem, 1.4vw, 1.125rem);
+  color: var(--text-muted);
+}
+
+.recap-stage__masked {
+  font-size: clamp(1.125rem, 2.4vw, 1.875rem);
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------ Beiträge der Lerngruppe */
+
+.teach__contributions {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  font-size: clamp(1rem, 1.8vw, 1.375rem);
+}
+
+.teach__contributions li {
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}

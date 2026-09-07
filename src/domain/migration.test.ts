@@ -92,19 +92,20 @@ const SCHEMA_1_SEQUENCE = {
   updatedAt: 1_700_000_000_000,
 };
 
-describe('Migration Schema 1 → 4', () => {
+describe('Migration Schema 1 → 5', () => {
   const migrated = normalizeSequence(SCHEMA_1_SEQUENCE);
 
   it('hebt die Schemaversion an', () => {
     expect(migrated.schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(4);
+    expect(SCHEMA_VERSION).toBe(5);
   });
 
   it('behält alle Freitexte, Medien und Schrittfolgen', () => {
     expect(migrated.title).toBe('Freizeit verabreden');
     expect(migrated.teacherNote).toBe('Chunks zuerst hörend anbieten.');
     // Die alte Reihenfolge bleibt erhalten; nur die neuen Schritte kommen hinzu.
-    expect(migrated.stepOrder.filter((stepId) => stepId !== 'korpusminiatur' && stepId !== 'ccq')).toEqual(
+    const addedSinceSchema1 = ['korpusminiatur', 'ccq', 'wort-elizitieren', 'chunk', 'wiederholung'];
+    expect(migrated.stepOrder.filter((stepId) => !addedSinceSchema1.includes(stepId))).toEqual(
       SCHEMA_1_SEQUENCE.stepOrder,
     );
     expect(migrated.steps.fokus).toBe(false);
@@ -149,7 +150,7 @@ describe('Migration Schema 1 → 4', () => {
   it('legt den neuen Schritt „Korpusminiatur“ nicht ungefragt in bestehende Sequenzen', () => {
     expect(migrated.steps.korpusminiatur).toBe(false);
     expect(migrated.stepOrder).toContain('korpusminiatur');
-    expect(migrated.stepOrder[migrated.stepOrder.indexOf('korpusminiatur') - 1]).toBe('fokus');
+    expect(migrated.stepOrder[migrated.stepOrder.indexOf('korpusminiatur') - 1]).toBe('chunk');
     for (const lexeme of migrated.lexemes) {
       expect(lexeme.stepOverrides.korpusminiatur).toBeUndefined();
       expect(resolveSteps(migrated, lexeme).map((step) => step.id)).not.toContain('korpusminiatur');

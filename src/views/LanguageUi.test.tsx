@@ -48,3 +48,15 @@ describe('Französische Lehrkraftoberfläche', () => {
     expect(screen.getByText('Phase 1 : Mise en situation')).toBeInTheDocument();
   });
 });
+
+describe('Französische Oberfläche der neuen Schritte', () => {
+  it('übersetzt Schrittnamen, Techniken und Aussprachestufen', () => {
+    renderWithStore(<HelpView />, [], { state: { settings: { ...DEFAULT_SETTINGS, uiLanguage: 'fr' } } });
+
+    expect(screen.getByText('Faire trouver le mot')).toBeInTheDocument();
+    expect(screen.getByText('Ajouter la collocation')).toBeInTheDocument();
+    expect(screen.getByText('Reprise rapide')).toBeInTheDocument();
+    expect(screen.getByText(/Planifier à partir de l’objectif/)).toBeInTheDocument();
+    expect(screen.queryByText('Wort herauslocken')).not.toBeInTheDocument();
+  });
+});

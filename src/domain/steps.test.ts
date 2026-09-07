@@ -50,8 +50,20 @@ describe('Phasen', () => {
   it('ordnet jeden Schritt genau einer Phase zu', () => {
     expect(stepsOfPhase('kontext').map((step) => step.id)).toEqual(['situation', 'impuls']);
     expect(stepsOfPhase('klarheit').map((step) => step.id)).toEqual(['vermuten', 'klaeren', 'ccq']);
-    expect(stepsOfPhase('muster').map((step) => step.id)).toEqual(['audio', 'form', 'fokus', 'korpusminiatur']);
-    expect(stepsOfPhase('abruf').map((step) => step.id)).toEqual(['kontrolle', 'hilfen-ausblenden', 'abruf']);
+    expect(stepsOfPhase('muster').map((step) => step.id)).toEqual([
+      'wort-elizitieren',
+      'audio',
+      'form',
+      'fokus',
+      'chunk',
+      'korpusminiatur',
+    ]);
+    expect(stepsOfPhase('abruf').map((step) => step.id)).toEqual([
+      'kontrolle',
+      'hilfen-ausblenden',
+      'abruf',
+      'wiederholung',
+    ]);
     expect(stepsOfPhase('gebrauch').map((step) => step.id)).toEqual(['aufgabe']);
     // Die Wiederbegegnung ist keine Station im Unterrichtsmodus, sondern der Reaktivierungsbereich.
     expect(stepsOfPhase('wiederbegegnung')).toEqual([]);
@@ -120,23 +132,33 @@ describe('stepHasContent', () => {
 });
 
 describe('Standardreihenfolge', () => {
-  it('führt dreizehn Schritte in der festgelegten Folge', () => {
+  it('führt sechzehn Schritte in der festgelegten Folge', () => {
     expect(STEP_IDS).toEqual([
       'situation',
       'impuls',
       'vermuten',
       'klaeren',
       'ccq',
+      'wort-elizitieren',
       'audio',
       'form',
       'fokus',
+      'chunk',
       'korpusminiatur',
       'kontrolle',
       'hilfen-ausblenden',
       'abruf',
+      'wiederholung',
       'aufgabe',
     ]);
-    expect(STEPS.map((step) => step.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    expect(STEPS.map((step) => step.position)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
+  });
+
+  it('lockt das Wort erst nach der Bedeutungsprüfung heraus', () => {
+    expect(STEP_IDS.indexOf('wort-elizitieren')).toBeGreaterThan(STEP_IDS.indexOf('ccq'));
+    expect(STEP_IDS.indexOf('wort-elizitieren')).toBeLessThan(STEP_IDS.indexOf('form'));
   });
 
   it('schaltet nur die Korpusminiatur ab, nicht die Bedeutungsprüfung', () => {
@@ -155,6 +177,7 @@ describe('resolveSteps', () => {
       'impuls',
       'vermuten',
       'klaeren',
+      'wort-elizitieren',
       'audio',
       'form',
       'fokus',
@@ -263,7 +286,16 @@ describe('normalizeStepOrder', () => {
     const legacy = STEP_IDS.filter((stepId) => stepId !== 'korpusminiatur');
     const order = normalizeStepOrder(legacy);
     expect(order).toEqual([...STEP_IDS]);
-    expect(order[order.indexOf('korpusminiatur') - 1]).toBe('fokus');
+    expect(order[order.indexOf('korpusminiatur') - 1]).toBe('chunk');
+
+    // Ebenso die Schritte aus Schema 5: Sie landen an ihrer Standardposition.
+    const beforeFive = STEP_IDS.filter(
+      (stepId) => !['wort-elizitieren', 'chunk', 'wiederholung'].includes(stepId),
+    );
+    const migrated = normalizeStepOrder(beforeFive);
+    expect(migrated).toEqual([...STEP_IDS]);
+    expect(migrated[migrated.indexOf('wort-elizitieren') - 1]).toBe('ccq');
+    expect(migrated[migrated.indexOf('wiederholung') - 1]).toBe('abruf');
   });
 
   it('liefert bei fehlender Angabe die Standardreihenfolge', () => {

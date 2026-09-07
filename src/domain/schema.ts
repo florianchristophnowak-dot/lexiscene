@@ -17,9 +17,13 @@ import {
   OBSERVATION_RESULTS,
   REPERTOIRES,
   SCHEMA_VERSION,
+  CONNOTATIONS,
+  TASK_TYPES,
   TEACHING_LANGUAGE_MODES,
   TRANSFER_RISKS,
+  WORD_CLASSES,
   type AppSettings,
+  type Connotation,
   type Imageability,
   type InferenceMode,
   type InferenceSuitability,
@@ -36,14 +40,17 @@ import {
   type Repertoire,
   type Sequence,
   type StepId,
+  type TaskType,
   type TeachingLanguageMode,
   type TransferRisk,
   type UiLanguageSetting,
+  type WordClass,
 } from './model';
 import { STEP_IDS, defaultStepConfig, normalizeStepOrder } from './steps';
 import { migrateLegacyStatus } from './observations';
 import { createCorpusMiniature, normalizeCorpusMiniature } from './corpus';
 import { ccqTemplate, createConceptCheck, isCcqTemplateId, normalizeConceptChecks } from './ccq';
+import { normalizeTechniques } from './eliciting';
 import { createId } from './ids';
 
 export { createId };
@@ -61,6 +68,19 @@ const asNumber = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 const asRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+
+/** Liste von Zeichenketten – leere Einträge und Dopplungen fallen weg. */
+function asStringList(value: unknown, limit = 40): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue;
+    const text = entry.trim();
+    if (text && !seen.has(text)) seen.add(text);
+    if (seen.size >= limit) break;
+  }
+  return [...seen];
+}
 
 function asOption<T extends string>(value: unknown, options: readonly T[], fallback: T): T {
   return options.includes(value as T) ? (value as T) : fallback;
@@ -116,9 +136,16 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     learningGoal: defaultLearningGoal(repertoire),
     semantisationMethod: '',
     repertoire,
+    selectionReason: '',
+    connotation: 'unbestimmt',
+    wordClass: 'unbestimmt',
     targetExplanation: '',
     targetPrompt: '',
     teacherNote: '',
+    elicitingTechniques: [],
+    elicitingContext: '',
+    wordCue: '',
+    keyCollocation: '',
     ccqs: [],
     imageability: defaultImageability(lexicalType),
     inferenceSuitability: defaultInferenceSuitability(lexicalType),
@@ -153,6 +180,7 @@ export function createLexeme(partial: Partial<Lexeme> = {}): Lexeme {
     skipped: false,
     observations: [],
     liveNote: '',
+    classContributions: [],
     createdAt: now,
     updatedAt: now,
     ...partial,
@@ -182,6 +210,8 @@ export function createSequence(partial: Partial<Sequence> = {}): Sequence {
     learnerLevel: 'mittelstufe',
     topic: '',
     canDoGoal: '',
+    taskType: 'sonstige',
+    targetTask: '',
     teacherNote: '',
     archived: false,
     steps: defaultStepConfig(),
@@ -291,6 +321,9 @@ export function normalizeLexeme(raw: unknown, targetLanguage = ''): Lexeme {
     learningGoal: asOption<LearningGoal>(source.learningGoal, LEARNING_GOALS, defaultLearningGoal(repertoire)),
     semantisationMethod: asString(source.semantisationMethod, base.semantisationMethod),
     repertoire,
+    selectionReason: asString(source.selectionReason),
+    connotation: asOption<Connotation>(source.connotation, CONNOTATIONS, 'unbestimmt'),
+    wordClass: asOption<WordClass>(source.wordClass, WORD_CLASSES, 'unbestimmt'),
     imageability: asOption<Imageability>(source.imageability, IMAGEABILITIES, defaultImageability(lexicalType)),
     inferenceSuitability: asOption<InferenceSuitability>(
       source.inferenceSuitability,
@@ -302,6 +335,11 @@ export function normalizeLexeme(raw: unknown, targetLanguage = ''): Lexeme {
     targetExplanation: asString(source.targetExplanation),
     targetPrompt: asString(source.targetPrompt),
     teacherNote: asString(source.teacherNote),
+    // Schema 5: geplante Eliciting-Techniken und ihr vorbereiteter Kontext.
+    elicitingTechniques: normalizeTechniques(source.elicitingTechniques),
+    elicitingContext: asString(source.elicitingContext),
+    wordCue: asString(source.wordCue),
+    keyCollocation: asString(source.keyCollocation),
     imageId: typeof source.imageId === 'string' ? source.imageId : undefined,
     audioId: typeof source.audioId === 'string' ? source.audioId : undefined,
     videoId: typeof source.videoId === 'string' ? source.videoId : undefined,
@@ -337,6 +375,7 @@ export function normalizeLexeme(raw: unknown, targetLanguage = ''): Lexeme {
     skipped: asBoolean(source.skipped),
     observations,
     liveNote: asString(source.liveNote),
+    classContributions: asStringList(source.classContributions),
     createdAt: asNumber(source.createdAt, base.createdAt),
     updatedAt: asNumber(source.updatedAt, base.updatedAt),
   };
@@ -417,6 +456,10 @@ export function normalizeSequence(raw: unknown): Sequence {
     learnerLevel: asOption<LearnerLevel>(source.learnerLevel, LEARNER_LEVELS, base.learnerLevel),
     topic: asString(source.topic),
     canDoGoal: asString(source.canDoGoal),
+    // Schema 5: Die Aufgabe steht am Anfang der Planung. Ältere Sequenzen
+    // behalten ihr Kann-Ziel; die Aufgabe bleibt leer, bis sie ergänzt wird.
+    taskType: asOption<TaskType>(source.taskType, TASK_TYPES, 'sonstige'),
+    targetTask: asString(source.targetTask),
     teacherNote: asString(source.teacherNote),
     archived: asBoolean(source.archived),
     steps,

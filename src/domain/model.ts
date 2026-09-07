@@ -1,5 +1,5 @@
 /**
- * Datenmodell von LexiScène (Schemaversion 4).
+ * Datenmodell von LexiScène (Schemaversion 5).
  *
  * Verwaltet werden nicht einzelne Vokabeln, sondern kommunikativ nutzbare
  * lexiko-grammatische Einheiten ("Lexikeinheiten"). Das Schema ist versioniert
@@ -16,13 +16,19 @@
  * zielsprachliche Erklärung, erstsprachliche Übersetzung, zielsprachlicher
  * Unterrichtsimpuls und Lehrkraftnotiz.
  *
+ * Version 5 stellt die Planung vom Ziel her auf den Kopf: Die Sequenz beginnt
+ * mit der Aufgabe, in der die Lernenden die Sprache brauchen. Je Einheit kommen
+ * die Analysedimensionen Konnotation und Wortart hinzu, die geplanten
+ * Eliciting-Techniken, ein Anlauthinweis für das Herauslocken des Wortes, die
+ * zentrale Kollokation und die Beiträge der Lerngruppe.
+ *
  * Bezeichnungen für die Oberfläche stehen bewusst nicht mehr in diesem Modul,
  * sondern im Sprachkatalog (`src/i18n`). Hier liegen ausschließlich stabile
  * Kennungen; die Schlüssel werden daraus abgeleitet.
  */
 
-export const SCHEMA_VERSION = 4;
-export const APP_VERSION = '0.4.0';
+export const SCHEMA_VERSION = 5;
+export const APP_VERSION = '0.5.0';
 export const APP_NAME = 'LexiScène';
 
 /* ------------------------------------------------------------- Zielsprachen */
@@ -80,6 +86,59 @@ export const LEXICAL_TYPES: readonly LexicalType[] = [
 export type Repertoire = 'kern' | 'stuetze' | 'erweiterung';
 
 export const REPERTOIRES: readonly Repertoire[] = ['kern', 'stuetze', 'erweiterung'];
+
+/* --------------------------------------------------------- Zielaufgabe */
+
+/**
+ * Art der Aufgabe, in der die Lernenden den Wortschatz brauchen. Sie steht am
+ * Anfang der Planung: Erst die Aufgabe, dann die Auswahl der Einheiten.
+ */
+export type TaskType = 'gespraech' | 'rollenspiel' | 'diskussion' | 'hoertext' | 'lesetext' | 'lied' | 'sonstige';
+
+export const TASK_TYPES: readonly TaskType[] = [
+  'gespraech',
+  'rollenspiel',
+  'diskussion',
+  'hoertext',
+  'lesetext',
+  'lied',
+  'sonstige',
+];
+
+/* ------------------------------------------------------ Wortanalyse */
+
+/** Wie wirkt der Ausdruck? Teil der Analyse vor dem Unterricht. */
+export type Connotation =
+  | 'unbestimmt'
+  | 'neutral'
+  | 'positiv'
+  | 'negativ'
+  | 'formell'
+  | 'umgangssprachlich'
+  | 'emotional';
+
+export const CONNOTATIONS: readonly Connotation[] = [
+  'unbestimmt',
+  'neutral',
+  'positiv',
+  'negativ',
+  'formell',
+  'umgangssprachlich',
+  'emotional',
+];
+
+/** Wortart beziehungsweise Form der Einheit – für das Tafelbild. */
+export type WordClass = 'unbestimmt' | 'nomen' | 'verb' | 'adjektiv' | 'adverb' | 'wendung' | 'sonstige';
+
+export const WORD_CLASSES: readonly WordClass[] = [
+  'unbestimmt',
+  'nomen',
+  'verb',
+  'adjektiv',
+  'adverb',
+  'wendung',
+  'sonstige',
+];
 
 /* ------------------------------------------------------- Lernziel und Profil */
 
@@ -149,12 +208,15 @@ export type StepId =
   | 'vermuten'
   | 'klaeren'
   | 'ccq'
+  | 'wort-elizitieren'
   | 'form'
   | 'fokus'
+  | 'chunk'
   | 'korpusminiatur'
   | 'kontrolle'
   | 'hilfen-ausblenden'
   | 'abruf'
+  | 'wiederholung'
   | 'aufgabe';
 
 /** Die sechs didaktischen Phasen als übergeordnete Ebene über den Schritten. */
@@ -334,6 +396,19 @@ export interface Lexeme {
   semantisationMethod: string;
   repertoire: Repertoire;
 
+  /* --- Auswahl vom Ziel her --- */
+  /**
+   * Warum steht die Einheit in dieser Sequenz? Bezug zur Zielaufgabe,
+   * Lerngruppe und zum erwarteten eigenen Gebrauch – nur für die Lehrkraft.
+   */
+  selectionReason: string;
+
+  /* --- Wortanalyse --- */
+  /** Wirkung des Ausdrucks: neutral, wertend, formell, umgangssprachlich … */
+  connotation: Connotation;
+  /** Wortart oder Form – geht ins Tafelbild ein. */
+  wordClass: WordClass;
+
   imageId?: string;
   audioId?: string;
   videoId?: string;
@@ -345,6 +420,25 @@ export interface Lexeme {
   targetPrompt: string;
   /** Notiz für die Lehrkraft aus der Vorbereitung – nie projiziert. */
   teacherNote: string;
+
+  /* --- Bedeutung herauslocken --- */
+  /**
+   * Geplante Eliciting-Techniken (Kennungen aus `domain/eliciting.ts`).
+   * Mehrere lassen sich verbinden, etwa Bild und Geste.
+   */
+  elicitingTechniques: string[];
+  /**
+   * Vorbereiteter Kontext oder Impuls für das Herauslocken – knapp halten,
+   * damit die Lehrersprache kurz bleibt. Nur für die Lehrkraft.
+   */
+  elicitingContext: string;
+  /**
+   * Anlaut oder erste Buchstaben, mit denen das Wort herausgelockt wird,
+   * wenn es niemand nennt. Zielsprachlich, darf projiziert werden.
+   */
+  wordCue: string;
+  /** Zentrale Kollokation oder Chunk, der bei der Einführung ergänzt wird. */
+  keyCollocation: string;
 
   /* --- Profil für den Methodenberater --- */
   imageability: Imageability;
@@ -401,6 +495,11 @@ export interface Lexeme {
   /** Beobachtungen der Lerngruppe, chronologisch. */
   observations: LexemeObservation[];
   liveNote: string;
+  /**
+   * Im Unterricht aufgenommene Beiträge der Lerngruppe – etwa eine
+   * Kollokation, die jemand einbringt. Zielsprachlich, projizierbar.
+   */
+  classContributions: string[];
 
   createdAt: number;
   updatedAt: number;
@@ -446,6 +545,13 @@ export interface Sequence {
   learnerLevel: LearnerLevel;
   topic: string;
   canDoGoal: string;
+  /** Art der Aufgabe, für die der Wortschatz gebraucht wird. */
+  taskType: TaskType;
+  /**
+   * Die Aufgabe selbst: Was tun die Lernenden am Ende mit der Sprache?
+   * Der Wortschatz wird daraus abgeleitet, nicht umgekehrt.
+   */
+  targetTask: string;
   teacherNote: string;
   archived: boolean;
   steps: Record<StepId, boolean>;

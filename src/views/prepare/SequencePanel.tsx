@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { useStore } from '../../app/storeContext';
 import { downloadText } from '../../app/download';
-import { INFERENCE_MODES, LANGUAGES, LEARNER_LEVELS, type Sequence } from '../../domain/model';
+import { INFERENCE_MODES, LANGUAGES, LEARNER_LEVELS, TASK_TYPES, type Sequence } from '../../domain/model';
 import { PHASES, PHASE_VISIBILITY, STEP_IDS, effectiveStepOrder, moveStep, stepPhase, visibilityLabel } from '../../domain/steps';
 import { buildSequenceExport, sequenceExportFileName } from '../../storage/backup';
 import { truncate } from '../../domain/text';
@@ -135,6 +135,32 @@ export function SequencePanel({ sequence, selectedLexemeId, onSelectLexeme, head
             wide
           />
         </div>
+
+        {/*
+          * Die Aufgabe steht vor der Wortliste: Aus ihr ergibt sich, welche
+          * Einheiten die Lernenden wirklich brauchen.
+          */}
+        <section className="core-panel">
+          <p className="core-panel__title">{t('sequence.task.title')}</p>
+          <p className="field__hint">{t('sequence.task.hint')}</p>
+          <div className="sequence-form">
+            <SelectField
+              label={t('sequence.field.taskType')}
+              value={sequence.taskType}
+              onChange={(taskType) => update({ taskType: taskType as Sequence['taskType'] })}
+              options={TASK_TYPES.map((type) => ({ value: type, label: tid('taskType', type) }))}
+            />
+            <TextArea
+              label={t('sequence.field.targetTask')}
+              value={sequence.targetTask}
+              onChange={(targetTask) => update({ targetTask })}
+              placeholder={t('sequence.field.targetTask.placeholder')}
+              hint={sequence.targetTask.trim() ? t('sequence.field.targetTask.hint') : t('sequence.task.missing')}
+              rows={2}
+              wide
+            />
+          </div>
+        </section>
 
         <Collapsible title={t('sequence.note')}>
           <TextArea

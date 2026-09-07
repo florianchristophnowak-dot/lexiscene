@@ -109,6 +109,31 @@ export function HelpView() {
       </section>
 
       <Section
+        title={t('help.task.title')}
+        paragraphs={[t('help.task.backwards'), t('help.task.choose'), t('help.task.criteria')]}
+      />
+
+      <Section
+        title={t('help.routine.title')}
+        paragraphs={[t('help.routine.lede'), t('help.routine.steps'), t('help.routine.note')]}
+      />
+
+      <Section
+        title={t('help.eliciting.title')}
+        paragraphs={[
+          t('help.eliciting.principle'),
+          t('help.eliciting.techniques'),
+          t('help.eliciting.short'),
+          t('help.eliciting.concept'),
+        ]}
+      />
+
+      <Section
+        title={t('help.drill.title')}
+        paragraphs={[t('help.drill.board'), t('help.drill.stages'), t('help.drill.chunk')]}
+      />
+
+      <Section
         title={t('help.ccq.title')}
         paragraphs={[t('help.ccq.difference'), t('help.ccq.good'), t('help.ccq.form'), t('help.ccq.flow')]}
       />

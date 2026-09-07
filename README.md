@@ -7,6 +7,25 @@ verwaltet kommunikativ nutzbare lexiko-grammatische Einheiten – etwa
 `Ça te dit de… ?`, `avoir besoin de qc` oder `Je préfère…` – und unterstützt die
 Regie von der ersten Begegnung bis zum eigenen Sprachhandeln.
 
+## Der Ansatz
+
+**Nicht von einer Wortliste ausgehen, sondern von der Frage, was die Lernenden
+mit der Sprache verstehen oder tun sollen.**
+
+Zuerst steht die Aufgabe fest – ein Gespräch, ein Rollenspiel, eine Diskussion,
+ein Hörtext oder ein Lied. Aus ihr wird der Wortschatz abgeleitet, mit Vorrang
+für das, was die Lernenden voraussichtlich selbst verwenden. Eine Sammlung
+thematisch verwandter Einzelwörter reicht dafür nicht: Gebraucht werden
+verwendbare Verbindungen und Muster (`make a promise`, `keep a promise`,
+`break a promise`).
+
+Die Bedeutung wird nach Möglichkeit gezeigt statt erklärt, und herausgelockt
+wird zuerst der Begriff, nicht das Wort – niemand kann ein Wort nennen, das er
+nie gehört hat. Steht das Konzept, wird kurz gewartet, dann ein Anlaut gegeben
+und zuletzt das Wort genannt. Danach wird es sichtbar und korrekt angeschrieben,
+die Aussprache modelliert und geübt, eine zentrale Kollokation ergänzt und die
+Bedeutung mit kurzen Fragen geprüft – nicht mit „Habt ihr das verstanden?“.
+
 ## Das Modell
 
 **Kontext – Klarheit – Muster – Abruf – Gebrauch – Wiederbegegnung**
@@ -21,9 +40,31 @@ Regie von der ersten Begegnung bis zum eigenen Sprachhandeln.
 | 6 Wiederbegegnung | Später erneut aktivieren – im Bereich „Reaktivieren“. |
 
 Die Phasen sind die Grundstruktur, kein Pflichtprogramm. Darunter liegen
-dreizehn Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten
+sechzehn Mikro-Schritte, die sich je Sequenz und je Einheit an- und abschalten
 und frei umsortieren lassen. Schritte ohne hinterlegtes Material entfallen
 automatisch.
+
+Die Standardreihenfolge bildet eine Routine ab, die sich für jede neue Einheit
+wiederholen lässt:
+
+| # | Schritt | Worum es geht |
+| --- | --- | --- |
+| 1 | Situation | kommunikativen Bedarf sichtbar machen |
+| 2 | Impuls zeigen | Bild, Gegenstand, Geste oder Video anbieten |
+| 3 | Bedeutung erschließen | Vorwissen aktivieren, Aufmerksamkeit eingrenzen |
+| 4 | Bedeutung klären | sicherstellen, dass das Konzept steht |
+| 5 | Bedeutung prüfen (CCQs) | mit kurzen Fragen belegen, dass es verstanden ist |
+| 6 | **Wort herauslocken** | warten – Anlaut – Wort nennen |
+| 7 | Hören | Klangbild anbieten |
+| 8 | Form zeigen | Schriftbild mit den nötigen Angaben |
+| 9 | Aussprache und Muster | modellieren, chorisch, Gruppen, einzeln, hinhören |
+| 10 | **Kollokation ergänzen** | eine zentrale Wendung als Ganzes |
+| 11 | Korpusminiatur | optional: Muster an Belegen entdecken |
+| 12 | Abrufkontrolle | Wiedererkennen, Erinnern, Produzieren der Form |
+| 13 | Hilfen ausblenden | Stützen entfernen |
+| 14 | Freier Abruf | ohne Vorlage abrufen |
+| 15 | **Kurze Wiederholung** | kumulativ aufgreifen, was schon eingeführt wurde |
+| 16 | Mini-Aufgabe | die Einheit unmittelbar verwenden |
 
 Jede Phase bringt ein Sichtbarkeitsprofil mit: Es bestimmt, was die Klasse beim
 Betreten eines Schritts zuerst sieht — in „Kontext“ nichts, in „Klarheit“ die
@@ -159,6 +200,11 @@ mindestens 44 × 44 Pixel):
   entweder die ausdrücklich gewählte oder den Vorschlag der App.
 * **Vorherige / Nächste Frage, Antwort zeigen, Alternative Klärung zeigen,
   Zurück zur Klärung** führen durch die Bedeutungsfragen (siehe unten).
+* **Warten / Anlaut geben / Wort nennen** decken im Schritt „Wort herauslocken“
+  stufenweise auf.
+* **Aussprache üben** startet die Stufenfolge der Aussprachearbeit;
+  **Nächsten Ausdruck aufdecken** führt durch die kurze Wiederholung.
+* **Beitrag aufnehmen** speichert eine Wendung aus der Klasse zur Einheit.
 * **Erstsprache** blendet die Übersetzung ein. Die Schaltfläche erscheint nur,
   wenn der Sprachmodus des Unterrichts sie zulässt.
 * **Fokus markieren / Gruppen zeigen / Regel zeigen / Transfer zeigen** decken
@@ -169,10 +215,8 @@ mindestens 44 × 44 Pixel):
 * **Vorbereiten** verlässt den Unterricht; die Stelle bleibt erhalten und die
   Startseite bietet danach „Unterricht fortsetzen“ an.
 
-Die Standarddramaturgie umfasst dreizehn Schritte (Situation, Impuls, Hören,
-Vermuten, Bedeutung klären, **Bedeutung prüfen (CCQs)**, Form zeigen, Aussprache
-und Muster, Korpusminiatur, Abrufkontrolle, Hilfen ausblenden, freier Abruf,
-Mini-Aufgabe). Sie lässt
+Die Standarddramaturgie umfasst sechzehn Schritte (siehe die Tabelle unter
+*Das Modell*). Sie lässt
 sich pro Sequenz und pro Einheit abschalten **und frei umsortieren**; Schritte
 ohne hinterlegtes Material entfallen automatisch. Die Korpusminiatur ist ein
 Angebot und bleibt abgeschaltet, bis Sie sie einschalten.
@@ -283,6 +327,51 @@ im Verlauf. Auf Wunsch stehen Einheiten, die zuletzt unsicher waren, in der
 nächsten Runde vorn – eine transparente didaktische Heuristik, kein
 Lernalgorithmus. Für die Abstände gibt es kein einzig richtiges Intervall.
 
+### Wort herauslocken, Aussprache, Kollokation
+
+**Wort herauslocken** (Phase Muster, direkt hinter der Bedeutungsprüfung) führt
+die drei Stufen der Routine: **Warten** – die Klasse sieht nur Impuls und
+Bedeutung, das Wort steht nirgends –, **Anlaut geben** – die ersten Laute oder
+Buchstaben erscheinen groß und sichtbar unfertig –, **Wort nennen**. Die
+Anlauthilfe hinterlegen Sie unter *Aussprache und Form*; bleibt das Feld leer,
+kürzt die App den Ausdruck. Auf dem Lehrkraftbildschirm steht das Wort die ganze
+Zeit, in der Projektion erst nach dem Aufdecken.
+
+**Aussprache und Muster** enthält die Aussprachearbeit: **Aussprache üben**
+startet sie, danach führen **Vorsprechen**, **Chorisch**, **Teilgruppen**,
+**Einzeln** und **Gezielt hören** durch die Stufen — jede mit einer kurzen
+zielsprachlichen Anweisung für die Klasse und einem Regiehinweis für Sie.
+Gedrillt wird die zentrale Kollokation, sonst die Modelläußerung, sonst der
+Ausdruck – die Wendung also als Ganzes, nicht Wort für Wort.
+
+**Kollokation ergänzen** zeigt die eine Wendung, die die Einheit verwendbar
+macht. Sie steht unter *Sprachliches Muster*; die Schaltfläche *Erste Kollokation
+übernehmen* holt sie aus der vorhandenen Liste.
+
+**Beitrag aufnehmen** hält fest, was aus der Klasse kommt: Die Wendung wird zur
+Einheit gespeichert und erscheint anschließend im Wortfeld – in „Kollokation
+ergänzen“, in der Aussprachearbeit und in der Wiederholung.
+
+**Kurze Wiederholung** (Phase Abruf, vor der Mini-Aufgabe) greift kumulativ auf,
+was in dieser Sequenz schon eingeführt wurde. Die Einträge sind zunächst
+verdeckt und werden einzeln aufgedeckt; die Lehrkraft sieht die ganze Liste. Der
+Schritt erscheint ab der zweiten Einheit.
+
+### Wortprofil und Auswahl
+
+Die Detailspalte beginnt mit **Warum diese Einheit?** – dem Bezug zur
+Zielaufgabe, zur Lerngruppe und zum erwarteten eigenen Gebrauch. Darunter steht
+das **Wortprofil**: die sieben Dimensionen Bedeutung, Konnotation, Form,
+Wortbildung, Aussprache, Kollokation und Verwendung, jede mit ihrer Leitfrage.
+Angezeigt wird nur, wozu schon etwas eingetragen ist; bewertet wird nichts.
+
+**Bedeutung herauslocken** listet die zehn Techniken – Mimik und Gestik, Bild,
+Zeichnung, Realie, Requisit und Pantomime, Synonym, Antonym, Beispiele und
+Unterbegriffe, Kontext, kurze Definition. Passende sind als *empfohlen*
+gekennzeichnet, ausgewählt wird nichts von allein. Dazu kommt der vorbereitete
+Kontext; wird er lang, weist die App darauf hin, dass kürzer meist eindeutiger
+ist.
+
 ## Zielsprachlich unterrichten
 
 Unter *Daten → Einstellungen* stehen zwei getrennte Entscheidungen:
@@ -343,6 +432,8 @@ der Zielsprache der Sequenz, nicht der Bediensprache.
 ```
 src/
 ├── domain/     Modell, Schema und Migration, Phasen und Schritte, Berater,
+│               Eliciting-Techniken (eliciting.ts), Wortprofil (profile.ts),
+│               Aussprachearbeit (drill.ts), Wiederholung (recap.ts),
 │               Bedeutungsfragen (ccq.ts), Bühnenmodell (stage.ts),
 │               Abrufvorlagen, Beobachtungen, Korpusminiaturen, Reaktivierung,
 │               Bereitschaft, Import, Demo
@@ -364,6 +455,10 @@ src/
   vor; eigene Inhalte werden nie automatisch übersetzt oder überschrieben.
 * Bedeutungsfragen entstehen nicht automatisch. Die Vorlagen liefern Gerüste und
   Fragestämme, die Formulierung bleibt bei der Lehrkraft.
+* Techniken zum Herauslocken werden vorgeschlagen, aber nie vorbelegt; die App
+  analysiert keine Inhalte und beurteilt keine Formulierung.
+* Die Aussprachearbeit ist eine Regiehilfe. Es gibt keine Spracherkennung und
+  keine Rückmeldung zur Aussprache einzelner Lernender.
 * Korpusminiaturen sind selbst kuratierte Belegsammlungen. Es gibt keine
   Anbindung an Onlinekorpora, keine Suche, keine Häufigkeitsangaben und keine
   automatische Auswahl von Belegen; LexiScène wird dadurch keine

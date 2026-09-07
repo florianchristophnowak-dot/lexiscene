@@ -23,6 +23,7 @@ describe('Bereitschaftscheck', () => {
   it('meldet nichts Wesentliches bei einer vorbereiteten Sequenz', () => {
     const sequence = createSequence({
       canDoGoal: 'Die Lernenden können einen Vorschlag machen.',
+      targetTask: 'Zu zweit eine gemeinsame Unternehmung vereinbaren.',
       lexemes: [complete()],
       reactivation: createReactivationPlan({ enabled: true, anchor: Date.now() }),
     });
@@ -105,6 +106,68 @@ describe('Bereitschaftscheck', () => {
     expect(summary.toComplete).toBeGreaterThan(0);
     expect(summary.optional).toBeGreaterThan(0);
     expect(summary.findings.every((finding) => ['ergaenzen', 'vertiefen'].includes(finding.severity))).toBe(true);
+  });
+});
+
+describe('Bereitschaftscheck und Planung vom Ziel her', () => {
+  it('vermisst die Zielaufgabe', () => {
+    expect(ids(createSequence({ lexemes: [complete()] }))).toContain('target-task');
+    const planned = createSequence({ targetTask: 'Einen Samstag verabreden.', lexemes: [complete()] });
+    expect(ids(planned)).not.toContain('target-task');
+  });
+
+  it('regt eine Technik zum Herauslocken an', () => {
+    const sequence = createSequence({ targetTask: 'Ziel', lexemes: [complete()] });
+    const finding = checkReadiness(sequence).find((entry) => entry.id === 'eliciting');
+    expect(finding?.severity).toBe('vertiefen');
+
+    const planned = createSequence({
+      targetTask: 'Ziel',
+      lexemes: [createLexeme({ ...complete(), elicitingTechniques: ['bild', 'kontext'] })],
+    });
+    expect(ids(planned)).not.toContain('eliciting');
+  });
+
+  it('weist auf einzelne Bedeutungsfragen hin, ohne eine Zahl zu verlangen', () => {
+    const single = createSequence({ lexemes: [complete()] });
+    expect(ids(single)).toContain('ccq-count');
+
+    const three = createSequence({
+      lexemes: [
+        createLexeme({
+          ...complete(),
+          ccqs: [
+            createConceptCheck({ question: 'A ?', expectedAnswer: 'Oui.' }),
+            createConceptCheck({ question: 'B ?', expectedAnswer: 'Non.' }),
+            createConceptCheck({ question: 'C ?', expectedAnswer: 'Oui.' }),
+          ],
+        }),
+      ],
+    });
+    expect(ids(three)).not.toContain('ccq-count');
+
+    // Ganz ohne Frage greift der andere Hinweis – nicht dieser.
+    const none = createSequence({ lexemes: [createLexeme({ ...complete(), ccqs: [] })] });
+    expect(ids(none)).not.toContain('ccq-count');
+    expect(ids(none)).toContain('ccq');
+  });
+
+  it('meldet Lücken im Wortprofil und eine fehlende Wendung', () => {
+    const bare = createSequence({
+      lexemes: [createLexeme({ expression: 'promesse', learningGoal: 'productive' })],
+    });
+    expect(ids(bare)).toEqual(expect.arrayContaining(['profile', 'chunk']));
+
+    const rounded = createSequence({
+      lexemes: [
+        createLexeme({
+          ...complete(),
+          pronunciationHint: 'Nasal am Ende',
+          keyCollocation: 'tenir une promesse',
+        }),
+      ],
+    });
+    expect(ids(rounded)).not.toEqual(expect.arrayContaining(['profile', 'chunk']));
   });
 });
 
